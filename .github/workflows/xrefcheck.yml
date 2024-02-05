@@ -1,0 +1,20 @@
+---
+name: Xrefcheck
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  xrefcheck:
+    name: Check references
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Link Checker
+        uses: serokell/xrefcheck-action@v1
+        with:
+          xrefcheck-args: --ignored ./README.md

@@ -1,0 +1,50 @@
+---
+name: ma-patrick-ritzenfeld
+extra-source-files: [ ]
+dependencies:
+  - base
+  - extra
+default-extensions:
+  - TupleSections
+  - DuplicateRecordFields
+  - OverloadedLabels
+  - MultiParamTypeClasses
+  - FlexibleInstances
+  - TypeApplications
+  - ScopedTypeVariables
+  - NamedFieldPuns
+  - FlexibleContexts
+library:
+  source-dirs: src
+  exposed-modules: [ ]
+  ghc-options:
+    - -Wall
+    - -Widentities
+    - -Werror
+executables:
+  default:
+    main: default.hs
+    source-dirs: app
+    dependencies:
+      - ma-patrick-ritzenfeld
+    ghc-options:
+      - -Wunused-imports
+      - -Wmissing-signatures
+      - -Wunused-matches
+      - -Widentities
+      - -Werror
+tests:
+  ma-patrick-ritzenfeld-test:
+    main: Spec.hs
+    source-dirs:
+      - test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -Wall
+      - -Widentities
+      - -Werror
+    dependencies:
+      - ma-patrick-ritzenfeld
+      - hspec
