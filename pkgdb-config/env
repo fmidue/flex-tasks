@@ -1,0 +1,14 @@
+# Creation
+#IMAGE_TAG=
+INSTALL_NEW_GHC=
+ROOT=/autotool/flex-pkgdb
+#PKG_DB=/autotool/flex-pkgdb/pkgdb
+# Publication
+USER=root
+GROUP=${USER}
+SSH_USER=${USER}
+SERVER=localhost
+JUMP_HOST=
+PORT=22
+FOLDER=$(dirname ${ROOT})/
+#TARGET=
