@@ -65,6 +65,7 @@ ignore$
 \.zip$
 ^\.github/actions/spelling/
 ^\.github/linters/
+^\Qpkgdb-config/env\E$
 ^\Qthesis/istitle.sty\E$
 ^\Qthesis/natbib.cfg\E$
 ^\Qthesis/linkcolors-colored.tex\E$
