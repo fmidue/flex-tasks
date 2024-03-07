@@ -65,7 +65,7 @@ ignore$
 \.zip$
 ^\.github/actions/spelling/
 ^\.github/linters/
-^\tasks/
+^\Qtasks/proplogic.txt\E$
 ^\Qpkgdb-config/env\E$
 ^\Qthesis/istitle.sty\E$
 ^\Qthesis/natbib.cfg\E$

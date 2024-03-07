@@ -37,7 +37,7 @@ getTask = do
         description = output a b c d
         zipped = zip bools ([minBound .. maxBound] :: [Namen])
         coming = [ n | (b,n) <- zipped, b==True]
-        
+
     pure (description, show (Table [],f,coming), getHtml flattened widget, flattened)
   where
     flattened = flatten fieldNames
@@ -59,7 +59,7 @@ output a b c d = (beschreibung a b c d, show $ formula a b c d)
 
 beschreibung :: Bool -> Bool -> Bool -> Bool -> String
 beschreibung a b c d = [i|
-Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. 
+Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen.
 Sie fragt ihre Freunde Astrid (A), Ben (B), Claudia (C) und David (D), ob sie mitkommen wollen.
 Leider sind die Antworten etwas seltsam.
 
@@ -80,11 +80,11 @@ Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen 
     -- to avoid inline type annotations due to String vs Text
     auch :: String
     auch = " auch"
-    
+
     hint1 = [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|] :: String
     hint2 = [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|] :: String
     hint3 = [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|] :: String
-    hint4 = 
+    hint4 =
       (if b == d
          then [i|Falls Ben und David #{nicht b} kommen,|]
          else
@@ -93,7 +93,7 @@ Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen 
              else "Falls Ben, aber nicht David kommt,")
       ++ [i| kommt Claudia #{nicht (not c)}.|] :: String
 
-    hint5 = 
+    hint5 =
       [i|Wenn David #{nicht d} kommt, |] ++
       if a == b
         then [i|kommen #{if d == a then auch else ""} Astrid oder Ben #{nicht a}.|]
@@ -104,10 +104,10 @@ Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen 
 
 
 description :: String
-description = "We'll be right back..." 
+description = "We'll be right back..."
 {-
 description = [i|
-Eva would like to see a concert of her favourite band. 
+Eva would like to see a concert of her favourite band.
 She asks her friends Astrid (A), Ben (B), Claudia (C) and David (D) to accompany her.
 But their answers turn out to be a little strange.
 
@@ -123,7 +123,7 @@ fieldNames :: [[FieldInfo]]
 fieldNames = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
 
 
-widget :: Html -> MForm Handler (FormResult (Text,[Namen]), Widget) 
+widget :: Html -> MForm Handler (FormResult (Text,[Namen]), Widget)
 widget = formify fieldNames
 
 =============================================
@@ -169,7 +169,7 @@ checkSyntax (Right (t,n))
     | otherwise = Nothing
   where
     func c = c `elem` ['1'..'9']
-    func2 c = not (c `T.elem` t)    
+    func2 c = not (c `T.elem` t)
 
 checkSemantics :: Either ParseError (Text,[Namen]) -> Maybe String
 checkSemantics (Left err) = Just $ show err
@@ -178,7 +178,7 @@ checkSemantics (Right (t,n))
     | t /= tSol = Just "Die aussagenlogische Formel ist falsch."
     | otherwise = Nothing
   where
-    (_,tSol,nSol) = sol 
+    (_,tSol,nSol) = sol
 
 sol = #{solution}
 |]
