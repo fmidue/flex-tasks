@@ -1,8 +1,10 @@
 Autotool
 Bifunctor
 DSL
+Enum
 GHC
 Graphviz
+Html
 HUnit
 Hspec
 Leftrightarrow
@@ -28,6 +30,8 @@ firstline
 fmap
 foldl
 foldr
+Formify
+formify
 fst
 github
 hspace
@@ -72,4 +76,5 @@ usepackage
 utf
 varepsilon
 yaml
+Yesod
 yml

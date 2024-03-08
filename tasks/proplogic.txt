@@ -28,14 +28,14 @@ data Table = Table [[Maybe Text]] deriving (Show,Eq)
 
 type Solution = (Table,Text,[Namen])
 
-getBools :: Gen [Bool]
-getBools = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
+getParticipants :: Gen [Bool]
+getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 
 getTask = do
-    bools@[a,b,c,d] <- getBools
+    values@[a,b,c,d] <- getParticipants
     let f = formula a b c d
         description = output a b c d
-        zipped = zip bools ([minBound .. maxBound] :: [Namen])
+        zipped = zip values ([minBound .. maxBound] :: [Namen])
         coming = [ n | (b,n) <- zipped, b==True]
 
     pure (description, show (Table [],f,coming), getHtml flattened widget, flattened)
@@ -54,11 +54,11 @@ formula a b c d = [i|(#{part4}) ∧ (#{part1}) ∧ (#{part2}) ∧ (#{part3}) ∧
     part4 = [i|(#{neg b "B"} ∧ #{neg d "D"}) ⇒ #{neg (not c) "C"}|] :: Text
     part5 = [i|#{neg d "D"} ⇒ (#{neg a "A"} ∨ #{neg b "B"})|] :: Text
 
-output a b c d = (beschreibung a b c d, show $ formula a b c d)
+output a b c d = (germanText a b c d, show $ formula a b c d)
 
 
-beschreibung :: Bool -> Bool -> Bool -> Bool -> String
-beschreibung a b c d = [i|
+germanText :: Bool -> Bool -> Bool -> Bool -> String
+germanText a b c d = [i|
 Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen.
 Sie fragt ihre Freunde Astrid (A), Ben (B), Claudia (C) und David (D), ob sie mitkommen wollen.
 Leider sind die Antworten etwas seltsam.
@@ -103,8 +103,8 @@ Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen 
             else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
 
 
-description :: String
-description = "We'll be right back..."
+englishText :: String
+englishText = "We'll be right back..."
 {-
 description = [i|
 Eva would like to see a concert of her favourite band.
@@ -163,18 +163,18 @@ parseSubmission = parse parseInput ""
 checkSyntax :: Either ParseError (Text,[Namen]) -> Maybe String
 checkSyntax (Left err) = Just $ show err
 checkSyntax (Right (t,n))
-    | null n = Just "Es wurden keine Namen agekreuzt."
-    | T.any func t = Just "Die Formel enthält Zahlen."
-    | T.any func2 "ABCD" = Just "Die Formel enthält nicht alle vorkommenden Literale."
+    | null n = Just "Es wurden keine Namen angekreuzt."
+    | T.any isNumber t = Just "Die Formel enthält Zahlen."
+    | T.any notInAnswer "ABCD" = Just "Die Formel enthält nicht alle vorkommenden Literale."
     | otherwise = Nothing
   where
-    func c = c `elem` ['1'..'9']
-    func2 c = not (c `T.elem` t)
+    isNumber c = c `elem` ['1'..'9']
+    notInAnswer c = not (c `T.elem` t)
 
 checkSemantics :: Either ParseError (Text,[Namen]) -> Maybe String
 checkSemantics (Left err) = Just $ show err
 checkSemantics (Right (t,n))
-    | n /= nSol = Just "Die List der Tielnehmer ist falsch."
+    | n /= nSol = Just "Die List der Teilnehmer ist falsch."
     | t /= tSol = Just "Die aussagenlogische Formel ist falsch."
     | otherwise = Nothing
   where
