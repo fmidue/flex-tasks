@@ -59,6 +59,8 @@ jobs:
           experimental_apply_changes_via_bot: 1
           extra_dictionaries:
             cspell:aws/aws.txt
+            cspell:de_DE/src/German_de_DE.dic
+            cspell:de_DE/src/hunspell/index.dic
 
   comment:
     name: Report
