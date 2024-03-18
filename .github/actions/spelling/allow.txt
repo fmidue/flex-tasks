@@ -1,5 +1,7 @@
+Attrs
 Autotool
 Bifunctor
+Css
 DSL
 Enum
 GHC
@@ -31,6 +33,7 @@ firstline
 fmap
 foldl
 foldr
+forall
 Formify
 formify
 fst
@@ -47,6 +50,7 @@ lstlisting
 lstset
 mathop
 mathrm
+mopt
 multicolumn
 newtype
 nodelabels
@@ -76,6 +80,7 @@ unlines
 usepackage
 utf
 varepsilon
+whamlet
 yaml
 Yesod
 yml
