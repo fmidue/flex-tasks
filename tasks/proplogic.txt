@@ -1,4 +1,14 @@
+module Global where
 
+import Data.Text
+
+
+data Table = Table [[Maybe Text]] deriving (Show,Eq)
+data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
+
+type Solution = (Table,Text,[Namen])
+
+=============================================
 {-# language DeriveGeneric #-}
 {-# Language FlexibleContexts #-}
 {-# language OverloadedStrings #-}
@@ -6,27 +16,25 @@
 module TaskAndForm where
 
 
+import Data.List.Split (chunksOf)
 import Data.Text (Text)
 import Data.String.Interpolate(i)
 import Test.QuickCheck.Gen
 import Yesod
 
 import FormUtil
+import Global
+
+import qualified Data.Text as T
+
 
 instance MonadFail Gen where
   fail = error
-
-
-
-data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
 
 instance Formify [Namen] where
   formifyImplementation = formifyInstanceMultiChoice
 
 
-data Table = Table [[Maybe Text]] deriving (Show,Eq)
-
-type Solution = (Table,Text,[Namen])
 
 getParticipants :: Gen [Bool]
 getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
@@ -54,7 +62,7 @@ formula a b c d = [i|(#{part4}) ∧ (#{part1}) ∧ (#{part2}) ∧ (#{part3}) ∧
     part4 = [i|(#{neg b "B"} ∧ #{neg d "D"}) ⇒ #{neg (not c) "C"}|] :: Text
     part5 = [i|#{neg d "D"} ⇒ (#{neg a "A"} ∨ #{neg b "B"})|] :: Text
 
-output a b c d = (germanText a b c d, show $ formula a b c d)
+output a b c d = (germanText a b c d,"")
 
 
 germanText :: Bool -> Bool -> Bool -> Bool -> String
@@ -103,27 +111,54 @@ Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen 
             else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
 
 
-englishText :: String
-englishText = "We'll be right back..."
-{-
-description = [i|
-Eva would like to see a concert of her favourite band.
-She asks her friends Astrid (A), Ben (B), Claudia (C) and David (D) to accompany her.
-But their answers turn out to be a little strange.
+instance Formify Table where
+  formifyImplementation ((List _ fs : xs) : xss) = (rest, form)
+    where
+      rest = if null xs then xss else xs : xss
+      form :: Html -> MForm Handler (FormResult Table, Widget)
+      form extra = do
+        let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
+        results <- sequence $ map (\f -> mopt textField (addCssClass (addName f)) Nothing) fs
+        let headers = map snd $ take 3 results
+            rows = chunksOf 7 $ map snd $ drop 3 results
+            widget =
+             [whamlet|
+                 <style>
+                   .tableInput {
+                    width: 100%;
+                   }
+                   table, th, td {
+                     border: 1px solid black;
+                     border-collapse: collapse;
 
-- If Ben and David go, then Claudia won't go.
-- Ben will go if Astrid goes.
-- If Ben goes, then Claudia will go too.
-- If Claudia goes, then David will go too.
-- If David goes, then Astrid or Ben will go too.
-|]
--}
+                   }
+                   table {
+                     width: 100%;
+                   }
+                 #{extra}
+                 <table>
+                   <tr>
+                     <th>A
+                     <th>B
+                     <th>C
+                     <th>D
+                     $forall header <- headers
+                       <th>^{fvInput header}
+                   $forall row <- rows
+                     <tr>
+                       $forall input <- row
+                         <td>^{fvInput input}
+             |]
+
+        return (Table <$> (pure <$> traverse fst results), widget)
+  formifyImplementation _ = error "field names structure incorrect for table"
+
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
+fieldNames = [[List Vertical (map (T.pack . show) [1..115])], [Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
 
 
-widget :: Html -> MForm Handler (FormResult (Text,[Namen]), Widget)
+widget :: Html -> MForm Handler (FormResult Solution, Widget)
 widget = formify fieldNames
 
 =============================================
@@ -135,34 +170,39 @@ module ParseAndCheck where
 
 import Data.String.Interpolate(i)
 import Data.Text (Text)
-import Text.Parsec (ParseError, parse)
+import Data.List.Split (chunksOf)
+import Text.Parsec (ParseError, parse, many1, try)
+import Text.Parsec.String (Parser)
 import GHC.Generics
 
+import Global
 import ParseUtil
 
 import qualified Data.Text as T
 
-data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
 
 instance Parse [Namen] where
   parseInput = parseInstanceMultiChoice
 
 
-data Table = Table [[Maybe Text]] deriving (Show,Eq)
+instance Parse Table where
+  parseInput = do
+    values <- parseInput
+    let headers = take 3 values
+        rest = drop 3 values
+    pure $ Table $ headers : chunksOf 7 rest
 
-type Solution = (Table,Text,[Namen])
 
-
-parseSubmission :: String -> Either ParseError (Text,[Namen])
+parseSubmission :: String -> Either ParseError Solution
 parseSubmission = parse parseInput ""
 
 =============================================
 
 \solution -> [i|
 
-checkSyntax :: Either ParseError (Text,[Namen]) -> Maybe String
+checkSyntax :: Either ParseError Solution -> Maybe String
 checkSyntax (Left err) = Just $ show err
-checkSyntax (Right (t,n))
+checkSyntax (Right (_,t,n))
     | null n = Just "Es wurden keine Namen angekreuzt."
     | T.any isNumber t = Just "Die Formel enthält Zahlen."
     | T.any notInAnswer "ABCD" = Just "Die Formel enthält nicht alle vorkommenden Literale."
@@ -171,10 +211,10 @@ checkSyntax (Right (t,n))
     isNumber c = c `elem` ['1'..'9']
     notInAnswer c = not (c `T.elem` t)
 
-checkSemantics :: Either ParseError (Text,[Namen]) -> Maybe String
+checkSemantics :: Either ParseError Solution -> Maybe String
 checkSemantics (Left err) = Just $ show err
-checkSemantics (Right (t,n))
-    | n /= nSol = Just "Die List der Teilnehmer ist falsch."
+checkSemantics (Right (_,t,n))
+    | n /= nSol = Just "Die Liste der Teilnehmer ist falsch."
     | t /= tSol = Just "Die aussagenlogische Formel ist falsch."
     | otherwise = Nothing
   where
