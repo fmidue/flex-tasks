@@ -83,7 +83,13 @@ Leider sind die Antworten etwas seltsam.
 
 Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an.
 
-Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren. Negation: ¬, Und: ∧, Oder: ∨, Implikation: ⇒, Biimplikation: ⇔.
+Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:
+
+Negation:      ¬
+Und:           ∧
+Oder:          ∨
+Implikation:   ⇒
+Biimplikation: ⇔
 |]
   where
     nicht :: Bool -> String
@@ -213,13 +219,14 @@ checkSyntax :: Either ParseError Submission -> Maybe String
 checkSyntax (Left err) = Just $ show err
 checkSyntax (Right (Table xs,f,n))
     | any (`elem` (map Just ["A","B","C","D"])) nonStaticHeaders = Just "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
-    | T.any (\\c -> not (c `elem` validSymbols)) $ T.concat $ catMaybes nonStaticHeaders = Just "Mindestens eine der Formeln in der Tabelle enthält ungültige Zeichen."
+    | containsInvalidSymbol $ T.concat $ catMaybes nonStaticHeaders = Just "Mindestens eine der Formeln in der Tabelle enthält ungültige Zeichen."
     | any (\\mt -> not (mt == Just "0" || mt == Just "1" || mt == Nothing)) (concat columns) = Just "Die Tabelle enthält Eingaben, die nicht 0 oder 1 sind."
     | null n = Just "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
     | T.any isNumber f = Just "Die Formel enthält Zahlen."
     | otherwise = Nothing
   where
     isNumber c = c `elem` ['1'..'9']
+    containsInvalidSymbol = T.any (not . (`elem` validSymbols))
     (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
 
