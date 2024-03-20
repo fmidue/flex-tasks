@@ -3,10 +3,13 @@ module Global where
 import Data.Text
 
 
-data Table = Table [[Maybe Text]] deriving (Show,Eq)
+
+data Table = Table [(Maybe Text, [Maybe Text])] deriving (Show,Eq)
 data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
 
-type Solution = (Table,Text,[Namen])
+type Solution = (Text,Namen)
+
+type Submission = (Table,Text,[Namen])
 
 =============================================
 {-# language DeriveGeneric #-}
@@ -45,8 +48,7 @@ getTask = do
         description = output a b c d
         zipped = zip values ([minBound .. maxBound] :: [Namen])
         coming = [ n | (b,n) <- zipped, b==True]
-
-    pure (description, show (Table [],f,coming), getHtml flattened widget, flattened)
+    pure (description, show (f,coming), getHtml flattened widget, flattened)
   where
     flattened = flatten fieldNames
 
@@ -81,6 +83,7 @@ Leider sind die Antworten etwas seltsam.
 
 Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an.
 
+Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren. Negation: ¬, Und: ∧, Oder: ∨, Implikation: ⇒, Biimplikation: ⇔.
 |]
   where
     nicht :: Bool -> String
@@ -150,7 +153,7 @@ instance Formify Table where
                          <td>^{fvInput input}
              |]
 
-        return (Table <$> (pure <$> traverse fst results), widget)
+        return (FormMissing, widget)
   formifyImplementation _ = error "field names structure incorrect for table"
 
 
@@ -158,7 +161,7 @@ fieldNames :: [[FieldInfo]]
 fieldNames = [[List Vertical (map (T.pack . show) [1..115])], [Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
 
 
-widget :: Html -> MForm Handler (FormResult Solution, Widget)
+widget :: Html -> MForm Handler (FormResult Submission, Widget)
 widget = formify fieldNames
 
 =============================================
@@ -170,6 +173,7 @@ module ParseAndCheck where
 
 import Data.String.Interpolate(i)
 import Data.Text (Text)
+import Data.List (transpose)
 import Data.List.Split (chunksOf)
 import Text.Parsec (ParseError, parse, many1, try)
 import Text.Parsec.String (Parser)
@@ -188,37 +192,63 @@ instance Parse [Namen] where
 instance Parse Table where
   parseInput = do
     values <- parseInput
-    let headers = take 3 values
+    let headers = map Just ["A","B","C","D"] ++ take 3 values
         rest = drop 3 values
-    pure $ Table $ headers : chunksOf 7 rest
+    pure $ Table $ zip headers $ transpose $ chunksOf 7 rest
 
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission :: String -> Either ParseError Submission
 parseSubmission = parse parseInput ""
 
 =============================================
 
 \solution -> [i|
 
-checkSyntax :: Either ParseError Solution -> Maybe String
+
+import Numeric
+import Data.Maybe (catMaybes)
+
+
+checkSyntax :: Either ParseError Submission -> Maybe String
 checkSyntax (Left err) = Just $ show err
-checkSyntax (Right (_,t,n))
-    | null n = Just "Es wurden keine Namen angekreuzt."
-    | T.any isNumber t = Just "Die Formel enthält Zahlen."
-    | T.any notInAnswer "ABCD" = Just "Die Formel enthält nicht alle vorkommenden Literale."
+checkSyntax (Right (Table xs,f,n))
+    | any (`elem` (map Just ["A","B","C","D"])) nonStaticHeaders = Just "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
+    | T.any (\\c -> not (c `elem` validSymbols)) $ T.concat $ catMaybes nonStaticHeaders = Just "Mindestens eine der Formeln in der Tabelle enthält ungültige Zeichen."
+    | any (\\mt -> not (mt == Just "0" || mt == Just "1" || mt == Nothing)) (concat columns) = Just "Die Tabelle enthält Eingaben, die nicht 0 oder 1 sind."
+    | null n = Just "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
+    | T.any isNumber f = Just "Die Formel enthält Zahlen."
     | otherwise = Nothing
   where
     isNumber c = c `elem` ['1'..'9']
-    notInAnswer c = not (c `T.elem` t)
+    (headers,columns) = unzip xs
+    nonStaticHeaders = drop 4 headers
 
-checkSemantics :: Either ParseError Solution -> Maybe String
+
+validSymbols :: String
+validSymbols = "ABCD∧∨⇒⇔¬ "
+
+
+checkSemantics :: Either ParseError Submission -> Maybe String
 checkSemantics (Left err) = Just $ show err
-checkSemantics (Right (_,t,n))
+checkSemantics (Right (Table xs,f,n))
+    | any hasDoubleOperator $ catMaybes nonStaticHeaders = Just "Eine der Formeln enthält aufeinander folgende Operatoren."
+    | take 4 columns /= startingTable = Just "Die Spalten der atomaren Formeln ergeben keine sinnvolle Wahrheitstabelle."
+    | T.any notInAnswer "ABCD" = Just "Die Formel enthält nicht alle vorkommenden Literale."
+    | f /= fSol = Just "Die aussagenlogische Formel ist falsch."
     | n /= nSol = Just "Die Liste der Teilnehmer ist falsch."
-    | t /= tSol = Just "Die aussagenlogische Formel ist falsch."
     | otherwise = Nothing
   where
-    (_,tSol,nSol) = sol
+    notInAnswer c = not (c `T.elem` f)
+    (headers,columns) = unzip xs
+    nonStaticHeaders = drop 4 headers
+    hasDoubleOperator :: Text -> Bool
+    hasDoubleOperator t = any (`T.isInfixOf` t) [T.pack [a,b] | a <- validSymbols, b <- validSymbols]
+    (fSol,nSol) = sol
+
+
+startingTable :: [[Maybe Text]]
+startingTable = map (Just . T.singleton) . T.unpack <$> T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
+
 
 sol = #{solution}
 |]
