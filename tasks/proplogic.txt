@@ -172,7 +172,10 @@ instance Formify Table where
 
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [[List Vertical ["h1","h2","h3"], List Vertical (map (T.pack . show) [1..115])], [Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
+fieldNames = [ [ List Vertical ["h1","h2","h3"], List Vertical (map (T.pack . show) [1..115])]
+             , [Single "Formel"]
+             , [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]
+             ]
 
 
 widget :: Html -> MForm Handler (FormResult Submission, Widget)
