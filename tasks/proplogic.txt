@@ -1,15 +1,22 @@
 module Global where
 
 import Data.Text
+import GHC.Generics
+
+newtype Binary = Binary { getBool :: Bool} deriving (Eq,Show)
+newtype Formula = Formula {getFormula :: Text} deriving (Eq,Show)
 
 
-
-data Table = Table [(Maybe Text, [Maybe Text])] deriving (Show,Eq)
+data Table = Table [(Maybe Formula, [Maybe Binary])] deriving (Show,Eq,Generic)
 data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
 
 type Solution = (Text,Namen)
 
 type Submission = (Table,Text,[Namen])
+
+
+validSymbols :: String
+validSymbols = "ABCD∧∨⇒⇔¬() "
 
 =============================================
 {-# language DeriveGeneric #-}
@@ -121,15 +128,16 @@ Biimplikation: ⇔
 
 
 instance Formify Table where
-  formifyImplementation ((List _ fs : xs) : xss) = (rest, form)
+  formifyImplementation ((List _ hs : List _ cs : xs) : xss) = (rest, form)
     where
       rest = if null xs then xss else xs : xss
       form :: Html -> MForm Handler (FormResult Table, Widget)
       form extra = do
         let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
-        results <- sequence $ map (\f -> mopt textField (addCssClass (addName f)) Nothing) fs
-        let headers = map snd $ take 3 results
-            rows = chunksOf 7 $ map snd $ drop 3 results
+        headersRes <- sequence $ map (\f -> mopt textField (addCssClass (addName f)) Nothing) hs
+        columnsRes <- sequence $ map (\f -> mopt textField (addCssClass (addName f)) Nothing) cs
+        let headers = map snd headersRes
+            rows = chunksOf 7 $ map snd columnsRes
             widget =
              [whamlet|
                  <style>
@@ -164,7 +172,7 @@ instance Formify Table where
 
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [[List Vertical (map (T.pack . show) [1..115])], [Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
+fieldNames = [[List Vertical ["h1","h2","h3"], List Vertical (map (T.pack . show) [1..115])], [Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
 
 
 widget :: Html -> MForm Handler (FormResult Submission, Widget)
@@ -177,11 +185,13 @@ widget = formify fieldNames
 module ParseAndCheck where
 
 
+import Data.Char (showLitChar)
 import Data.String.Interpolate(i)
 import Data.Text (Text)
 import Data.List (transpose)
 import Data.List.Split (chunksOf)
-import Text.Parsec (ParseError, parse, many1, try)
+import Text.Parsec ((<|>), ParseError, choice, many1, parse, string, try)
+import Text.Parsec.Char (oneOf)
 import Text.Parsec.String (Parser)
 import GHC.Generics
 
@@ -194,13 +204,24 @@ import qualified Data.Text as T
 instance Parse [Namen] where
   parseInput = parseInstanceMultiChoice
 
+instance Parse Binary where
+  parseInput = escaped $ do
+    val <- string "0" <|> string "1"
+    pure $ Binary $ toEnum $ read val
+
+instance Parse Formula where
+  parseInput = escaped $ do
+    symbols <- many1 $ choice $ map (try. parseUnicode) validSymbols
+    pure $ Formula $ T.pack $ read ('\"' : concat symbols ++ "\"")
+      where
+        parseUnicode c = string $ showLitChar c ""
 
 instance Parse Table where
   parseInput = do
-    values <- parseInput
-    let headers = map Just ["A","B","C","D"] ++ take 3 values
-        rest = drop 3 values
-    pure $ Table $ zip headers $ transpose $ chunksOf 7 rest
+    (headers,values) <- parseInput
+    let allHeaders = map (Just . Formula) ["A","B","C","D"] ++ headers
+    pure $ Table $ zip allHeaders $ transpose $ chunksOf 7 values
+
 
 
 parseSubmission :: String -> Either ParseError Submission
@@ -218,27 +239,19 @@ import Data.Maybe (catMaybes)
 checkSyntax :: Either ParseError Submission -> Maybe String
 checkSyntax (Left err) = Just $ show err
 checkSyntax (Right (Table xs,f,n))
-    | any (`elem` (map Just ["A","B","C","D"])) nonStaticHeaders = Just "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
-    | containsInvalidSymbol $ T.concat $ catMaybes nonStaticHeaders = Just "Mindestens eine der Formeln in der Tabelle enthält ungültige Zeichen."
-    | any (\\mt -> not (mt == Just "0" || mt == Just "1" || mt == Nothing)) (concat columns) = Just "Die Tabelle enthält Eingaben, die nicht 0 oder 1 sind."
+    | any (`elem` (map (Just . Formula) ["A","B","C","D"])) nonStaticHeaders = Just "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
     | null n = Just "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
     | T.any isNumber f = Just "Die Formel enthält Zahlen."
     | otherwise = Nothing
   where
     isNumber c = c `elem` ['1'..'9']
-    containsInvalidSymbol = T.any (not . (`elem` validSymbols))
     (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
-
-
-validSymbols :: String
-validSymbols = "ABCD∧∨⇒⇔¬ "
 
 
 checkSemantics :: Either ParseError Submission -> Maybe String
 checkSemantics (Left err) = Just $ show err
 checkSemantics (Right (Table xs,f,n))
-    | any hasDoubleOperator $ catMaybes nonStaticHeaders = Just "Eine der Formeln enthält aufeinander folgende Operatoren."
     | take 4 columns /= startingTable = Just "Die Spalten der atomaren Formeln ergeben keine sinnvolle Wahrheitstabelle."
     | T.any notInAnswer "ABCD" = Just "Die Formel enthält nicht alle vorkommenden Literale."
     | f /= fSol = Just "Die aussagenlogische Formel ist falsch."
@@ -248,13 +261,11 @@ checkSemantics (Right (Table xs,f,n))
     notInAnswer c = not (c `T.elem` f)
     (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
-    hasDoubleOperator :: Text -> Bool
-    hasDoubleOperator t = any (`T.isInfixOf` t) [T.pack [a,b] | a <- validSymbols, b <- validSymbols]
     (fSol,nSol) = sol
 
 
-startingTable :: [[Maybe Text]]
-startingTable = map (Just . T.singleton) . T.unpack <$> T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
+startingTable :: [[Maybe Binary]]
+startingTable = map (Just . Binary . toEnum) . read . T.unpack <$> T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
 
 
 sol = #{solution}
