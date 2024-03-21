@@ -165,7 +165,7 @@ tableForm staticHeaders columnAmount rowAmount extra = do
 
 
 headerList :: Int -> [Text]
-headerList amount = map (\i -> T.pack ('h': show i)) [1..amount]
+headerList amount = map (T.pack . ('h':) . show) [1..amount]
 
 cellList :: Int -> Int -> [Text]
 cellList rows columns = map (T.pack . show) [1..rows*columns]
@@ -225,8 +225,6 @@ instance Parse Formula where
   parseInput = escaped $ do
     symbols <- many1 $ choice $ map (try. parseUnicode) validSymbols
     pure $ Formula $ T.pack $ read ('\"' : concat symbols ++ "\"")
-      where
-        parseUnicode c = string $ showLitChar c ""
 
 instance Parse Table where
   parseInput = do
