@@ -10,7 +10,7 @@ newtype Formula = Formula {getFormula :: Text} deriving (Eq,Show)
 data Table = Table [(Maybe Formula, [Maybe Binary])] deriving (Show,Eq,Generic)
 data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
 
-type Solution = (Text,Namen)
+type Solution = (Text,[Namen])
 
 type Submission = (Table,Text,[Namen])
 
@@ -127,59 +127,68 @@ Biimplikation: ⇔
             else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
 
 
-instance Formify Table where
-  formifyImplementation ((List _ hs : List _ cs : xs) : xss) = (rest, form)
-    where
-      rest = if null xs then xss else xs : xss
-      form :: Html -> MForm Handler (FormResult Table, Widget)
-      form extra = do
-        let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
-        headersRes <- sequence $ map (\f -> mopt textField (addCssClass (addName f)) Nothing) hs
-        columnsRes <- sequence $ map (\f -> mopt textField (addCssClass (addName f)) Nothing) cs
-        let headers = map snd headersRes
-            rows = chunksOf 7 $ map snd columnsRes
-            widget =
-             [whamlet|
-                 <style>
-                   .tableInput {
-                    width: 100%;
-                   }
-                   table, th, td {
-                     border: 1px solid black;
-                     border-collapse: collapse;
+tableForm :: [Text] -> Int -> Int -> Html -> MForm Handler (FormResult Table, Widget)
+tableForm staticHeaders columnAmount rowAmount extra = do
+    let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
+    headersRes <- sequence $ map (\t -> mopt textField (addCssClass (addName t)) Nothing) $ headerList (columnAmount - length staticHeaders)
+    columnsRes <- sequence $ map (\t -> mopt textField (addCssClass (addName t)) Nothing) $ cellList rowAmount columnAmount
+    let headers = map snd headersRes
+        rows = chunksOf 7 $ map snd columnsRes
+        widget =
+         [whamlet|
+             <style>
+               .tableInput {
+                 width: 100%;
+               }
+               table, th, td {
+                 border: 1px solid black;
+                 border-collapse: collapse;
 
-                   }
-                   table {
-                     width: 100%;
-                   }
-                 #{extra}
-                 <table>
-                   <tr>
-                     <th>A
-                     <th>B
-                     <th>C
-                     <th>D
-                     $forall header <- headers
-                       <th>^{fvInput header}
-                   $forall row <- rows
-                     <tr>
-                       $forall input <- row
-                         <td>^{fvInput input}
-             |]
+               }
+               table {
+                 width: 100%;
+               }
+             #{extra}
+             <table>
+               <tr>
+                 $forall sh <- staticHeaders
+                   <th>#{sh}
+                 $forall header <- headers
+                   <th>^{fvInput header}
+               $forall row <- rows
+                 <tr>
+                   $forall input <- row
+                     <td>^{fvInput input}
+         |]
 
-        return (FormMissing, widget)
-  formifyImplementation _ = error "field names structure incorrect for table"
+    return (undefined, widget)
+
+
+headerList :: Int -> [Text]
+headerList amount = map (\i -> T.pack ('h': show i)) [1..amount]
+
+cellList :: Int -> Int -> [Text]
+cellList rows columns = map (T.pack . show) [1..rows*columns]
+
+
+nonTableFields :: [[FieldInfo]]
+nonTableFields = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
 
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [ [ List Vertical ["h1","h2","h3"], List Vertical (map (T.pack . show) [1..115])]
-             , [Single "Formel"]
-             , [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]
-             ]
+fieldNames = [[List Vertical (headerList 3), List Vertical (cellList 16 7)]] ++ nonTableFields
 
 
+-- ugly! Maybe add a function to handle this
 widget :: Html -> MForm Handler (FormResult Submission, Widget)
-widget = formify fieldNames
+widget = do
+  resLeft  <- tableForm ["A","B","C","D"] 7 16
+  resRight <- (formify nonTableFields :: Rendered Solution)
+  pure $ do
+    (_,w1) <- resLeft
+    (_,w2) <- resRight
+    pure (undefined,w1 >> w2)
+
 
 =============================================
 
