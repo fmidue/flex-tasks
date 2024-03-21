@@ -57,7 +57,7 @@ getTask = do
         coming = [ n | (b,n) <- zipped, b==True]
     pure (description, show (f,coming), getHtml flattened widget, flattened)
   where
-    flattened = flatten fieldNames
+    flattened = [headerList 3, cellList 16 7] ++ flatten nonTableFields
 
 
 
@@ -128,12 +128,16 @@ Biimplikation: ⇔
 
 
 tableForm :: [Text] -> Int -> Int -> Html -> MForm Handler (FormResult Table, Widget)
-tableForm staticHeaders columnAmount rowAmount extra = do
+tableForm staticHeaders rowAmount columnAmount extra = do
     let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
-    headersRes <- sequence $ map (\t -> mopt textField (addCssClass (addName t)) Nothing) $ headerList (columnAmount - length staticHeaders)
-    columnsRes <- sequence $ map (\t -> mopt textField (addCssClass (addName t)) Nothing) $ cellList rowAmount columnAmount
+
+        tableTextField :: Text -> MForm Handler (FormResult (Maybe Text),FieldView FlexForm)
+        tableTextField t = mopt textField (addCssClass (addName t)) Nothing
+
+    headersRes <- sequence $ map tableTextField $ headerList (columnAmount - length staticHeaders)
+    columnsRes <- sequence $ map tableTextField $ cellList rowAmount columnAmount
     let headers = map snd headersRes
-        rows = chunksOf 7 $ map snd columnsRes
+        rows = chunksOf columnAmount $ map snd columnsRes
         widget =
          [whamlet|
              <style>
@@ -175,14 +179,11 @@ nonTableFields :: [[FieldInfo]]
 nonTableFields = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
 
 
-fieldNames :: [[FieldInfo]]
-fieldNames = [[List Vertical (headerList 3), List Vertical (cellList 16 7)]] ++ nonTableFields
-
 
 -- ugly! Maybe add a function to handle this
 widget :: Html -> MForm Handler (FormResult Submission, Widget)
 widget = do
-  resLeft  <- tableForm ["A","B","C","D"] 7 16
+  resLeft  <- tableForm ["A","B","C","D"] 16 7
   resRight <- (formify nonTableFields :: Rendered Solution)
   pure $ do
     (_,w1) <- resLeft
