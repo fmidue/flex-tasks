@@ -1,6 +1,5 @@
 {-# language DefaultSignatures #-}
 {-# language OverloadedStrings #-}
-{-# language QuasiQuotes #-}
 {-# language TypeOperators #-}
 
 module FlexTask.Generics

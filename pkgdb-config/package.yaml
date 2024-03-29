@@ -13,11 +13,11 @@ synopsis: A task type setup for haskell template tasks of the e-learning platfor
 category: E-Learning
 description: Please see the README on GitHub at <https://github.com/marcellussiegburg/haskell-template-setup#readme>
 dependencies:
-- base >= 4.7 && < 5
-- blaze-markup
-- ma-patrick-ritzenfeld
-- parsec
-- string-interpolate
-- yesod
+  - base >= 4.7 && < 5
+  - blaze-markup
+  - ma-patrick-ritzenfeld
+  - parsec
+  - string-interpolate
+  - yesod
 library:
   source-dirs: .
