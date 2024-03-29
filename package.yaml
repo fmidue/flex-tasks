@@ -3,7 +3,14 @@ name: ma-patrick-ritzenfeld
 extra-source-files: [ ]
 dependencies:
   - base
+  - blaze-markup
   - extra
+  - fast-logger
+  - parsec
+  - shakespeare
+  - text
+  - yesod
+  - yesod-core
 default-extensions:
   - TupleSections
   - DuplicateRecordFields
@@ -16,7 +23,9 @@ default-extensions:
   - FlexibleContexts
 library:
   source-dirs: src
-  exposed-modules: [ ]
+  exposed-modules:
+    - FlexTask.Generics
+    - FlexTask.FormUtil
   ghc-options:
     - -Wall
     - -Widentities

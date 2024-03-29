@@ -1,7 +1,13 @@
+aform
+aopt
+areq
 Attrs
 Autotool
 Bifunctor
 Biimplikation
+Buf
+checkbox
+checkboxes
 Css
 DSL
 Enum
@@ -38,7 +44,9 @@ forall
 Formify
 formify
 fst
+gformify
 github
+gparse
 hspace
 hspec
 https
