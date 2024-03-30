@@ -26,6 +26,7 @@ library:
   exposed-modules:
     - FlexTask.Generics
     - FlexTask.FormUtil
+    - FlexTask.YesodConfig
   ghc-options:
     - -Wall
     - -Widentities
