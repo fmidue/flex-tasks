@@ -27,6 +27,7 @@ module FlexTask.Generics
 
 import Control.Monad       (void)
 import Data.Char           (showLitChar)
+import Data.Either         (isRight)
 import GHC.Generics        (Generic(..), K1(..), M1(..), (:*:)(..))
 import Data.Text           (Text)
 import Text.Parsec
@@ -94,17 +95,17 @@ instance BaseForm Double where
 
 class Formify a where
   formifyImplementation
-      :: [[FieldInfo]]
-      -> Maybe a
+      :: Maybe a
+      -> [[FieldInfo]]
       -> ([[FieldInfo]], Rendered)
   parseInput :: Parser a
 
   default formifyImplementation
       :: (Generic a, GFormify (Rep a))
-      => [[FieldInfo]]
-      -> Maybe a
+      => Maybe a
+      -> [[FieldInfo]]
       -> ([[FieldInfo]], Rendered)
-  formifyImplementation xs mDefault = gformify xs $ from <$> mDefault
+  formifyImplementation mDefault = gformify $ from <$> mDefault
 
   default parseInput :: (Generic a, GFormify (Rep a)) => Parser a
   parseInput = to <$> gparse
@@ -112,19 +113,19 @@ class Formify a where
 
 
 class GFormify f where
-  gformify :: [[FieldInfo]] -> Maybe (f a) -> ([[FieldInfo]], Rendered)
+  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], Rendered)
 
   gparse :: Parser (f a)
 
 -- | Products: parse a constructor with multiple arguments
 instance (GFormify a, GFormify b) => GFormify (a :*: b) where
-  gformify xs mDefault = (rightRest, gRender)
+  gformify mDefault xs = (rightRest, gRender)
     where
       (left,right) = case mDefault of
         Nothing        -> (Nothing,Nothing)
         Just (a :*: b) -> (Just a, Just b)
-      (leftRest, leftRender) = gformify xs left
-      (rightRest, rightRender) = gformify leftRest right
+      (leftRest, leftRender) = gformify left xs
+      (rightRest, rightRender) = gformify right leftRest
 
       gRender = do
         wid1 <- leftRender
@@ -141,23 +142,23 @@ instance (GFormify a, GFormify b) => GFormify (a :*: b) where
 
 -- | Meta-information (constructor names, etc.)
 instance GFormify a => GFormify (M1 i c a) where
-  gformify xs mDefault = gformify xs (unM1 <$> mDefault)
+  gformify mDefault = gformify $ unM1 <$> mDefault
   gparse = M1 <$> gparse
 
 
 -- | Constants, additional parameters and recursion of kind *
 instance Formify a => GFormify (K1 i a) where
-  gformify xs mDefault = formifyImplementation xs $ unK1 <$> mDefault
+  gformify mDefault = formifyImplementation $ unK1 <$> mDefault
   gparse = K1 <$> parseInput
 
 
 instance Formify Int where
-  formifyImplementation = formifyInstanceBase
+  formifyImplementation = formifyInstanceBase . Right
   parseInput = intParse
 
 
 instance Formify Text where
-  formifyImplementation = formifyInstanceBase
+  formifyImplementation = formifyInstanceBase . Right
   parseInput = escaped $ do
     input <- manyTill anyChar $ try $ lookAhead $
       string escape >> notFollowedBy (string "\"")
@@ -165,7 +166,7 @@ instance Formify Text where
 
 
 instance Formify Bool where
-  formifyImplementation = formifyInstanceBase
+  formifyImplementation = formifyInstanceBase . Right
   parseInput = escaped $ do
     val <- try (string "yes") <|> string "no"
     pure $ case val of
@@ -174,7 +175,7 @@ instance Formify Bool where
 
 
 instance Formify Double where
-  formifyImplementation = formifyInstanceBase
+  formifyImplementation = formifyInstanceBase . Right
   parseInput = escaped $ do
     sign <- optionMaybe $ char '-'
     whole <- many1 digit
@@ -198,18 +199,17 @@ instance (Formify a, Formify b, Formify c, Formify d) => Formify (a,b,c,d)
 
 instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
   formifyImplementation = formifyInstanceList
-  parseInput = try (escaped parseEmpty) <|> sepBy parseInput (string listDelim)
+  parseInput = parseInstanceList
+
+parseInstanceList :: Formify a => Parser [a]
+parseInstanceList =
+  try (escaped parseEmpty) <|> sepBy parseInput (string listDelim)
     where
       parseEmpty = string "Missing" >> pure []
 
 
 instance (BaseForm a, Formify a) => Formify (Maybe a) where
-  formifyImplementation [] _ = error "ran out of field names"
-  formifyImplementation ((Single x : xs) : xss) ma =
-      (rest, render $ aopt baseForm (addName x) ma)
-    where
-      (rest,render) = restAndRenderMethod xs xss
-  formifyImplementation _ _ = error "Incorrect naming scheme for an optional value!"
+  formifyImplementation = formifyInstanceBase . Left
 
   parseInput = do
     mMissing <- optionMaybe $ try $ escaped $ string "None"
@@ -220,9 +220,7 @@ instance (BaseForm a, Formify a) => Formify (Maybe a) where
 
 instance Formify (Maybe a) => Formify [Maybe a] where
   formifyImplementation = formifyInstanceList
-  parseInput = try (escaped parseEmpty) <|> sepBy parseInput (string listDelim)
-    where
-      parseEmpty = string "Missing" >> pure []
+  parseInput = parseInstanceList
 
 
 
@@ -231,36 +229,40 @@ addName name = (fieldSettingsLabel name) {fsId = Just name, fsName = Just name}
 
 
 
-formify :: Formify a => [[FieldInfo]] -> Maybe a -> Rendered
-formify xs ma
+formify :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered
+formify ma xs
       | null names = form
       | otherwise  = error "mismatched amount of field names and actual fields! "
     where
-      (names, form) = formifyImplementation xs ma
+      (names, form) = formifyImplementation ma xs
 
 
 
 formifyInstanceBase
     :: BaseForm a
-    => [[FieldInfo]]
-    -> Maybe a
+    => Either (Maybe (Maybe a)) (Maybe a)
+    -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceBase [] _ = error "Incorrect amount of field names"
-formifyInstanceBase ((Single t : xs) : xss) ma = (rest, render $ areq baseForm (addName t) ma)
+formifyInstanceBase _ [] = error "Incorrect amount of field names"
+formifyInstanceBase eMa ((Single t : xs) : xss) = (rest, case eMa of {
+                                                      Right ma -> render $ areq baseForm (addName t) ma
+                                                      ;
+                                                      Left ma -> render $ aopt baseForm (addName t) ma
+                                                      }
+                                                  )
   where (rest,render) = restAndRenderMethod xs xss
-
-formifyInstanceBase _ _ = error "Incorrect naming scheme for a simple field!"
+formifyInstanceBase eMa _ = error $ "Incorrect naming scheme for " ++ if isRight eMa then "a simple field!" else "an optional value!"
 
 
 
 formifyInstanceList
     :: Formify a
-    => [[FieldInfo]]
-    -> Maybe [a]
+    => Maybe [a]
+    -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceList [] _ = error "ran out of field names"
-formifyInstanceList ((List _ [] : _) : _) _ = error "List of fields without names!"
-formifyInstanceList ((List align fs : xs) : xss) mas =
+formifyInstanceList _ [] = error "ran out of field names"
+formifyInstanceList _ ((List _ [] : _) : _) = error "List of fields without names!"
+formifyInstanceList mas ((List align fs : xs) : xss) =
     (rest, snd <$> foldr joinThem zero theList)
   where
     lastInRow = null xs
@@ -294,7 +296,7 @@ formifyInstanceList ((List align fs : xs) : xss) mas =
 
     joinThem m mList = do
       (defs,inner) <- mList
-      let (remain,render) = formifyImplementation m (head defs)
+      let (remain,render) = formifyImplementation (head defs) m
       new <- render
       old <- if stopCondition remain
                then pure inner
@@ -311,51 +313,45 @@ formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
 
 formifyInstanceSingleChoice
     :: (Bounded a, Enum a, Eq a)
-    => [[FieldInfo]]
-    -> Maybe a
+    => Maybe a
+    -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceSingleChoice [] _ = error "ran out of field names!"
-formifyInstanceSingleChoice ((ChoicesDropdown t opts : xs) : xss) ma =
-    (rest, render $ areq (selectField $ enumOptionsPairs opts) (addName t) ma)
+formifyInstanceSingleChoice = formifyInstanceChoice . Right
+
+formifyInstanceChoice
+    :: (Bounded a, Enum a, Eq a)
+    => Either (Maybe [a]) (Maybe a)
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], Rendered)
+formifyInstanceChoice _ [] = error "ran out of field names!"
+formifyInstanceChoice eMa ((ChoicesDropdown t opts : xs) : xss) =
+    (rest, case eMa of {
+        Right ma -> render $ areq (selectField $ enumOptionsPairs opts) (addName t) ma
+        ;
+        Left ma -> render $ areq (multiSelectField $ enumOptionsPairs opts) (addName t) ma
+        }
+    )
   where
     (rest,render) = restAndRenderMethod xs xss
 
-formifyInstanceSingleChoice ((ChoicesButtons align t opts : xs) : xss) ma = (rest, form)
+formifyInstanceChoice eMa ((ChoicesButtons align t opts : xs) : xss) =
+    (rest, case eMa of {
+        Right ma -> render $ areq (case align of { Vertical -> radioField; Horizontal -> horizontalRadioField } $ enumOptionsPairs opts) (addName t) ma
+        ;
+        Left ma -> render $ areq (case align of { Vertical -> verticalCheckboxesField; Horizontal -> checkboxesField } $ enumOptionsPairs opts) (addName t) ma
+        }
+    )
   where
     (rest,render) = restAndRenderMethod xs xss
-    form = render $ areq (field $ enumOptionsPairs opts) (addName t) ma
 
-    field = case align of
-      Vertical   -> radioField
-      Horizontal -> horizontalRadioField
-
-formifyInstanceSingleChoice _ _ = error "Incorrect naming scheme for a single choice!"
-
-
+formifyInstanceChoice eMa _ = error $ "Incorrect naming scheme for a " ++ if isRight eMa then "single choice!" else "multi choice!"
 
 formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
-    => [[FieldInfo]]
-    -> Maybe [a]
+    => Maybe [a]
+    -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceMultiChoice [] _ = error "ran out of field names"
-formifyInstanceMultiChoice ((ChoicesDropdown t opts : xs) : xss) ma =
-    (rest, render $ areq (multiSelectField $ enumOptionsPairs opts) (addName t) ma)
-  where
-    (rest,render) = restAndRenderMethod xs xss
-
-formifyInstanceMultiChoice ((ChoicesButtons align t opts : xs) : xss) ma =
-    (rest, render $ areq toMultiForm (addName t) ma)
-  where
-    (rest,render) = restAndRenderMethod xs xss
-
-    field = case align of
-      Vertical   -> verticalCheckboxesField
-      Horizontal -> checkboxesField
-
-    toMultiForm = field $ enumOptionsPairs opts
-
-formifyInstanceMultiChoice _ _ = error "Incorrect naming scheme for a multi choice!"
+formifyInstanceMultiChoice = formifyInstanceChoice . Left
 
 
 
@@ -416,4 +412,3 @@ escaped = between escParse escParse
 
 parseUnicode :: Char -> Parser String
 parseUnicode c = string $ showLitChar c ""
-
