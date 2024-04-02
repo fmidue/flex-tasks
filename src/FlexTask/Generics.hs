@@ -232,7 +232,7 @@ addName name = (fieldSettingsLabel name) {fsId = Just name, fsName = Just name}
 formify :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered
 formify ma xs
       | null names = form
-      | otherwise  = error "mismatched amount of field names and actual fields! "
+      | otherwise  = error "mismatched amount of field names and actual fields!"
     where
       (names, form) = formifyImplementation ma xs
 
@@ -244,14 +244,14 @@ formifyInstanceBase
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
 formifyInstanceBase _ [] = error "Incorrect amount of field names"
-formifyInstanceBase eMa ((Single t : xs) : xss) = (rest, case eMa of {
-                                                      Right ma -> render $ areq baseForm (addName t) ma
-                                                      ;
-                                                      Left ma -> render $ aopt baseForm (addName t) ma
-                                                      }
-                                                  )
+formifyInstanceBase eMa ((Single t : xs) : xss) =
+    (rest, case eMa of
+        Right ma -> render $ areq baseForm (addName t) ma
+        Left ma -> render $ aopt baseForm (addName t) ma
+    )
   where (rest,render) = restAndRenderMethod xs xss
-formifyInstanceBase eMa _ = error $ "Incorrect naming scheme for " ++ if isRight eMa then "a simple field!" else "an optional value!"
+formifyInstanceBase eMa _ = error $ "Incorrect naming scheme for "
+    ++ if isRight eMa then "a simple field!" else "an optional value!"
 
 
 
@@ -325,26 +325,44 @@ formifyInstanceChoice
     -> ([[FieldInfo]], Rendered)
 formifyInstanceChoice _ [] = error "ran out of field names!"
 formifyInstanceChoice eMa ((ChoicesDropdown t opts : xs) : xss) =
-    (rest, case eMa of {
-        Right ma -> render $ areq (selectField $ enumOptionsPairs opts) (addName t) ma
-        ;
-        Left ma -> render $ areq (multiSelectField $ enumOptionsPairs opts) (addName t) ma
-        }
+    ( rest
+    , case eMa of
+        Right ma -> render $
+          areq (selectField $ enumOptionsPairs opts) (addName t) ma
+        Left mas -> render $
+          areq (multiSelectField $ enumOptionsPairs opts) (addName t) mas
     )
   where
     (rest,render) = restAndRenderMethod xs xss
 
 formifyInstanceChoice eMa ((ChoicesButtons align t opts : xs) : xss) =
-    (rest, case eMa of {
-        Right ma -> render $ areq (case align of { Vertical -> radioField; Horizontal -> horizontalRadioField } $ enumOptionsPairs opts) (addName t) ma
-        ;
-        Left ma -> render $ areq (case align of { Vertical -> verticalCheckboxesField; Horizontal -> checkboxesField } $ enumOptionsPairs opts) (addName t) ma
-        }
+    ( rest
+    , case eMa of
+        Right ma  -> render $ areq
+            (
+              case align of
+                Vertical   -> radioField
+                Horizontal -> horizontalRadioField
+              $ enumOptionsPairs opts
+            )
+            (addName t)
+            ma
+        Left mas -> render $ areq
+            (
+              case align of
+                Vertical   -> verticalCheckboxesField
+                Horizontal -> checkboxesField
+              $ enumOptionsPairs opts
+            )
+            (addName t)
+            mas
     )
   where
     (rest,render) = restAndRenderMethod xs xss
 
-formifyInstanceChoice eMa _ = error $ "Incorrect naming scheme for a " ++ if isRight eMa then "single choice!" else "multi choice!"
+
+formifyInstanceChoice eMa _ = error $ "Incorrect naming scheme for a "
+    ++ if isRight eMa then "single choice!" else "multi choice!"
 
 formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
