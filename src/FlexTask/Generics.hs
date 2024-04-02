@@ -247,7 +247,7 @@ formifyInstanceBase _ [] = error "Incorrect amount of field names"
 formifyInstanceBase eMa ((Single t : xs) : xss) =
     (rest, case eMa of
         Right ma -> render $ areq baseForm (addName t) ma
-        Left ma -> render $ aopt baseForm (addName t) ma
+        Left mMa -> render $ aopt baseForm (addName t) mMa
     )
   where (rest,render) = restAndRenderMethod xs xss
 formifyInstanceBase eMa _ = error $ "Incorrect naming scheme for "
