@@ -1,14 +1,27 @@
 module Global where
 
-import Data.Text
-import GHC.Generics
 
-newtype Binary = Binary { getBool :: Bool} deriving (Eq,Show)
-newtype Formula = Formula {getFormula :: Text} deriving (Eq,Show)
+import Data.Text    (Text)
+import FlexTask.Generics (
+      Formify(..)
+    , formifyInstanceMultiChoice
+    , parseInstanceMultiChoice
+    )
+import GHC.Generics (Generic)
+
+
+newtype Binary = Binary { unBinary :: Bool} deriving (Eq,Show,Generic)
+newtype Formula = Formula { unFormula :: Text} deriving (Eq,Show,Generic)
 
 
 data Table = Table [(Maybe Formula, [Maybe Binary])] deriving (Show,Eq,Generic)
 data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
+
+
+instance Formify [Namen] where
+  formifyImplementation = formifyInstanceMultiChoice
+  parseInput = parseInstanceMultiChoice
+
 
 type Solution = (Text,[Namen])
 
@@ -19,6 +32,8 @@ validSymbols :: String
 validSymbols = "ABCD∧∨⇒⇔¬() "
 
 =============================================
+
+{-# language ApplicativeDo #-}
 {-# language DeriveGeneric #-}
 {-# Language FlexibleContexts #-}
 {-# language OverloadedStrings #-}
@@ -26,30 +41,35 @@ validSymbols = "ABCD∧∨⇒⇔¬() "
 module TaskAndForm where
 
 
-import Data.List.Split (chunksOf)
-import Data.Text (Text)
-import Data.String.Interpolate(i)
+import Control.Monad.Output
+import Data.List.Split          (chunksOf)
+import Data.Text                (Text)
+import Data.String.Interpolate  (i)
+import FlexTask.FormUtil        (flatten, getHtml)
+import FlexTask.Generics        (Alignment(..), FieldInfo(..), addName, formify)
+import FlexTask.YesodConfig     (Handler, Widget, FlexForm)
+import OM.Instance
 import Test.QuickCheck.Gen
+import Text.Blaze.Internal      (MarkupM)
 import Yesod
 
-import FormUtil
+import qualified Data.Text as T
+
 import Global
 
-import qualified Data.Text as T
+
 
 
 instance MonadFail Gen where
   fail = error
 
-instance Formify [Namen] where
-  formifyImplementation = formifyInstanceMultiChoice
-
-
 
 getParticipants :: Gen [Bool]
 getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 
-getTask = do
+
+getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [[Text]])
+getTask _ = do
     values@[a,b,c,d] <- getParticipants
     let f = formula a b c d
         description = output a b c d
@@ -71,33 +91,41 @@ formula a b c d = [i|(#{part4}) ∧ (#{part1}) ∧ (#{part2}) ∧ (#{part3}) ∧
     part4 = [i|(#{neg b "B"} ∧ #{neg d "D"}) ⇒ #{neg (not c) "C"}|] :: Text
     part5 = [i|#{neg d "D"} ⇒ (#{neg a "A"} ∨ #{neg b "B"})|] :: Text
 
-output a b c d = (germanText a b c d,"")
 
 
-germanText :: Bool -> Bool -> Bool -> Bool -> String
-germanText a b c d = [i|
-Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen.
-Sie fragt ihre Freunde Astrid (A), Ben (B), Claudia (C) und David (D), ob sie mitkommen wollen.
-Leider sind die Antworten etwas seltsam.
-
-- #{hint4}
-- #{hint1}
-- #{hint2}
-- #{hint3}
-- #{hint5}
-
-Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein.
-
-Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an.
-
-Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:
-
-Negation:      ¬
-Und:           ∧
-Oder:          ∨
-Implikation:   ⇒
-Biimplikation: ⇔
-|]
+output :: OutputMonad m => Bool -> Bool -> Bool -> Bool -> LangM m
+output a b c d = do
+    paragraph $ translate $ german
+      ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
+        "Sie fragt ihre Freunde Astrid (A), Ben (B), Claudia (C) und David (D), " ++
+        "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
+      )
+    itemizeM
+      [ translate $ german $
+          (if b == d
+             then [i|Falls Ben und David #{nicht b} kommen,|]
+             else
+               if b
+                 then "Falls Ben nicht, aber David kommt,"
+                 else "Falls Ben, aber nicht David kommt,")
+          ++ [i| kommt Claudia #{nicht (not c)}.|]
+      , translate $ german [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|]
+      , translate $ german [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|]
+      , translate $ german [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|]
+      , translate $ german $
+          [i|Wenn David #{nicht d} kommt, |] ++
+          if a == b
+            then [i|kommen #{if d == a then auch else ""} Astrid oder Ben #{nicht a}.|]
+            else
+              if a
+                then [i|kommt #{if d then auch else ""} Astrid nicht oder Ben kommt.|]
+                else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
+      ]
+    paragraph $ translate $ german "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
+    paragraph $ translate $ german "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
+    paragraph $ translate $ german "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
+    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] [code "¬",code "∧",code "∨",code "⇒", code "⇔"]
+    pure ()
   where
     nicht :: Bool -> String
     nicht f = if f then "nicht" else ""
@@ -105,71 +133,48 @@ Biimplikation: ⇔
     auch :: String
     auch = " auch"
 
-    hint1 = [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|] :: String
-    hint2 = [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|] :: String
-    hint3 = [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|] :: String
-    hint4 =
-      (if b == d
-         then [i|Falls Ben und David #{nicht b} kommen,|]
-         else
-           if b
-             then "Falls Ben nicht, aber David kommt,"
-             else "Falls Ben, aber nicht David kommt,")
-      ++ [i| kommt Claudia #{nicht (not c)}.|] :: String
-
-    hint5 =
-      [i|Wenn David #{nicht d} kommt, |] ++
-      if a == b
-        then [i|kommen #{if d == a then auch else ""} Astrid oder Ben #{nicht a}.|]
-        else
-          if a
-            then [i|kommt #{if d then auch else ""} Astrid nicht oder Ben kommt.|]
-            else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
 
 
-tableForm :: [Text] -> Int -> Int -> Html -> MForm Handler (FormResult Table, Widget)
+tableForm :: [Text] -> Int -> Int -> Html -> MForm Handler Widget
 tableForm staticHeaders rowAmount columnAmount extra = do
     let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
 
         tableTextField :: Text -> MForm Handler (FormResult (Maybe Text),FieldView FlexForm)
         tableTextField t = mopt textField (addCssClass (addName t)) Nothing
 
-    headersRes <- sequence $ map tableTextField $ headerList (columnAmount - length staticHeaders)
-    columnsRes <- sequence $ map tableTextField $ cellList rowAmount columnAmount
+    headersRes <- traverse tableTextField $ headerList (columnAmount - length staticHeaders)
+    columnsRes <- traverse tableTextField $ cellList rowAmount columnAmount
     let headers = map snd headersRes
         rows = chunksOf columnAmount $ map snd columnsRes
-        widget =
-         [whamlet|
-             <style>
-               .tableInput {
-                 width: 100%;
-               }
-               table, th, td {
-                 border: 1px solid black;
-                 border-collapse: collapse;
+    pure [whamlet|
+           <style>
+             .tableInput {
+               width: 100%;
+             }
+             table, th, td {
+               border: 1px solid black;
+               border-collapse: collapse;
 
-               }
-               table {
-                 width: 100%;
-               }
-             #{extra}
-             <table>
+             }
+             table {
+               width: 100%;
+             }
+           #{extra}
+           <table>
+             <tr>
+               $forall sh <- staticHeaders
+                 <th>#{sh}
+               $forall header <- headers
+                 <th>^{fvInput header}
+             $forall row <- rows
                <tr>
-                 $forall sh <- staticHeaders
-                   <th>#{sh}
-                 $forall header <- headers
-                   <th>^{fvInput header}
-               $forall row <- rows
-                 <tr>
-                   $forall input <- row
-                     <td>^{fvInput input}
-         |]
-
-    return (undefined, widget)
+                 $forall input <- row
+                   <td>^{fvInput input}|]
 
 
 headerList :: Int -> [Text]
 headerList amount = map (T.pack . ('h':) . show) [1..amount]
+
 
 cellList :: Int -> Int -> [Text]
 cellList rows columns = map (T.pack . show) [1..rows*columns]
@@ -179,23 +184,19 @@ nonTableFields :: [[FieldInfo]]
 nonTableFields = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
 
 
-
--- ugly! Maybe add a function to handle this
-widget :: Html -> MForm Handler (FormResult Submission, Widget)
+widget :: Html -> MForm Handler Widget
 widget = do
   resLeft  <- tableForm ["A","B","C","D"] 16 7
-  resRight <- (formify nonTableFields :: Rendered Solution)
-  pure $ do
-    (_,w1) <- resLeft
-    (_,w2) <- resRight
-    pure (undefined,w1 >> w2)
+  resRight <- formify (Nothing :: Maybe Solution) nonTableFields
+  pure $ (>>) <$> resLeft <*> resRight
 
 
 =============================================
-
+{-# language ApplicativeDo #-}
 {-# language DeriveGeneric #-}
 {-# language OverloadedStrings #-}
 module ParseAndCheck where
+
 
 
 import Data.Char (showLitChar)
@@ -203,31 +204,36 @@ import Data.String.Interpolate(i)
 import Data.Text (Text)
 import Data.List (transpose)
 import Data.List.Split (chunksOf)
+import FlexTask.Generics
 import Text.Parsec ((<|>), ParseError, choice, many1, parse, string, try)
 import Text.Parsec.Char (oneOf)
 import Text.Parsec.String (Parser)
 import GHC.Generics
 
-import Global
-import ParseUtil
-
 import qualified Data.Text as T
 
+import Global
 
-instance Parse [Namen] where
-  parseInput = parseInstanceMultiChoice
 
-instance Parse Binary where
+instance BaseForm Formula where
+  baseForm = undefined
+
+instance BaseForm Binary where
+  baseForm = undefined
+
+
+instance Formify Binary where
   parseInput = escaped $ do
     val <- string "0" <|> string "1"
     pure $ Binary $ toEnum $ read val
 
-instance Parse Formula where
+instance Formify Formula where
   parseInput = escaped $ do
     symbols <- many1 $ choice $ map (try. parseUnicode) validSymbols
     pure $ Formula $ T.pack $ read ('\"' : concat symbols ++ "\"")
 
-instance Parse Table where
+instance Formify Table where
+  formifyImplementation = undefined
   parseInput = do
     (headers,values) <- parseInput
     let allHeaders = map (Just . Formula) ["A","B","C","D"] ++ headers
@@ -243,31 +249,46 @@ parseSubmission = parse parseInput ""
 \solution -> [i|
 
 
-import Numeric
-import Data.Maybe (catMaybes)
+import Control.Monad        (when)
+import Control.Monad.Output
+import Data.Char            (digitToInt)
+import Data.Functor         (($>))
+import Data.Maybe           (catMaybes)
+import Data.Ratio           (Ratio)
+import Numeric              (showBin)
+import OM.Instance          (OutputPart)
 
 
-checkSyntax :: Either ParseError Submission -> Maybe String
-checkSyntax (Left err) = Just $ show err
-checkSyntax (Right (Table xs,f,n))
-    | any (`elem` (map (Just . Formula) ["A","B","C","D"])) nonStaticHeaders = Just "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
-    | null n = Just "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
-    | T.any isNumber f = Just "Die Formel enthält Zahlen."
-    | otherwise = Nothing
+
+checkSyntax :: OutputMonad m => FilePath -> Either ParseError Submission -> LangM m
+checkSyntax _ (Left err) = refuse $ code $ show err
+checkSyntax _ (Right (Table xs,f,n))
+    | any (`elem` (map (Just . Formula) ["A","B","C","D"])) nonStaticHeaders =
+        indent $ refuse $ translate $ german "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
+    | null n =
+        indent $ refuse $ translate $ german "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
+    | T.any isNumber f = refuse $ translate $ german "Die Formel enthält Zahlen."
+    | otherwise = pure ()
   where
     isNumber c = c `elem` ['1'..'9']
     (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
 
 
-checkSemantics :: Either ParseError Submission -> Maybe String
-checkSemantics (Left err) = Just $ show err
-checkSemantics (Right (Table xs,f,n))
-    | take 4 columns /= startingTable = Just "Die Spalten der atomaren Formeln ergeben keine sinnvolle Wahrheitstabelle."
-    | T.any notInAnswer "ABCD" = Just "Die Formel enthält nicht alle vorkommenden Literale."
-    | f /= fSol = Just "Die aussagenlogische Formel ist falsch."
-    | n /= nSol = Just "Die Liste der Teilnehmer ist falsch."
-    | otherwise = Nothing
+checkSemantics :: OutputMonad m => FilePath -> Either ParseError Submission -> Rated m
+checkSemantics _ (Left err) = refuse (code $ show err) $> 0
+checkSemantics _ (Right (Table xs,f,n)) = do
+    when (take 4 columns /= startingTable) $
+        indent $ refuse $ translate $ german
+          "Die Spalten der atomaren Formeln ergeben keine sinnvolle Wahrheitstabelle."
+    when (T.any notInAnswer "ABCD") $
+        indent $ refuse $ translate $
+           german "Die Formel enthält nicht alle vorkommenden Literale."
+    when (f /= fSol) $
+        indent $ refuse $ translate $ german "Die aussagenlogische Formel ist falsch."
+    when (n /= nSol) $
+        indent $ refuse $ translate $ german "Die Liste der Teilnehmer ist falsch."
+    pure 1
   where
     notInAnswer c = not (c `T.elem` f)
     (headers,columns) = unzip xs
@@ -276,7 +297,8 @@ checkSemantics (Right (Table xs,f,n))
 
 
 startingTable :: [[Maybe Binary]]
-startingTable = map (Just . Binary . toEnum) . read . T.unpack <$> T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
+startingTable = map (Just . Binary . toEnum . digitToInt) . T.unpack <$>
+  T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
 
 
 sol = #{solution}
