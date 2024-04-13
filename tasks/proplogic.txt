@@ -1,26 +1,19 @@
 module Global where
 
 
-import Data.Text    (Text)
-import FlexTask.Generics (
-      Formify(..)
-    , formifyInstanceMultiChoice
-    , parseInstanceMultiChoice
-    )
-import GHC.Generics (Generic)
+import Data.Text (Text)
 
 
-newtype Binary = Binary { unBinary :: Bool} deriving (Eq,Show,Generic)
-newtype Formula = Formula { unFormula :: Text} deriving (Eq,Show,Generic)
 
 
-data Table = Table [(Maybe Formula, [Maybe Binary])] deriving (Show,Eq,Generic)
+newtype Binary = Binary { unBinary :: Bool} deriving (Eq,Show)
+
+newtype Formula = Formula { unFormula :: Text} deriving (Eq,Show)
+
+
+data Table = Table [(Maybe Formula, [Maybe Binary])] deriving (Eq,Show)
+
 data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
-
-
-instance Formify [Namen] where
-  formifyImplementation = formifyInstanceMultiChoice
-  parseInput = parseInstanceMultiChoice
 
 
 type Solution = (Text,[Namen])
@@ -42,15 +35,22 @@ module TaskAndForm where
 
 
 import Control.Monad.Output
-import Data.List.Split          (chunksOf)
-import Data.Text                (Text)
-import Data.String.Interpolate  (i)
-import FlexTask.FormUtil        (flatten, getHtml)
-import FlexTask.Generics        (Alignment(..), FieldInfo(..), addName, formify)
-import FlexTask.YesodConfig     (Handler, Widget, FlexForm)
+import Data.List.Split         (chunksOf)
+import Data.Text               (Text)
+import Data.String.Interpolate (i)
+import FlexTask.FormUtil       (flatten, getHtml)
+import FlexTask.Generic.Form (
+  Alignment(..),
+  FieldInfo(..),
+  Formify(..),
+  addName,
+  formify,
+  formifyInstanceMultiChoice
+  )
+import FlexTask.YesodConfig    (Handler, Widget, FlexForm)
 import OM.Instance
 import Test.QuickCheck.Gen
-import Text.Blaze.Internal      (MarkupM)
+import Text.Blaze.Internal     (MarkupM)
 import Yesod
 
 import qualified Data.Text as T
@@ -109,12 +109,9 @@ output a b c d = do
                  then "Falls Ben nicht, aber David kommt,"
                  else "Falls Ben, aber nicht David kommt,")
           ++ [i| kommt Claudia #{nicht (not c)}.|]
-      , translate $ german
-          [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|]
-      , translate $ german
-          [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|]
-      , translate $ german
-          [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|]
+      , translate $ german [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|]
+      , translate $ german [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|]
+      , translate $ german [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|]
       , translate $ german $
           [i|Wenn David #{nicht d} kommt, |] ++
           if a == b
@@ -124,13 +121,10 @@ output a b c d = do
                 then [i|kommt #{if d then auch else ""} Astrid nicht oder Ben kommt.|]
                 else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
       ]
-    paragraph $ translate $ german
-      "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
-    paragraph $ translate $ german
-      "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
-    paragraph $ translate $ german
-      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
-    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","⇒","⇔"]
+    paragraph $ translate $ german "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
+    paragraph $ translate $ german "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
+    paragraph $ translate $ german "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
+    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] [code "¬",code "∧",code "∨",code "⇒", code "⇔"]
     pure ()
   where
     nicht :: Bool -> String
@@ -182,12 +176,20 @@ headerList :: Int -> [Text]
 headerList amount = map (T.pack . ('h':) . show) [1..amount]
 
 
+
 cellList :: Int -> Int -> [Text]
 cellList rows columns = map (T.pack . show) [1..rows*columns]
 
 
+
+instance Formify [Namen] where
+  formifyImplementation = formifyInstanceMultiChoice
+
+
+
 nonTableFields :: [[FieldInfo]]
 nonTableFields = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
+
 
 
 widget :: Html -> MForm Handler Widget
@@ -196,50 +198,64 @@ widget = do
   resRight <- formify (Nothing :: Maybe Solution) nonTableFields
   pure $ (>>) <$> resLeft <*> resRight
 
-
 =============================================
+
 {-# language ApplicativeDo #-}
 {-# language DeriveGeneric #-}
 {-# language OverloadedStrings #-}
 module ParseAndCheck where
 
 
-
-import Data.Char (showLitChar)
-import Data.String.Interpolate(i)
-import Data.Text (Text)
-import Data.List (transpose)
-import Data.List.Split (chunksOf)
-import FlexTask.Generics
-import Text.Parsec ((<|>), ParseError, choice, many1, parse, string, try)
-import Text.Parsec.Char (oneOf)
-import Text.Parsec.String (Parser)
-import GHC.Generics
+import Data.Char               (showLitChar)
+import Data.String.Interpolate (i)
+import Data.Text               (Text)
+import Data.List               (transpose)
+import Data.List.Split         (chunksOf)
+import FlexTask.Generic.Parse (
+  Parse(..),
+  parseInstanceMultiChoice,
+  parseUnicode,
+  escaped
+  )
+import Text.Parsec (
+  (<|>),
+  ParseError,
+  choice,
+  many1,
+  parse,
+  string,
+  try
+  )
+import Text.Parsec.Char       (oneOf)
+import Text.Parsec.String     (Parser)
 
 import qualified Data.Text as T
 
 import Global
 
 
-instance BaseForm Formula where
-  baseForm = undefined
-
-instance BaseForm Binary where
-  baseForm = undefined
 
 
-instance Formify Binary where
+instance Parse Binary where
   parseInput = escaped $ do
     val <- string "0" <|> string "1"
     pure $ Binary $ toEnum $ read val
 
-instance Formify Formula where
+
+
+instance Parse Formula where
   parseInput = escaped $ do
-    symbols <- many1 $ choice $ map (try. parseUnicode) validSymbols
+    symbols <- many1 $ choice $ map (try . parseUnicode) validSymbols
     pure $ Formula $ T.pack $ read ('\"' : concat symbols ++ "\"")
 
-instance Formify Table where
-  formifyImplementation = undefined
+
+
+instance Parse [Namen] where
+  parseInput = parseInstanceMultiChoice
+
+
+
+instance Parse Table where
   parseInput = do
     (headers,values) <- parseInput
     let allHeaders = map (Just . Formula) ["A","B","C","D"] ++ headers

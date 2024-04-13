@@ -2,7 +2,7 @@
 {-# language OverloadedStrings #-}
 {-# language TypeOperators #-}
 
-module FlexTask.Generics
+module FlexTask.Generic.Form
   ( Alignment(..)
   , FieldInfo(..)
 
@@ -11,41 +11,16 @@ module FlexTask.Generics
 
   , formifyInstanceMultiChoice
   , formifyInstanceSingleChoice
-  , parseInstanceSingleChoice
-  , parseInstanceMultiChoice
 
   , addName
   , formify
-
-  , escape
-  , argDelim
-  , listDelim
-  , escaped
-  , parseUnicode
   ) where
 
 
-import Control.Monad       (void)
-import Data.Char           (showLitChar)
 import Data.Either         (isRight)
 import GHC.Generics        (Generic(..), K1(..), M1(..), (:*:)(..))
 import Data.Text           (Text)
-import Text.Parsec
-  ( (<|>)
-  , between
-  , lookAhead
-  , manyTill
-  , many1
-  , notFollowedBy
-  , optionMaybe
-  , sepBy
-  , try
-  )
-import Text.Parsec.Char    (anyChar, char, digit, string)
-import Text.Parsec.String  (Parser)
 import Yesod
-
-import qualified Data.Text as T
 
 import FlexTask.Widgets
   ( horizontalRadioField
@@ -98,7 +73,6 @@ class Formify a where
       :: Maybe a
       -> [[FieldInfo]]
       -> ([[FieldInfo]], Rendered)
-  parseInput :: Parser a
 
   default formifyImplementation
       :: (Generic a, GFormify (Rep a))
@@ -107,15 +81,11 @@ class Formify a where
       -> ([[FieldInfo]], Rendered)
   formifyImplementation mDefault = gformify $ from <$> mDefault
 
-  default parseInput :: (Generic a, GFormify (Rep a)) => Parser a
-  parseInput = to <$> gparse
-
 
 
 class GFormify f where
   gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], Rendered)
 
-  gparse :: Parser (f a)
 
 -- | Products: parse a constructor with multiple arguments
 instance (GFormify a, GFormify b) => GFormify (a :*: b) where
@@ -132,62 +102,34 @@ instance (GFormify a, GFormify b) => GFormify (a :*: b) where
         wid2 <- rightRender
         pure $ (>>) <$> wid1 <*> wid2
 
-  gparse = do
-    a <- gparse
-    void $ string argDelim
-    b <- gparse
-    pure (a :*: b)
 
 
 
 -- | Meta-information (constructor names, etc.)
 instance GFormify a => GFormify (M1 i c a) where
   gformify mDefault = gformify $ unM1 <$> mDefault
-  gparse = M1 <$> gparse
 
 
 -- | Constants, additional parameters and recursion of kind *
 instance Formify a => GFormify (K1 i a) where
   gformify mDefault = formifyImplementation $ unK1 <$> mDefault
-  gparse = K1 <$> parseInput
 
 
 instance Formify Int where
   formifyImplementation = formifyInstanceBase . Right
-  parseInput = intParse
 
 
 instance Formify Text where
   formifyImplementation = formifyInstanceBase . Right
-  parseInput = escaped $ do
-    input <- manyTill anyChar $ try $ lookAhead $
-      string escape >> notFollowedBy (string "\"")
-    pure $ T.pack $ read ('\"' : input ++ "\"")
 
 
 instance Formify Bool where
   formifyImplementation = formifyInstanceBase . Right
-  parseInput = escaped $ do
-    val <- try (string "yes") <|> string "no"
-    pure $ case val of
-            "yes" -> True
-            _     -> False
+
 
 
 instance Formify Double where
   formifyImplementation = formifyInstanceBase . Right
-  parseInput = escaped $ do
-    sign <- optionMaybe $ char '-'
-    whole <- many1 digit
-    dot <- optionMaybe (char '.' <|> char ',')
-    frac <- case dot of
-              Nothing -> pure []
-              Just _  -> ('.':) <$> many1 digit
-    pure $ read $ case sign of
-                    Nothing ->     whole
-                    Just s  -> s : whole
-                  ++ frac
-
 
 
 instance (Formify a, Formify b) => Formify (a,b)
@@ -199,28 +141,15 @@ instance (Formify a, Formify b, Formify c, Formify d) => Formify (a,b,c,d)
 
 instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
   formifyImplementation = formifyInstanceList
-  parseInput = parseInstanceList
 
-parseInstanceList :: Formify a => Parser [a]
-parseInstanceList =
-  try (escaped parseEmpty) <|> sepBy parseInput (string listDelim)
-    where
-      parseEmpty = string "Missing" >> pure []
 
 
 instance (BaseForm a, Formify a) => Formify (Maybe a) where
   formifyImplementation = formifyInstanceBase . Left
 
-  parseInput = do
-    mMissing <- optionMaybe $ try $ escaped $ string "None"
-    case mMissing of
-      Nothing -> Just <$> parseInput
-      Just _  -> pure Nothing
-
 
 instance Formify (Maybe a) => Formify [Maybe a] where
   formifyImplementation = formifyInstanceList
-  parseInput = parseInstanceList
 
 
 
@@ -384,49 +313,3 @@ restAndRenderMethod
     -> ([[FieldInfo]],AForm Handler a -> Html -> MForm Handler Widget)
 restAndRenderMethod [] xss = (xss,renderFlatOrBreak True)
 restAndRenderMethod xs xss = (xs:xss, renderFlatOrBreak False)
-
-
-
-intParse :: Parser Int
-intParse = escaped $ do
-        sign <- optionMaybe $ char '-'
-        ds <- many1 digit
-        pure $ read $ case sign of
-            Nothing -> ds
-            Just s  -> s : ds
-
-
-
-parseInstanceSingleChoice :: (Bounded a, Enum a, Eq a) => Parser a
-parseInstanceSingleChoice = toEnum . subtract 1 <$> parseInput
-
-
-
-parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser [a]
-parseInstanceMultiChoice = fmap (toEnum . subtract 1) <$> parseInput
-
-
-
-escape :: String
-escape = "\"\""
-
-
-
-argDelim :: String
-argDelim = "\a\a"
-
-
-
-listDelim :: String
-listDelim = "\b\b"
-
-
-
-escaped :: Parser a -> Parser a
-escaped = between escParse escParse
-  where escParse = string escape
-
-
-
-parseUnicode :: Char -> Parser String
-parseUnicode c = string $ showLitChar c ""

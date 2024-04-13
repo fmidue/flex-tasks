@@ -1,9 +1,7 @@
 {-# language QuasiQuotes #-}
 
 module FlexTask.FormUtil
-  ( module FlexTask.Generics
-
-  , flatten
+  ( flatten
   , getHtml
   ) where
 
@@ -17,7 +15,7 @@ import Yesod.Default.Config2 (makeYesodLogger)
 
 import qualified Yesod.Core.Unsafe as Unsafe
 
-import FlexTask.Generics     (FieldInfo(..))
+import FlexTask.Generic.Form (FieldInfo(..))
 import FlexTask.YesodConfig  (FlexForm(..), Handler, Widget)
 
 

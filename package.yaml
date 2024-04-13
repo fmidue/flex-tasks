@@ -24,8 +24,9 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
-    - FlexTask.Generics
     - FlexTask.FormUtil
+    - FlexTask.Generic.Form
+    - FlexTask.Generic.Parse
     - FlexTask.YesodConfig
   ghc-options:
     - -Wall
