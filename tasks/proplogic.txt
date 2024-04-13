@@ -109,9 +109,12 @@ output a b c d = do
                  then "Falls Ben nicht, aber David kommt,"
                  else "Falls Ben, aber nicht David kommt,")
           ++ [i| kommt Claudia #{nicht (not c)}.|]
-      , translate $ german [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|]
-      , translate $ german [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|]
-      , translate $ german [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|]
+      , translate $ german
+          [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|]
+      , translate $ german
+          [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|]
+      , translate $ german
+          [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|]
       , translate $ german $
           [i|Wenn David #{nicht d} kommt, |] ++
           if a == b
@@ -121,10 +124,13 @@ output a b c d = do
                 then [i|kommt #{if d then auch else ""} Astrid nicht oder Ben kommt.|]
                 else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
       ]
-    paragraph $ translate $ german "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
-    paragraph $ translate $ german "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
-    paragraph $ translate $ german "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
-    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] [code "¬",code "∧",code "∨",code "⇒", code "⇔"]
+    paragraph $ translate $ german
+      "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
+    paragraph $ translate $ german
+      "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
+    paragraph $ translate $ german
+      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
+    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","⇒","⇔"]
     pure ()
   where
     nicht :: Bool -> String
@@ -286,9 +292,11 @@ checkSyntax :: OutputMonad m => FilePath -> Either ParseError Submission -> Lang
 checkSyntax _ (Left err) = refuse $ code $ show err
 checkSyntax _ (Right (Table xs,f,n))
     | any (`elem` (map (Just . Formula) ["A","B","C","D"])) nonStaticHeaders =
-        indent $ refuse $ translate $ german "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
+        indent $ refuse $ translate $ german
+          "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
     | null n =
-        indent $ refuse $ translate $ german "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
+        indent $ refuse $ translate $ german
+          "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
     | T.any isNumber f = refuse $ translate $ german "Die Formel enthält Zahlen."
     | otherwise = pure ()
   where
