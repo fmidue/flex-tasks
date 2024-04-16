@@ -1,0 +1,125 @@
+module Global where
+
+
+type Solution = (Int,Int)
+
+=============================================
+
+{-# language ApplicativeDo #-}
+{-# language DeriveGeneric #-}
+{-# Language FlexibleContexts #-}
+{-# language OverloadedStrings #-}
+{-# Language QuasiQuotes #-}
+module TaskAndForm where
+
+
+import Control.Monad.IO.Class            (MonadIO (liftIO))
+import Control.Monad.Output
+import Control.Monad.Output.Generic.Type (GenericOutput)
+import Data.String.Interpolate           (i)
+import Data.Text                         (Text)
+import FlexTask.FormUtil                 (flatten, getHtml)
+import FlexTask.Generic.Form
+import FlexTask.YesodConfig              (Handler, Widget)
+import GHC.Generics                      (Generic)
+import LogicTasks.Syntax.ComposeFormula  (description)
+import Tasks.ComposeFormula.Config       (defaultComposeFormulaConfig)
+import Tasks.ComposeFormula.Quiz         (generateComposeFormulaInst)
+import Test.QuickCheck.Gen               (Gen)
+import Text.Blaze.Internal               (MarkupM)
+import Yesod                             (Html, MForm)
+import Yesod.Form.Functions
+
+import qualified Data.Text as T
+
+import Global
+
+
+
+getTask
+  :: (MonadIO m, OutputMonad m)
+  => FilePath
+  -> Gen (LangM m, String, IO Html, [[Text]])
+getTask path = do
+    inst <- generateComposeFormulaInst defaultComposeFormulaConfig
+    let text = description (path <> "/") inst
+    pure (text, show inst, getHtml flattened widget, flattened)
+  where
+    flattened = flatten fieldNames
+
+
+
+fieldNames :: [[FieldInfo]]
+fieldNames = [[Single "First Formula", Single "Second Formula"]]
+
+
+
+widget :: Html -> MForm Handler Widget
+widget = formify (Nothing :: Maybe (Text,Text)) fieldNames
+
+=============================================
+
+{-# language ApplicativeDo #-}
+{-# language DeriveGeneric #-}
+module ParseAndCheck where
+
+
+import Data.String.Interpolate (i)
+import Data.Text               (Text)
+import FlexTask.Generic.Parse  (Parse(parseInput), escaped)
+import GHC.Generics            (Generic)
+import Text.Parsec             (ParseError, parse)
+import Trees.Parsing           ()
+import Trees.Types             (BinOp(..), SynTree(..), TreeFormulaAnswer)
+
+import qualified Data.Text       as T
+import qualified Formula.Parsing as FP
+
+import Global
+
+
+instance Parse TreeFormulaAnswer where
+  parseInput = escaped FP.parser
+
+
+
+parseSubmission :: String -> Either ParseError (TreeFormulaAnswer,TreeFormulaAnswer)
+parseSubmission = parse parseInput ""
+
+=============================================
+
+\solution -> [i|
+
+
+import Control.Monad.IO.Class            (MonadIO (liftIO))
+import Control.Monad.Output
+import Control.Monad.Output.Generic.Type (GenericOutput)
+import Data.Ratio
+import LogicTasks.Syntax.ComposeFormula  (partialGrade, completeGrade)
+import Tasks.ComposeFormula.Config       (ComposeFormulaInst(..))
+
+
+
+checkSyntax
+  :: (MonadIO m, OutputMonad m)
+  => FilePath
+  -> Either ParseError (TreeFormulaAnswer,TreeFormulaAnswer)
+  -> LangM m
+checkSyntax _ (Left err) = refuse $ code $ show err
+checkSyntax _ (Right (a,b)) = partialGrade sol [a,b]
+
+
+
+checkSemantics
+  :: (MonadIO m, OutputMonad m)
+  => FilePath
+  -> Either ParseError (TreeFormulaAnswer,TreeFormulaAnswer)
+  -> Rated m
+checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
+checkSemantics path (Right (a,b)) = completeGrade path sol [a,b] *> pure 1.0
+
+
+sol = #{solution}
+|]
+
+

@@ -9,6 +9,7 @@ module FlexTask.Generic.Form
   , BaseForm(..)
   , Formify(..)
 
+  , formifyInstanceBase
   , formifyInstanceMultiChoice
   , formifyInstanceSingleChoice
 
