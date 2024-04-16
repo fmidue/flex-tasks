@@ -35,10 +35,11 @@ module TaskAndForm where
 
 
 import Control.Monad.Output
-import Data.List.Split         (chunksOf)
-import Data.Text               (Text)
-import Data.String.Interpolate (i)
-import FlexTask.FormUtil       (flatten, getHtml)
+import Control.Monad.Output.Generic.Type (GenericOutput)
+import Data.List.Split                   (chunksOf)
+import Data.Text                         (Text)
+import Data.String.Interpolate           (i)
+import FlexTask.FormUtil                 (flatten, getHtml)
 import FlexTask.Generic.Form (
   Alignment(..),
   FieldInfo(..),
@@ -47,10 +48,10 @@ import FlexTask.Generic.Form (
   formify,
   formifyInstanceMultiChoice
   )
-import FlexTask.YesodConfig    (Handler, Widget, FlexForm)
+import FlexTask.YesodConfig             (Handler, Widget, FlexForm)
 import OM.Instance
 import Test.QuickCheck.Gen
-import Text.Blaze.Internal     (MarkupM)
+import Text.Blaze.Internal              (MarkupM)
 import Yesod
 
 import qualified Data.Text as T
@@ -277,14 +278,15 @@ parseSubmission = parse parseInput ""
 \solution -> [i|
 
 
-import Control.Monad        (when)
+import Control.Monad                     (when)
 import Control.Monad.Output
-import Data.Char            (digitToInt)
-import Data.Functor         (($>))
-import Data.Maybe           (catMaybes)
-import Data.Ratio           (Ratio)
-import Numeric              (showBin)
-import OM.Instance          (OutputPart)
+import Control.Monad.Output.Generic.Type (GenericOutput)
+import Data.Char                         (digitToInt)
+import Data.Functor                      (($>))
+import Data.Maybe                        (catMaybes)
+import Data.Ratio                        (Ratio)
+import Numeric                           (showBin)
+import OM.Instance                       (OutputPart)
 
 
 
