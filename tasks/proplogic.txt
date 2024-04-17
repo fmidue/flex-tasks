@@ -49,7 +49,6 @@ import FlexTask.Generic.Form (
   formifyInstanceMultiChoice
   )
 import FlexTask.YesodConfig             (Handler, Widget, FlexForm)
-import OM.Instance
 import Test.QuickCheck.Gen
 import Text.Blaze.Internal              (MarkupM)
 import Yesod
@@ -221,7 +220,6 @@ import Data.List.Split         (chunksOf)
 import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
-  parseUnicode,
   escaped
   )
 import Text.Parsec (
@@ -233,7 +231,7 @@ import Text.Parsec (
   string,
   try
   )
-import Text.Parsec.Char       (oneOf)
+import Text.Parsec.Char       (char, oneOf)
 import Text.Parsec.String     (Parser)
 
 import qualified Data.Text as T
@@ -252,8 +250,8 @@ instance Parse Binary where
 
 instance Parse Formula where
   parseInput = escaped $ do
-    symbols <- many1 $ choice $ map (try . parseUnicode) validSymbols
-    pure $ Formula $ T.pack $ read ('\"' : concat symbols ++ "\"")
+    symbols <- many1 $ choice $ map (try . char) validSymbols
+    pure $ Formula $ T.pack $ symbols
 
 
 
@@ -286,7 +284,6 @@ import Data.Functor                      (($>))
 import Data.Maybe                        (catMaybes)
 import Data.Ratio                        (Ratio)
 import Numeric                           (showBin)
-import OM.Instance                       (OutputPart)
 
 
 
@@ -335,5 +332,4 @@ startingTable = map (Just . Binary . toEnum . digitToInt) . T.unpack <$>
 
 sol = #{solution}
 |]
-
 

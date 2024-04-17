@@ -10,12 +10,10 @@ module FlexTask.Generic.ParseInternal
   , listDelim
   , escape
   , escaped
-  , parseUnicode
   ) where
 
 
 import Control.Monad      (void)
-import Data.Char          (showLitChar)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -85,7 +83,7 @@ instance Parse Text where
   parseInput = escaped $ do
     input <- manyTill anyChar $ try $ lookAhead $
       string escape >> notFollowedBy (string "\"")
-    pure $ T.pack $ read ('\"' : input ++ "\"")
+    pure $ T.pack input
 
 
 
@@ -166,7 +164,3 @@ escaped :: Parser a -> Parser a
 escaped = between escParse escParse
   where escParse = string escape
 
-
-
-parseUnicode :: Char -> Parser String
-parseUnicode c = string $ showLitChar c ""
