@@ -14,8 +14,9 @@ category: E-Learning
 description: Please see the README on GitHub at <https://github.com/marcellussiegburg/haskell-template-setup#readme>
 dependencies:
   - base >= 4.7 && < 5
-  - blaze-markup
+  - logic-tasks
   - ma-patrick-ritzenfeld
+  - output-monad
   - parsec
   - string-interpolate
   - yesod
