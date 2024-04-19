@@ -75,7 +75,7 @@ getTask _ = do
         description = output a b c d
         zipped = zip values ([minBound .. maxBound] :: [Namen])
         coming = [ n | (b,n) <- zipped, b==True]
-    pure (description, show (f,coming), getHtml flattened widget, flattened)
+    pure (description, interpolate (f,coming), getHtml flattened widget, flattened)
   where
     flattened = [headerList 3, cellList 16 7] ++ flatten nonTableFields
 
@@ -273,7 +273,7 @@ parseSubmission = parse parseInput ""
 
 =============================================
 
-\solution -> [i|
+interpolate solution = [i|
 
 
 import Control.Monad                     (when)

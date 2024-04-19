@@ -43,7 +43,7 @@ getTask
 getTask path = do
     inst <- generateComposeFormulaInst defaultComposeFormulaConfig
     let text = description (path <> "/") inst
-    pure (text, show inst, getHtml flattened widget, flattened)
+    pure (text, interpolate inst, getHtml flattened widget, flattened)
   where
     flattened = flatten fieldNames
 
@@ -88,7 +88,7 @@ parseSubmission = parse parseInput ""
 
 =============================================
 
-\solution -> [i|
+interpolate solution = [i|
 
 
 import Control.Monad.IO.Class            (MonadIO (liftIO))
@@ -121,5 +121,3 @@ checkSemantics path (Right (a,b)) = completeGrade path sol [a,b] *> pure 1.0
 
 sol = #{solution}
 |]
-
-
