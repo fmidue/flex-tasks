@@ -16,6 +16,8 @@ Graphviz
 Html
 HUnit
 Hspec
+HTWK
+hyperlink
 Leftrightarrow
 MForm
 Modellierung
@@ -65,6 +67,8 @@ newtype
 nodelabels
 oneof
 pagebreak
+petrinet
+Petrinetz
 pgf
 pgfdeclarelayer
 pgfonlayer
