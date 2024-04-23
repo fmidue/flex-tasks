@@ -20,7 +20,7 @@ checkSemantics _ (Right (s,p)) = do
       refuse $ text $ "Nein"
     unless (p == getProd sol) $ do
       refuse $ text $ "Nein"
-    pure 1.0 
+    pure 1.0
 
 
 sol = #{solution}

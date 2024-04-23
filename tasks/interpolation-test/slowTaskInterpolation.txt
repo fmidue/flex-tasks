@@ -56,16 +56,16 @@ output input = do
     english "Enter a tuple of numbers which is contained in this cross product "
     english "and satisfies the following conditions:"
   itemizeM [
-      translate $ do 
+      translate $ do
         german "Eine Zahl ist positiv, eine negativ."
         english "One number is positive, one is negative."
-    , translate $ do 
+    , translate $ do
         german "Das Product der Zahlen ist eine gerade Zahl."
         english "The product of the numbers is even."
-    , translate $ do 
+    , translate $ do
         german "Keine der Zahlen steht in der ursprünglichen Liste zwischen zwei negativen Zahlen."
         english "None of the numbers is between two negative numbers in the original list."
-    , translate $ do 
+    , translate $ do
         german "Keine der Zahlen steht in der ursprünglichen Liste "
         german "zwischen zwei glatt durch 3 teilbahren Zahlen."
         english "None of the numbers is between "
@@ -123,7 +123,7 @@ checkSyntax _ (Right (a,b))
       refuse $ indent $ translate $ do
         german "Das Tupel kommt nicht im Kreuzprodukt vor"
         english "The tuple is not inside the cross product"
-  
+
   | otherwise = pure ()
   where
     sol = #{solution}

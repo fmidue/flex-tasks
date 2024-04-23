@@ -15,7 +15,7 @@ checkSyntax _ (Right (a,b))
       refuse $ indent $ translate $ do
         german "Das Tupel kommt nicht im Kreuzprodukt vor"
         english "The tuple is not inside the cross product"
-  
+
   | otherwise = pure ()
 
 
@@ -43,7 +43,7 @@ checkSemantics _ (Right (a,b)) = do
   where
     fromNeighbourTups f = map (\\(a,b,c) -> b) $ filter f $ zip3 sol (drop 1 sol) (drop 2 sol)
     noNegNeighbours = fromNeighbourTups (\\(a,b,c) -> a >= 0 || c >= 0)
-    noDiv3Neighbours = fromNeighbourTups (\\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0) 
+    noDiv3Neighbours = fromNeighbourTups (\\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
 
 
 sol = #{solution}

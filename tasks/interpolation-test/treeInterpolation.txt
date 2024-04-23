@@ -5,7 +5,7 @@ data Tree = Leaf Int | Branch (Maybe Tree) (Maybe Tree) Int deriving (Show,Eq)
 
 addToTree :: [Int] -> Tree
 addToTree [] = error "no"
-addToTree (x:xs) = foldl sortIn (Leaf x) xs 
+addToTree (x:xs) = foldl sortIn (Leaf x) xs
 
 
 sortIn :: Tree -> Int -> Tree
@@ -16,14 +16,14 @@ sortIn (Branch t1 t2 x) y
   | x > y = case t2 of
               Nothing   -> Branch t1 (Just $ Leaf y) x
               Just tree -> Branch t1 (Just $ sortIn tree y) x
-  | otherwise = case t1 of 
+  | otherwise = case t1 of
                   Nothing   -> Branch (Just $ Leaf y) t2 x
-                  Just tree -> Branch (Just $ sortIn tree y) t2 x     
+                  Just tree -> Branch (Just $ sortIn tree y) t2 x
 
 
-getSum :: Tree -> Int 
+getSum :: Tree -> Int
 getSum (Leaf x) = x
-getSum (Branch t1 t2 x) = x + maybe 0 getSum t1 + maybe 0 getSum t2 
+getSum (Branch t1 t2 x) = x + maybe 0 getSum t1 + maybe 0 getSum t2
 
 
 getProd :: Tree -> Int
@@ -131,7 +131,7 @@ checkSemantics _ (Right (s,p)) = do
       refuse $ text $ "Nein"
     unless (p == #{getProd solution}) $ do
       refuse $ text $ "Nein"
-    pure 1.0 
+    pure 1.0
 
 |]
 
