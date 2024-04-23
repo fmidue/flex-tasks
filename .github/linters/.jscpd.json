@@ -4,7 +4,8 @@
     "consoleFull"
   ],
   "ignore": [
-    "**/__snapshots__/**"
+    "**/__snapshots__/**",
+    "**/tasks/interpolation-test/**"
   ],
   "minLines": 2,
   "max-lines": 2000,
