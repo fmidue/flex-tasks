@@ -38,6 +38,7 @@ concat
 disj
 endif
 enduml
+erwägten
 firstline
 fmap
 foldl
@@ -69,6 +70,7 @@ oneof
 pagebreak
 petrinet
 Petrinetz
+Petrinetzen
 pgf
 pgfdeclarelayer
 pgfonlayer
