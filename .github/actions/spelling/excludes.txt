@@ -78,3 +78,4 @@ ignore$
 ^\QREADME.md\E$
 ^\Qtest/Spec.hs\E$
 ^\Qthesis/literature.bib\E$
+^thesis/pictures/
