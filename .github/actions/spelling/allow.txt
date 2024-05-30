@@ -4,6 +4,7 @@ aopt
 areq
 Attrs
 Autotool
+beständen
 Bewertungs
 Bewertungsaktionen
 Bifunctor
@@ -20,7 +21,10 @@ Enum
 Feedbacktexten
 GHC
 Graphviz
+hinzufügbar
 Html
+HTML
+HTMLs
 HUnit
 Hspec
 HTWK
@@ -31,6 +35,7 @@ Modellierung
 Programmierparadigmen
 README
 Rightarrow
+Typkomplexität
 UML
 bigskip
 bigvee
