@@ -18,9 +18,11 @@ checkboxes
 Css
 DSL
 Enum
+einrückungssensitiv
 Feedbacktexten
 GHC
 Graphviz
+Haskells
 hinzufügbar
 Html
 HTML
@@ -29,6 +31,7 @@ HUnit
 Hspec
 HTWK
 Instanzbelegungen
+Kategorientheorie
 Leftrightarrow
 MForm
 Modellierung
@@ -36,7 +39,11 @@ Programmierparadigmen
 README
 Rightarrow
 Typkomplexität
+Typvariable
+Typvariablen
 UML
+Yesod
+Yesods
 bigskip
 bigvee
 bigwedge
@@ -67,6 +74,7 @@ includegraphics
 ispell
 lastline
 ldots
+leftarrow
 lstinputlisting
 lstlisting
 lstset
@@ -89,6 +97,7 @@ pgfonlayer
 pgfsetlayers
 png
 println
+rightarrow
 readerlatex
 scanl
 snd
@@ -101,6 +110,7 @@ textit
 texttt
 textwidth
 tikzpicture
+typeclass
 uml
 uncurry
 unlines
@@ -110,5 +120,4 @@ varepsilon
 Verwaltungs
 whamlet
 yaml
-Yesod
 yml
