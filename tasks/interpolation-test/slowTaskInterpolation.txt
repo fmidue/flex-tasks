@@ -32,7 +32,7 @@ import Global
 
 
 
-getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [[Text]])
+getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [Text])
 getTask _ = do
     numbers <- vectorOf 3000 $ chooseInt (-100000,100000)
     pure (output numbers, interpolate numbers, getHtml flattened widget, flattened)

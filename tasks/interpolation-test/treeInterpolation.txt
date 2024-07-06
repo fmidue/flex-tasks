@@ -62,7 +62,7 @@ import Global
 
 
 
-getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [[Text]])
+getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [Text])
 getTask _ = do
     tree <- addToTree <$> vectorOf 3000 (chooseInt (-100000,100000))
     pure (output tree, interpolate tree, getHtml flattened widget, flattened)

@@ -39,7 +39,7 @@ import Global
 getTask
   :: (MonadIO m, OutputMonad m)
   => FilePath
-  -> Gen (LangM m, String, IO Html, [[Text]])
+  -> Gen (LangM m, String, IO Html, [Text])
 getTask path = do
     inst <- generateComposeFormulaInst defaultComposeFormulaConfig
     let text = description (path <> "/") inst

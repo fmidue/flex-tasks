@@ -68,7 +68,7 @@ getParticipants :: Gen [Bool]
 getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 
 
-getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [[Text]])
+getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [Text])
 getTask _ = do
     values@[a,b,c,d] <- getParticipants
     let f = formula a b c d
@@ -77,7 +77,7 @@ getTask _ = do
         coming = [ n | (b,n) <- zipped, b==True]
     pure (description, interpolate (f,coming), getHtml flattened widget, flattened)
   where
-    flattened = [headerList 3, cellList 16 7] ++ flatten nonTableFields
+    flattened = headerList 3 ++ cellList 16 7 ++ flatten nonTableFields
 
 
 

@@ -33,18 +33,6 @@ library:
     - -Widentities
     - -Werror
     - -Wno-x-partial
-executables:
-  default:
-    main: default.hs
-    source-dirs: app
-    dependencies:
-      - ma-patrick-ritzenfeld
-    ghc-options:
-      - -Wunused-imports
-      - -Wmissing-signatures
-      - -Wunused-matches
-      - -Widentities
-      - -Werror
 tests:
   ma-patrick-ritzenfeld-test:
     main: Spec.hs
