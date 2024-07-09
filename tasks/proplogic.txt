@@ -39,12 +39,11 @@ import Control.Monad.Output.Generic.Type (GenericOutput)
 import Data.List.Split                   (chunksOf)
 import Data.Text                         (Text)
 import Data.String.Interpolate           (i)
-import FlexTask.FormUtil                 (flatten, getHtml)
+import FlexTask.FormUtil                 (getFormData)
 import FlexTask.Generic.Form (
   Alignment(..),
   FieldInfo(..),
   Formify(..),
-  addName,
   formify,
   formifyInstanceMultiChoice
   )
@@ -68,16 +67,14 @@ getParticipants :: Gen [Bool]
 getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 
 
-getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [Text])
+getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
 getTask _ = do
     values@[a,b,c,d] <- getParticipants
     let f = formula a b c d
         description = output a b c d
         zipped = zip values ([minBound .. maxBound] :: [Namen])
         coming = [ n | (b,n) <- zipped, b==True]
-    pure (description, interpolate (f,coming), getHtml flattened widget, flattened)
-  where
-    flattened = headerList 3 ++ cellList 16 7 ++ flatten nonTableFields
+    pure (description, interpolate (f,coming), getFormData form)
 
 
 
@@ -141,51 +138,47 @@ output a b c d = do
 
 
 
-tableForm :: [Text] -> Int -> Int -> Html -> MForm Handler Widget
+tableForm :: [Text] -> Int -> Int -> Html -> MForm Handler ([Text],Widget)
 tableForm staticHeaders rowAmount columnAmount extra = do
     let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
+        addFieldAttrs t = (fieldSettingsLabel t) {fsName = Just t}
 
         tableTextField :: Text -> MForm Handler (FormResult (Maybe Text),FieldView FlexForm)
-        tableTextField t = mopt textField (addCssClass (addName t)) Nothing
+        tableTextField t = mopt textField (addCssClass (addFieldAttrs t)) Nothing
 
-    headersRes <- traverse tableTextField $ headerList (columnAmount - length staticHeaders)
-    columnsRes <- traverse tableTextField $ cellList rowAmount columnAmount
+        headerList = replicate (columnAmount - length staticHeaders) "headers"
+        cellList = replicate (rowAmount*columnAmount) "cells"
+
+    headersRes <- traverse tableTextField headerList
+    columnsRes <- traverse tableTextField cellList
     let headers = map snd headersRes
         rows = chunksOf columnAmount $ map snd columnsRes
-    pure [whamlet|
-           <style>
-             .tableInput {
-               width: 100%;
-             }
-             table, th, td {
-               border: 1px solid black;
-               border-collapse: collapse;
+    pure ( ["headers","cells"]
+         , [whamlet|
+             <style>
+               .tableInput {
+                 width: 100%;
+               }
+               table, th, td {
+                 border: 1px solid black;
+                 border-collapse: collapse;
 
-             }
-             table {
-               width: 100%;
-             }
-           #{extra}
-           <table>
-             <tr>
-               $forall sh <- staticHeaders
-                 <th>#{sh}
-               $forall header <- headers
-                 <th>^{fvInput header}
-             $forall row <- rows
+               }
+               table {
+                 width: 100%;
+               }
+             #{extra}
+             <table>
                <tr>
-                 $forall input <- row
-                   <td>^{fvInput input}|]
-
-
-headerList :: Int -> [Text]
-headerList amount = map (T.pack . ('h':) . show) [1..amount]
-
-
-
-cellList :: Int -> Int -> [Text]
-cellList rows columns = map (T.pack . show) [1..rows*columns]
-
+                 $forall sh <- staticHeaders
+                   <th>#{sh}
+                 $forall header <- headers
+                   <th>^{fvInput header}
+               $forall row <- rows
+                 <tr>
+                   $forall input <- row
+                     <td>^{fvInput input}|]
+         )
 
 
 instance Formify [Namen] where
@@ -198,11 +191,14 @@ nonTableFields = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Ann
 
 
 
-widget :: Html -> MForm Handler Widget
-widget = do
+form :: Html -> MForm Handler ([Text],Widget)
+form = do
   resLeft  <- tableForm ["A","B","C","D"] 16 7
   resRight <- formify (Nothing :: Maybe Solution) nonTableFields
-  pure $ (>>) <$> resLeft <*> resRight
+  pure $ do
+    (tableNames, tableWidget) <- resLeft
+    (otherNames, otherWidget) <- resRight
+    pure (tableNames ++ otherNames, tableWidget >> otherWidget)
 
 =============================================
 

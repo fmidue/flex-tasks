@@ -18,7 +18,7 @@ import Control.Monad.Output
 import Control.Monad.Output.Generic.Type (GenericOutput)
 import Data.String.Interpolate           (i)
 import Data.Text                         (Text)
-import FlexTask.FormUtil                 (flatten, getHtml)
+import FlexTask.FormUtil                 (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig              (Handler, Widget)
 import GHC.Generics                      (Generic)
@@ -39,23 +39,21 @@ import Global
 getTask
   :: (MonadIO m, OutputMonad m)
   => FilePath
-  -> Gen (LangM m, String, IO Html, [Text])
+  -> Gen (LangM m, String, IO ([Text],Html))
 getTask path = do
     inst <- generateComposeFormulaInst defaultComposeFormulaConfig
     let text = description (path <> "/") inst
-    pure (text, interpolate inst, getHtml flattened widget, flattened)
-  where
-    flattened = flatten fieldNames
+    pure (text, interpolate inst, getFormData form)
 
 
 
-fieldNames :: [[FieldInfo]]
-fieldNames = [[Single "First Formula", Single "Second Formula"]]
+fields :: [[FieldInfo]]
+fields = [[Single "First Formula", Single "Second Formula"]]
 
 
 
-widget :: Html -> MForm Handler Widget
-widget = formify (Nothing :: Maybe (Text,Text)) fieldNames
+form :: Html -> MForm Handler ([Text],Widget)
+form = formify (Nothing :: Maybe (Text,Text)) fields
 
 =============================================
 

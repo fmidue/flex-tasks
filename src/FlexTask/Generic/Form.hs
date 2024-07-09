@@ -4,7 +4,12 @@
 
 module FlexTask.Generic.Form
   ( Alignment(..)
-  , FieldInfo(..)
+  , FieldInfo(
+      Single
+    , List
+    , ChoicesDropdown
+    , ChoicesButtons
+    )
 
   , BaseForm(..)
   , Formify(..)
@@ -13,7 +18,6 @@ module FlexTask.Generic.Form
   , formifyInstanceMultiChoice
   , formifyInstanceSingleChoice
 
-  , addName
   , formify
   ) where
 
@@ -38,13 +42,14 @@ data FieldInfo
   | List Alignment [Text]
   | ChoicesDropdown Text [Text]
   | ChoicesButtons Alignment Text [Text]
+  | InternalListElem Text -- Not exported
   deriving (Eq,Show)
 
 
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
-type Rendered = Html -> MForm Handler Widget
+type Rendered = Html -> MForm Handler ([Text],Widget)
 
 
 
@@ -99,9 +104,12 @@ instance (GFormify a, GFormify b) => GFormify (a :*: b) where
       (rightRest, rightRender) = gformify right leftRest
 
       gRender = do
-        wid1 <- leftRender
-        wid2 <- rightRender
-        pure $ (>>) <$> wid1 <*> wid2
+        l <- leftRender
+        r <- rightRender
+        pure $ do
+          (names1,wid1) <- l
+          (names2,wid2) <- r
+          pure (names1++names2, wid1 >> wid2)
 
 
 
@@ -154,11 +162,6 @@ instance Formify (Maybe a) => Formify [Maybe a] where
 
 
 
-addName :: Text -> FieldSettings FlexForm
-addName name = (fieldSettingsLabel name) {fsId = Just name, fsName = Just name}
-
-
-
 formify :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered
 formify ma xs
       | null names = form
@@ -174,12 +177,19 @@ formifyInstanceBase
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
 formifyInstanceBase _ [] = error "Incorrect amount of field names"
-formifyInstanceBase eMa ((Single t : xs) : xss) =
+formifyInstanceBase eMa ((x : xs) : xss) =
     (rest, case eMa of
-        Right ma -> render $ areq baseForm (addName t) ma
-        Left mMa -> render $ aopt baseForm (addName t) mMa
+        Right ma -> render newId (flip (areq baseForm) ma) lab
+        Left mMa -> render newId (flip (aopt baseForm) mMa) lab
     )
-  where (rest,render) = restAndRenderMethod xs xss
+  where
+    (rest,render) = restAndRenderMethod xs xss
+    (lab,newId) =
+        case x of
+          Single t -> (t,True)
+          InternalListElem t -> (t,False)
+          _ -> error "Internal mismatch of FieldInfo and rendering function"
+
 formifyInstanceBase eMa _ = error $ "Incorrect naming scheme for "
     ++ if isRight eMa then "a simple field!" else "an optional value!"
 
@@ -192,29 +202,30 @@ formifyInstanceList
     -> ([[FieldInfo]], Rendered)
 formifyInstanceList _ [] = error "ran out of field names"
 formifyInstanceList _ ((List _ [] : _) : _) = error "List of fields without names!"
-formifyInstanceList mas ((List align fs : xs) : xss) =
+formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
     (rest, snd <$> foldr joinThem zero theList)
   where
     lastInRow = null xs
+    amount = length fs +1
 
     (rest,theList,stopCondition) = case align of
       Horizontal
-        | lastInRow -> ( xss, [[[Single f | f <- fs]]], null)
+        | lastInRow -> ( xss, [[Single f : [InternalListElem lab | lab <- fs]]], null)
         | otherwise -> ( xs:xss
-                       , [[[Single f | f <- fs ++ [undefined]]]]
+                       , [[Single f : [InternalListElem lab | lab <- fs ++ [undefined]]]]
                        , any $ (<= 1) . length
                        )
 
       Vertical
-        | lastInRow -> ( xss, [[[Single f]]| f <- fs], null)
+        | lastInRow -> ( xss, [[Single f]] : [[[InternalListElem lab]]| lab <- fs], null)
         | otherwise -> ( xs:xss
-                       , [[Single f : [undefined | last fs == f]] | f <- fs]
+                       , [[Single f]] : [[InternalListElem lab : [undefined | last fs == lab]] | lab <- fs]
                        , \ds -> null ds || length (last ds) <= 1
                        )
 
     sequencedDefaults = case mas of
-      Nothing -> replicate (length fs) Nothing
-      Just ds -> if length ds /= length fs
+      Nothing -> replicate amount Nothing
+      Just ds -> if length ds /= amount
                    then error "Not enough values in the default list!"
                    else sequence mas
 
@@ -222,7 +233,7 @@ formifyInstanceList mas ((List align fs : xs) : xss) =
       Horizontal -> sequencedDefaults
       Vertical   -> reverse sequencedDefaults
 
-    zero = pure (defOrder, pure $ pure ())
+    zero = pure (defOrder, pure ([],pure ()))
 
     joinThem m mList = do
       (defs,inner) <- mList
@@ -233,9 +244,9 @@ formifyInstanceList mas ((List align fs : xs) : xss) =
                else snd <$> joinThem remain (pure (tail defs, inner))
       pure ( tail defs
            , do
-               w <- new
-               accumW <- old
-               pure (w >> accumW)
+               (t,w) <- new
+               (_,accumW) <- old
+               pure (t,w >> accumW)
            )
 formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
 
@@ -257,10 +268,10 @@ formifyInstanceChoice _ [] = error "ran out of field names!"
 formifyInstanceChoice eMa ((ChoicesDropdown t opts : xs) : xss) =
     ( rest
     , case eMa of
-        Right ma -> render $
-          areq (selectField $ enumOptionsPairs opts) (addName t) ma
-        Left mas -> render $
-          areq (multiSelectField $ enumOptionsPairs opts) (addName t) mas
+        Right ma -> render True (
+          flip (areq $ selectField $ enumOptionsPairs opts) ma) t
+        Left mas -> render True (
+          flip (areq $ multiSelectField $ enumOptionsPairs opts) mas) t
     )
   where
     (rest,render) = restAndRenderMethod xs xss
@@ -268,24 +279,24 @@ formifyInstanceChoice eMa ((ChoicesDropdown t opts : xs) : xss) =
 formifyInstanceChoice eMa ((ChoicesButtons align t opts : xs) : xss) =
     ( rest
     , case eMa of
-        Right ma  -> render $ areq
+        Right ma  -> render True (flip (areq
             (
               case align of
                 Vertical   -> radioField
                 Horizontal -> horizontalRadioField
               $ enumOptionsPairs opts
             )
-            (addName t)
+            )
             ma
-        Left mas -> render $ areq
+            ) t
+
+        Left mas -> render True (flip (areq
             (
               case align of
                 Vertical   -> verticalCheckboxesField
                 Horizontal -> checkboxesField
               $ enumOptionsPairs opts
-            )
-            (addName t)
-            mas
+            )) mas) t
     )
   where
     (rest,render) = restAndRenderMethod xs xss
@@ -311,6 +322,11 @@ enumOptionsPairs labels = optionsPairs $ zip labels [minBound..maxBound]
 restAndRenderMethod
     :: [FieldInfo]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]],AForm Handler a -> Html -> MForm Handler Widget)
+    -> ( [[FieldInfo]]
+       , Bool
+          -> (FieldSettings FlexForm -> AForm Handler a)
+          -> Text
+          -> Rendered
+       )
 restAndRenderMethod [] xss = (xss,renderFlatOrBreak True)
 restAndRenderMethod xs xss = (xs:xss, renderFlatOrBreak False)

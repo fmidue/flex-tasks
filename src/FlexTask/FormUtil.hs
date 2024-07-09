@@ -1,8 +1,7 @@
 {-# language QuasiQuotes #-}
 
 module FlexTask.FormUtil
-  ( flatten
-  , getHtml
+  ( getFormData
   ) where
 
 
@@ -15,19 +14,8 @@ import Yesod.Default.Config2 (makeYesodLogger)
 
 import qualified Yesod.Core.Unsafe as Unsafe
 
-import FlexTask.Generic.Form (FieldInfo(..))
 import FlexTask.YesodConfig  (FlexForm(..), Handler, Widget)
 
-
-
-
-flatten :: [[FieldInfo]] -> [Text]
-flatten = concatMap flatFunc . concat
-  where
-    flatFunc (Single t)             = [t]
-    flatFunc (List _ fs)            = fs
-    flatFunc (ChoicesDropdown t _)  = [t]
-    flatFunc (ChoicesButtons _ t _) = [t]
 
 
 
@@ -70,16 +58,17 @@ var fieldIds = #{rawJS (show names)};|]
 
 
 
-getHtml :: [Text] -> (Markup -> MForm Handler Widget) -> IO Html
-getHtml names widget = do
+getFormData :: (Markup -> MForm Handler ([Text],Widget)) -> IO ([Text],Html)
+getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     unsafeHandler FlexForm {appLogger = logger} writeHtml
   where
     unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
-    writeHtml :: Handler Html
+    writeHtml :: Handler ([Text],Html)
     writeHtml = do
-      (wid,_) <- runFormGet widget
+      ((names,wid),_) <- runFormGet widget
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
-      withUrlRenderer [hamlet|^{pageBody content}|]
+      html <- withUrlRenderer [hamlet|^{pageBody content}|]
+      return (names,html)

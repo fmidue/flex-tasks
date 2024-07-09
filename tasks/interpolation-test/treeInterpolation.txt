@@ -47,7 +47,7 @@ import Control.Monad.Output
 import Control.Monad.Output.Generic.Type (GenericOutput)
 import Data.String.Interpolate           (i)
 import Data.Text                         (Text)
-import FlexTask.FormUtil                 (flatten, getHtml)
+import FlexTask.FormUtil                 (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig              (Handler, Widget)
 import GHC.Generics                      (Generic)
@@ -62,12 +62,10 @@ import Global
 
 
 
-getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO Html, [Text])
+getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
 getTask _ = do
     tree <- addToTree <$> vectorOf 3000 (chooseInt (-100000,100000))
-    pure (output tree, interpolate tree, getHtml flattened widget, flattened)
-  where
-    flattened = flatten fieldNames
+    pure (output tree, interpolate tree, getFormData form)
 
 
 
@@ -77,12 +75,12 @@ output input = do
   pure ()
 
 
-fieldNames :: [[FieldInfo]]
-fieldNames = [[Single "Tree Sum"],[Single "Tree Product"]]
+fields :: [[FieldInfo]]
+fields = [[Single "Tree Sum"],[Single "Tree Product"]]
 
 
-widget :: Html -> MForm Handler Widget
-widget = formify (Nothing :: Maybe Solution) fieldNames
+form :: Html -> MForm Handler ([Text],Widget)
+form = formify (Nothing :: Maybe Solution) fields
 
 =============================================
 

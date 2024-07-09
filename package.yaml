@@ -9,6 +9,7 @@ dependencies:
   - parsec
   - shakespeare
   - text
+  - transformers
   - yesod
   - yesod-core
 default-extensions:

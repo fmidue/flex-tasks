@@ -1,17 +1,32 @@
 {-# language QuasiQuotes #-}
+{-# language OverloadedStrings #-}
 
 module FlexTask.Widgets where
 
 
-import FlexTask.YesodConfig (Handler, Widget)
+
+import Data.Text                                (Text, pack)
 import Yesod
 
+import FlexTask.YesodConfig                     (FlexForm, Handler, Widget)
 
+import qualified Control.Monad.Trans.RWS as RWS (get)
+import qualified Data.Text as T                 (replace)
 
-
-renderFlatOrBreak :: Bool -> AForm Handler a -> Html -> MForm Handler Widget
-renderFlatOrBreak lBreak aform fragment = do
-    (_, views') <- aFormToForm aform
+renderFlatOrBreak
+    :: Bool
+    -> Bool
+    -> (FieldSettings FlexForm -> AForm Handler a)
+    -> Text
+    -> Html -> MForm Handler ([Text],Widget)
+renderFlatOrBreak lBreak newId aformStub label fragment = do
+    ident <- newIdent
+    name <- if newId then newFormIdent else repeatIdent
+    let finalName = T.replace "f" "flex" name
+    let uniqueId = T.replace "h" "flex" ident
+    let addAttrs = (fieldSettingsLabel label)
+                     {fsName = Just finalName, fsId = Just uniqueId}
+    (_, views') <- aFormToForm $ aformStub addAttrs
     let views = views' []
     let widget = [whamlet|
 $newline never
@@ -27,8 +42,12 @@ $forall view <- views
 $if lBreak
   <div>
 |]
-    return widget
-
+    return ([finalName],widget)
+  where
+    repeatIdent :: MForm Handler Text
+    repeatIdent =  do
+      i <- RWS.get
+      return $ pack $ 'f' : show i
 
 
 horizontalRadioField :: Eq a => Handler (OptionList a) -> Field Handler a
