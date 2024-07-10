@@ -1,7 +1,7 @@
 module Global where
 
 
-type Solution = (Int,Int)
+type Solution = (TreeFormulaAnswer,TreeFormulaAnswer)
 
 =============================================
 
@@ -30,7 +30,6 @@ import Text.Blaze.Internal               (MarkupM)
 import Yesod                             (Html, MForm)
 import Yesod.Form.Functions
 
-import qualified Data.Text as T
 
 import Global
 
@@ -81,12 +80,12 @@ instance Parse TreeFormulaAnswer where
 
 
 
-parseSubmission :: String -> Either ParseError (TreeFormulaAnswer,TreeFormulaAnswer)
+parseSubmission :: String -> Either ParseError Solution
 parseSubmission = parse parseInput ""
 
 =============================================
 
-interpolate solution = [i|
+interpolate inst = [i|
 
 
 import Control.Monad.IO.Class            (MonadIO (liftIO))
@@ -101,21 +100,21 @@ import Tasks.ComposeFormula.Config       (ComposeFormulaInst(..))
 checkSyntax
   :: (MonadIO m, OutputMonad m)
   => FilePath
-  -> Either ParseError (TreeFormulaAnswer,TreeFormulaAnswer)
+  -> Either ParseError Solution
   -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (a,b)) = partialGrade sol [a,b]
+checkSyntax _ (Right (a,b)) = partialGrade inst [a,b]
 
 
 
 checkSemantics
   :: (MonadIO m, OutputMonad m)
   => FilePath
-  -> Either ParseError (TreeFormulaAnswer,TreeFormulaAnswer)
+  -> Either ParseError Solution
   -> Rated m
 checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
-checkSemantics path (Right (a,b)) = completeGrade path sol [a,b] *> pure 1.0
+checkSemantics path (Right (a,b)) = completeGrade path inst [a,b] *> pure 1.0
 
 
-sol = #{solution}
+inst = #{inst}
 |]
