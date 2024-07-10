@@ -20,7 +20,7 @@ import Data.String.Interpolate           (i)
 import Data.Text                         (Text)
 import FlexTask.FormUtil                 (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig              (Handler, Widget)
+import FlexTask.YesodConfig              (Handler, Rendered)
 import GHC.Generics                      (Generic)
 import LogicTasks.Syntax.ComposeFormula  (description)
 import Tasks.ComposeFormula.Config       (defaultComposeFormulaConfig)
@@ -51,7 +51,7 @@ fields = [[Single "First Formula", Single "Second Formula"]]
 
 
 
-form :: Html -> MForm Handler ([Text],Widget)
+form :: Rendered
 form = formify (Nothing :: Maybe (Text,Text)) fields
 
 =============================================

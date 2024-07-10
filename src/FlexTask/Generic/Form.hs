@@ -27,12 +27,13 @@ import GHC.Generics        (Generic(..), K1(..), M1(..), (:*:)(..))
 import Data.Text           (Text)
 import Yesod
 
+import FlexTask.FormUtil   (($$>))
 import FlexTask.Widgets
   ( horizontalRadioField
   , renderFlatOrBreak
   , verticalCheckboxesField
   )
-import FlexTask.YesodConfig (FlexForm, Handler, Widget)
+import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
 
 
 
@@ -47,9 +48,6 @@ data FieldInfo
 
 
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
-
-
-type Rendered = Html -> MForm Handler ([Text],Widget)
 
 
 
@@ -95,22 +93,13 @@ class GFormify f where
 
 -- | Products: parse a constructor with multiple arguments
 instance (GFormify a, GFormify b) => GFormify (a :*: b) where
-  gformify mDefault xs = (rightRest, gRender)
+  gformify mDefault xs = (rightRest, leftRender $$> rightRender)
     where
       (left,right) = case mDefault of
         Nothing        -> (Nothing,Nothing)
         Just (a :*: b) -> (Just a, Just b)
       (leftRest, leftRender) = gformify left xs
       (rightRest, rightRender) = gformify right leftRest
-
-      gRender = do
-        l <- leftRender
-        r <- rightRender
-        pure $ do
-          (names1,wid1) <- l
-          (names2,wid2) <- r
-          pure (names1++names2, wid1 >> wid2)
-
 
 
 

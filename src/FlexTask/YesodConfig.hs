@@ -3,10 +3,12 @@
 module FlexTask.YesodConfig
   ( FlexForm(..)
   , Handler
+  , Rendered
   , Widget
   ) where
 
 
+import Data.Text (Text)
 import Yesod
 import Yesod.Core.Types (Logger)
 
@@ -20,7 +22,7 @@ newtype FlexForm = FlexForm {
 
 type Handler = HandlerFor FlexForm
 type Widget = WidgetFor FlexForm ()
-
+type Rendered = Html -> MForm Handler ([Text],Widget)
 
 
 instance Eq (Route FlexForm) where

@@ -39,7 +39,7 @@ import Control.Monad.Output.Generic.Type (GenericOutput)
 import Data.List.Split                   (chunksOf)
 import Data.Text                         (Text)
 import Data.String.Interpolate           (i)
-import FlexTask.FormUtil                 (getFormData)
+import FlexTask.FormUtil                 (($$>), getFormData, newFlexId, newFlexName)
 import FlexTask.Generic.Form (
   Alignment(..),
   FieldInfo(..),
@@ -47,7 +47,7 @@ import FlexTask.Generic.Form (
   formify,
   formifyInstanceMultiChoice
   )
-import FlexTask.YesodConfig             (Handler, Widget, FlexForm)
+import FlexTask.YesodConfig             (Handler, FlexForm, Rendered)
 import Test.QuickCheck.Gen
 import Text.Blaze.Internal              (MarkupM)
 import Yesod
@@ -138,7 +138,7 @@ output a b c d = do
 
 
 
-tableForm :: [Text] -> Int -> Int -> Html -> MForm Handler ([Text],Widget)
+tableForm :: [Text] -> Int -> Int -> Rendered
 tableForm staticHeaders rowAmount columnAmount extra = do
     let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
         addFieldAttrs t = (fieldSettingsLabel t) {fsName = Just t}
@@ -191,14 +191,8 @@ nonTableFields = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Ann
 
 
 
-form :: Html -> MForm Handler ([Text],Widget)
-form = do
-  resLeft  <- tableForm ["A","B","C","D"] 16 7
-  resRight <- formify (Nothing :: Maybe Solution) nonTableFields
-  pure $ do
-    (tableNames, tableWidget) <- resLeft
-    (otherNames, otherWidget) <- resRight
-    pure (tableNames ++ otherNames, tableWidget >> otherWidget)
+form :: Rendered
+form = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe Solution) nonTableFields
 
 =============================================
 

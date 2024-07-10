@@ -19,7 +19,7 @@ import Data.String.Interpolate           (i)
 import Data.Text                         (Text)
 import FlexTask.FormUtil                 (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig              (Handler, Widget)
+import FlexTask.YesodConfig              (Handler, Rendered)
 import GHC.Generics                      (Generic)
 import Test.QuickCheck.Gen
 import Text.Blaze.Internal               (MarkupM)
@@ -76,7 +76,7 @@ fields :: [[FieldInfo]]
 fields = [[Single "Number one"], [Single "Number two"]]
 
 
-form :: Html -> MForm Handler ([Text],Widget)
+form :: Rendered
 form = formify (Nothing :: Maybe Solution) fields
 
 =============================================

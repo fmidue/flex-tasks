@@ -5,6 +5,7 @@ einsendung
 emph
 hyperlink
 hline
+infixr
 instanz
 konfiguration
 linewidth
