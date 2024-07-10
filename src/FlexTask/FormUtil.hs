@@ -22,39 +22,36 @@ import FlexTask.YesodConfig  (FlexForm(..), Handler, Widget)
 setDefaultsJS :: [Text] -> JavascriptUrl url
 setDefaultsJS names = [julius|
 function setDefaults(values){
-  for(let i = 0; i < values.length; i++){
+  for(let i = 0; i < fieldNames.length; i++){
     var input = values[i];
-    var fieldId = fieldIds[i];
-    if(input != "Missing" && input != "None"){
-      var element = document.getElementById(fieldId);
-      var maybeRadio = document.getElementById(fieldId + "-1");
+    var fields = document.getElementsByName(fieldNames[i]);
 
-      if(maybeRadio != null && maybeRadio.getAttribute("type").toLowerCase() == "radio"){
-         document.getElementById(fieldId + "-" + input).checked = true;
+    for(let j = 0; j < fields.length; j++) {
+      var field = fields[j];
+      var fieldType = field.getAttribute("type");
+      var maybeDropdown = field.tagName;
+
+      if(fieldType != null && fieldType.toLowerCase() === "radio"){
+        field.checked = field.value == input;
       }
-
-      if(element.tagName.toLowerCase() == "select"){
-        for(const opt of Array.from(element.options)){
-          if(input.includes(opt.getAttribute("value"))){
-            opt.selected = true;
-          }
+      else if(maybeDropdown != null && maybeDropdown.toLowerCase() === "select"){
+        for(const opt of Array.from(field.options)){
+          opt.selected = input.includes(opt.getAttribute("value"));
         }
       }
-
-      if(document.getElementsByName(fieldId)[0].getAttribute("type").toLowerCase() == "checkbox"){
-        for(const box of document.getElementsByName(fieldId)){
-          if(input.includes(box.getAttribute("value"))){
-            box.checked = true;
-          }
-        }
+      else if(fieldType != null && fieldType.toLowerCase() === "checkbox"){
+        field.checked = input.includes(field.getAttribute("value"));
       }
       else{
-        element.value = input;
+        var inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
+        if(inputElem != "Missing" && inputElem != "None"){
+          field.value = inputElem;
+        }
       }
     }
   }
 }
-var fieldIds = #{rawJS (show names)};|]
+var fieldNames = #{rawJS (show names)};|]
 
 
 
