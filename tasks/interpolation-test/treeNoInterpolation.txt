@@ -2,18 +2,20 @@
 interpolate solution = [i|
 
 
-import Control.Monad                     (when, unless)
-import Control.Monad.Output
-import Control.Monad.Output.Generic.Type (GenericOutput)
+import Control.Monad                (when, unless)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (
+    GenericOutput
+    )
 import Data.Ratio
 
 
-checkSyntax :: OutputMonad m => FilePath -> Either ParseError Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
 checkSyntax _ _          = pure ()
 
 
-checkSemantics :: OutputMonad m => FilePath -> Either ParseError Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
 checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
 checkSemantics _ (Right (s,p)) = do
     unless (s == getSum sol) $ do

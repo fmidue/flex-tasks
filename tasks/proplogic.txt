@@ -34,12 +34,14 @@ validSymbols = "ABCD∧∨⇒⇔¬() "
 module TaskAndForm where
 
 
-import Control.Monad.Output
-import Control.Monad.Output.Generic.Type (GenericOutput)
-import Data.List.Split                   (chunksOf)
-import Data.Text                         (Text)
-import Data.String.Interpolate           (i)
-import FlexTask.FormUtil                 (($$>), getFormData, newFlexId, newFlexName)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (
+    GenericOutput
+    )
+import Data.List.Split         (chunksOf)
+import Data.Text               (Text)
+import Data.String.Interpolate (i)
+import FlexTask.FormUtil       (($$>), getFormData, newFlexId, newFlexName)
 import FlexTask.Generic.Form (
   Alignment(..),
   FieldInfo(..),
@@ -47,9 +49,9 @@ import FlexTask.Generic.Form (
   formify,
   formifyInstanceMultiChoice
   )
-import FlexTask.YesodConfig             (Handler, FlexForm, Rendered)
+import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
 import Test.QuickCheck.Gen
-import Text.Blaze.Internal              (MarkupM)
+import Text.Blaze.Internal     (MarkupM)
 import Yesod
 
 import qualified Data.Text as T
@@ -67,7 +69,7 @@ getParticipants :: Gen [Bool]
 getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 
 
-getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
+getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
 getTask _ = do
     values@[a,b,c,d] <- getParticipants
     let f = formula a b c d
@@ -90,7 +92,7 @@ formula a b c d = [i|(#{part4}) ∧ (#{part1}) ∧ (#{part2}) ∧ (#{part3}) ∧
 
 
 
-output :: OutputMonad m => Bool -> Bool -> Bool -> Bool -> LangM m
+output :: OutputCapable m => Bool -> Bool -> Bool -> Bool -> LangM m
 output a b c d = do
     paragraph $ translate $ german
       ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
@@ -266,18 +268,20 @@ parseSubmission = parse parseInput ""
 interpolate solution = [i|
 
 
-import Control.Monad                     (when)
-import Control.Monad.Output
-import Control.Monad.Output.Generic.Type (GenericOutput)
-import Data.Char                         (digitToInt)
-import Data.Functor                      (($>))
-import Data.Maybe                        (catMaybes)
-import Data.Ratio                        (Ratio)
-import Numeric                           (showBin)
+import Control.Monad (when)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (
+    GenericOutput
+    )
+import Data.Char     (digitToInt)
+import Data.Functor  (($>))
+import Data.Maybe    (catMaybes)
+import Data.Ratio    (Ratio)
+import Numeric       (showBin)
 
 
 
-checkSyntax :: OutputMonad m => FilePath -> Either ParseError Submission -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> Either ParseError Submission -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
 checkSyntax _ (Right (Table xs,f,n))
     | any (`elem` (map (Just . Formula) ["A","B","C","D"])) nonStaticHeaders =
@@ -294,7 +298,7 @@ checkSyntax _ (Right (Table xs,f,n))
     nonStaticHeaders = drop 4 headers
 
 
-checkSemantics :: OutputMonad m => FilePath -> Either ParseError Submission -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> Either ParseError Submission -> Rated m
 checkSemantics _ (Left err) = refuse (code $ show err) $> 0
 checkSemantics _ (Right (Table xs,f,n)) = do
     when (take 4 columns /= startingTable) $

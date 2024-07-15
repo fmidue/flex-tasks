@@ -16,7 +16,7 @@ dependencies:
   - base >= 4.7 && < 5
   - logic-tasks
   - ma-patrick-ritzenfeld
-  - output-monad
+  - output-blocks
   - parsec
   - string-interpolate
   - yesod

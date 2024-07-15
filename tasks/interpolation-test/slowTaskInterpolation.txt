@@ -13,17 +13,19 @@ type Solution = (Int,Int)
 module TaskAndForm where
 
 
-import Control.Monad.Output
-import Control.Monad.Output.Generic.Type (GenericOutput)
-import Data.String.Interpolate           (i)
-import Data.Text                         (Text)
-import FlexTask.FormUtil                 (getFormData)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (
+    GenericOutput
+    )
+import Data.String.Interpolate (i)
+import Data.Text               (Text)
+import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig              (Handler, Rendered)
-import GHC.Generics                      (Generic)
+import FlexTask.YesodConfig    (Handler, Rendered)
+import GHC.Generics            (Generic)
 import Test.QuickCheck.Gen
-import Text.Blaze.Internal               (MarkupM)
-import Yesod                             (Html, MForm)
+import Text.Blaze.Internal     (MarkupM)
+import Yesod                   (Html, MForm)
 
 import qualified Data.Text as T
 
@@ -32,14 +34,14 @@ import Global
 
 
 
-getTask :: OutputMonad m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
+getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
 getTask _ = do
     numbers <- vectorOf 3000 $ chooseInt (-100000,100000)
     pure (output numbers, interpolate numbers, getFormData form)
 
 
 
-output :: OutputMonad m => [Int] -> LangM m
+output :: OutputCapable m => [Int] -> LangM m
 output input = do
   paragraph $ translate $ do
     german "Betrachten Sie die folgende Liste von Integer-Zahlen."
@@ -108,13 +110,15 @@ parseSubmission = parse parseInput ""
 interpolate solution = [i|
 
 
-import Control.Monad                     (when, unless)
-import Control.Monad.Output
-import Control.Monad.Output.Generic.Type (GenericOutput)
+import Control.Monad                (when, unless)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (
+    GenericOutput
+    )
 import Data.Ratio
 
 
-checkSyntax :: OutputMonad m => FilePath -> Either ParseError Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
 checkSyntax _ (Right (a,b))
   | not (all (`elem` sol) [a,b]) =
@@ -127,7 +131,7 @@ checkSyntax _ (Right (a,b))
     sol = #{solution}
 
 
-checkSemantics :: OutputMonad m => FilePath -> Either ParseError Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
 checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
 checkSemantics _ (Right (a,b)) = do
     unless (signum a + signum b == 0) $

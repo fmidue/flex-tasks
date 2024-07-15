@@ -79,11 +79,14 @@ instance Parse Int where
 
 
 
-instance Parse Text where
-  parseInput = escaped $ do
-    input <- manyTill anyChar $ try $ lookAhead $
+instance Parse String where
+  parseInput = escaped $ manyTill anyChar $ try $ lookAhead $
       string escape >> notFollowedBy (string "\"")
-    pure $ T.pack input
+
+
+
+instance Parse Text where
+  parseInput = T.pack <$> parseInput
 
 
 

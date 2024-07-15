@@ -1,34 +1,32 @@
 module Global where
 
 
-type Solution = (TreeFormulaAnswer,TreeFormulaAnswer)
+type Solution = (String,String)
 
 =============================================
 
-{-# language ApplicativeDo #-}
-{-# language DeriveGeneric #-}
-{-# Language FlexibleContexts #-}
 {-# language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
+
 module TaskAndForm where
 
 
-import Control.Monad.IO.Class            (MonadIO (liftIO))
-import Control.Monad.Output
-import Control.Monad.Output.Generic.Type (GenericOutput)
-import Data.String.Interpolate           (i)
-import Data.Text                         (Text)
-import FlexTask.FormUtil                 (getFormData)
+import Control.Monad.IO.Class           (MonadIO)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (
+    GenericOutput
+    )
+import Data.String.Interpolate          (i)
+import Data.Text                        (Text)
+import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig              (Handler, Rendered)
-import GHC.Generics                      (Generic)
-import LogicTasks.Syntax.ComposeFormula  (description)
-import Tasks.ComposeFormula.Config       (defaultComposeFormulaConfig)
-import Tasks.ComposeFormula.Quiz         (generateComposeFormulaInst)
-import Test.QuickCheck.Gen               (Gen)
-import Text.Blaze.Internal               (MarkupM)
-import Yesod                             (Html, MForm)
-import Yesod.Form.Functions
+import FlexTask.YesodConfig             (Handler, Rendered)
+import LogicTasks.Syntax.ComposeFormula (description)
+import Tasks.ComposeFormula.Config      (defaultComposeFormulaConfig)
+import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
+import Test.QuickCheck.Gen              (Gen)
+import Text.Blaze.Internal              (MarkupM)
+import Yesod                            (Html)
 
 
 import Global
@@ -36,7 +34,7 @@ import Global
 
 
 getTask
-  :: (MonadIO m, OutputMonad m)
+  :: (MonadIO m, OutputCapable m)
   => FilePath
   -> Gen (LangM m, String, IO ([Text],Html))
 getTask path = do
@@ -52,31 +50,19 @@ fields = [[Single "First Formula", Single "Second Formula"]]
 
 
 form :: Rendered
-form = formify (Nothing :: Maybe (Text,Text)) fields
+form = formify (Nothing :: Maybe Solution) fields
 
 =============================================
 
 {-# language ApplicativeDo #-}
-{-# language DeriveGeneric #-}
+
 module ParseAndCheck where
 
 
-import Data.String.Interpolate (i)
-import Data.Text               (Text)
-import FlexTask.Generic.Parse  (Parse(parseInput), escaped)
-import GHC.Generics            (Generic)
+import FlexTask.Generic.Parse  (Parse(parseInput))
 import Text.Parsec             (ParseError, parse)
-import Trees.Parsing           ()
-import Trees.Types             (BinOp(..), SynTree(..), TreeFormulaAnswer)
-
-import qualified Data.Text       as T
-import qualified Formula.Parsing as FP
 
 import Global
-
-
-instance Parse TreeFormulaAnswer where
-  parseInput = escaped FP.parser
 
 
 
@@ -88,32 +74,39 @@ parseSubmission = parse parseInput ""
 interpolate inst = [i|
 
 
-import Control.Monad.IO.Class            (MonadIO (liftIO))
-import Control.Monad.Output
-import Control.Monad.Output.Generic.Type (GenericOutput)
+import Control.Monad.IO.Class           (MonadIO (liftIO))
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (
+    GenericOutput
+    )
 import Data.Ratio
-import LogicTasks.Syntax.ComposeFormula  (partialGrade, completeGrade)
-import Tasks.ComposeFormula.Config       (ComposeFormulaInst(..))
+import Formula.Parsing.Delayed          (delayed)
+import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
+import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
+import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
 
+
+toListString :: (String,String) -> String
+toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 
 
 checkSyntax
-  :: (MonadIO m, OutputMonad m)
+  :: (MonadIO m, OutputCapable m)
   => FilePath
   -> Either ParseError Solution
   -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (a,b)) = partialGrade inst [a,b]
+checkSyntax _ (Right try) = partialGrade inst $ delayed $ toListString try
 
 
 
 checkSemantics
-  :: (MonadIO m, OutputMonad m)
+  :: (MonadIO m, OutputCapable m)
   => FilePath
   -> Either ParseError Solution
   -> Rated m
 checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
-checkSemantics path (Right (a,b)) = completeGrade path inst [a,b] *> pure 1.0
+checkSemantics path (Right try) = completeGrade path inst (delayed $ toListString try) *> pure 1.0
 
 
 inst = #{inst}

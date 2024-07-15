@@ -24,7 +24,7 @@ module FlexTask.Generic.Form
 
 import Data.Either         (isRight)
 import GHC.Generics        (Generic(..), K1(..), M1(..), (:*:)(..))
-import Data.Text           (Text)
+import Data.Text           (Text, pack, unpack)
 import Yesod
 
 import FlexTask.FormUtil   (($$>))
@@ -61,6 +61,10 @@ instance BaseForm Int where
 
 instance BaseForm Text where
   baseForm = textField
+
+
+instance BaseForm String where
+  baseForm = convertField unpack pack textField
 
 
 instance BaseForm Bool where
@@ -118,6 +122,10 @@ instance Formify Int where
 
 
 instance Formify Text where
+  formifyImplementation = formifyInstanceBase . Right
+
+
+instance Formify String where
   formifyImplementation = formifyInstanceBase . Right
 
 
