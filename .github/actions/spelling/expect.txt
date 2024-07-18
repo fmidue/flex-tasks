@@ -1,4 +1,5 @@
 ABCD
+checktemplate
 clearpage
 eingabefeld
 einsendung
@@ -11,4 +12,8 @@ konfiguration
 linewidth
 loesen
 minipage
+pkgdb
 RWS
+tAndFImports
+tAndFModule
+writeUncachedAndGetPaths
