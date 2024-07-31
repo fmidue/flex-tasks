@@ -1,28 +1,19 @@
 module Global where
 
 
-import Data.Text (Text)
-
+import Trees.Types (PropFormula)
 
 
 
 newtype Binary = Binary { unBinary :: Bool} deriving (Eq,Show)
 
-newtype Formula = Formula { unFormula :: Text} deriving (Eq,Show)
+newtype Table = Table [(Maybe (PropFormula Char), [Maybe Binary])] deriving (Eq,Show)
 
+data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
 
-data Table = Table [(Maybe Formula, [Maybe Binary])] deriving (Eq,Show)
+type FormType = (String,[Namen])
 
-data Namen = Anna | Ben | Claudia | David deriving (Eq,Enum,Bounded,Show)
-
-
-type Solution = (Text,[Namen])
-
-type Submission = (Table,Text,[Namen])
-
-
-validSymbols :: String
-validSymbols = "ABCD∧∨⇒⇔¬() "
+type Submission = (Table,PropFormula Char,[Namen])
 
 =============================================
 
@@ -31,6 +22,7 @@ validSymbols = "ABCD∧∨⇒⇔¬() "
 {-# Language FlexibleContexts #-}
 {-# language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
+{-# language TupleSections #-}
 module TaskAndForm where
 
 
@@ -56,6 +48,8 @@ import Yesod
 
 import qualified Data.Text as T
 
+import Trees.Types (PropFormula(..), BinOp(..))
+
 import Global
 
 
@@ -72,71 +66,88 @@ getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
 getTask _ = do
     values@[a,b,c,d] <- getParticipants
-    let f = formula a b c d
-        description = output a b c d
-        zipped = zip values ([minBound .. maxBound] :: [Namen])
-        coming = [ n | (b,n) <- zipped, b==True]
-    pure (description, interpolate (f,coming), getFormData form)
-
-
-
-formula :: Bool -> Bool -> Bool -> Bool -> Text
-formula a b c d = [i|(#{part4}) ∧ (#{part1}) ∧ (#{part2}) ∧ (#{part3}) ∧ (#{part5})|]
+    names <- getNames
+    (formula, legend, hints) <- formulaAndHints a b c d names
+    let
+      description = output legend hints
+      zipped = zip values ([minBound .. maxBound] :: [Namen])
+      coming = [ n | (b,n) <- zipped, b==True]
+    pure (description, interpolate (formula,coming) False True, getFormData (form names))
   where
-    neg f x = if f then "¬ " ++ x else x
-    part1 = [i|#{neg a "A"} ⇒ #{neg b "B"}|] :: Text
-    part2 = [i|#{neg b "B"} ⇒ #{neg c "C"}|] :: Text
-    part3 = [i|#{neg c "C"} ⇒ #{neg d "D"}|] :: Text
-    part4 = [i|(#{neg b "B"} ∧ #{neg d "D"}) ⇒ #{neg (not c) "C"}|] :: Text
-    part5 = [i|#{neg d "D"} ⇒ (#{neg a "A"} ∨ #{neg b "B"})|] :: Text
+    form :: (Text,Text,Text,Text) -> Rendered
+    form n = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
+
+    getNames :: Gen (Text,Text,Text,Text)
+    getNames = do
+      a <- elements ["Astrid","Anna"]
+      b <- elements ["Ben","Bernd"]
+      c <- elements ["Claudia","Carla"]
+      d <- elements ["David","Daniel"]
+      return (a,b,c,d)
 
 
 
-output :: OutputCapable m => Bool -> Bool -> Bool -> Bool -> LangM m
-output a b c d = do
+formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (Text,Text,Text,Text) -> Gen (PropFormula Char, String, [String])
+formulaAndHints a b c d (aN,bN,cN,dN) = do
+    shuffled <- shuffle (zip [part1,part2,part3,part4,part5] [hint1,hint2,hint3,hint4,hint5])
+    let (parts,hints) = unzip shuffled
+    let formula = foldr1 (Assoc And) $ map Brackets parts
+    pure (formula, namesLegend, hints)
+  where
+    namesLegend = [i|Sie fragt ihre Freunde #{aN} (A), #{bN} (B), #{cN} (C) und #{dN} (D), |]
+    hint1 = (if b == d
+              then [i|Falls #{bN} und #{dN} #{nicht b} kommen,|]
+              else
+                if b
+                  then [i|Falls #{bN} nicht, aber #{dN} kommt,|]
+                  else [i|Falls #{bN}, aber nicht #{dN} kommt,|]
+            )
+            ++ [i| kommt Claudia #{nicht (not c)}.|]
+    hint2 = [i|#{bN} kommt #{nicht b} mit, wenn #{aN} #{nicht a} mitkommt.|]
+    hint3 = [i|Wenn #{bN} #{nicht b} kommt, kommt #{if b == c then auch else ""} #{cN} #{nicht c}.|]
+    hint4 = [i|Wenn #{cN} #{nicht c} kommt, kommt #{if c == d then auch else ""} #{dN} #{nicht d}.|]
+    hint5 = [i|Wenn #{dN} #{nicht d} kommt, |]
+         ++ if a == b
+              then [i|kommen #{if d == a then auch else ""} #{aN} oder #{bN} #{nicht a}.|]
+              else
+                if a
+                  then [i|kommt #{if d then auch else ""} #{aN} nicht oder #{bN} kommt.|]
+                  else [i|kommt #{if d then "" else auch} #{aN} oder #{bN} kommt nicht.|]
+
+    nicht :: Bool -> String
+    nicht f = if f then "nicht" else ""
+    -- to avoid inline type annotations due to String vs Text
+    auch :: String
+    auch = " auch"
+
+    neg b x = if b then Neg (Atomic x) else Atomic x
+    part1 = Assoc Impl
+             (Brackets $ Assoc And (neg b 'B') (neg d 'D'))
+             (neg (not c) 'C')
+    part2 = Assoc Impl (neg a 'A') (neg b 'B')
+    part3 = Assoc Impl (neg b 'B') (neg c 'C')
+    part4 = Assoc Impl (neg c 'C') (neg d 'D')
+    part5 = Assoc Impl
+             (neg d 'D')
+             (Brackets $ Assoc Or (neg a 'A') (neg b 'B'))
+
+
+output :: OutputCapable m => String -> [String] -> LangM m
+output legend hints = do
     paragraph $ translate $ german
       ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
-        "Sie fragt ihre Freunde Astrid (A), Ben (B), Claudia (C) und David (D), " ++
+        legend ++
         "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
       )
-    itemizeM
-      [ translate $ german $
-          (if b == d
-             then [i|Falls Ben und David #{nicht b} kommen,|]
-             else
-               if b
-                 then "Falls Ben nicht, aber David kommt,"
-                 else "Falls Ben, aber nicht David kommt,")
-          ++ [i| kommt Claudia #{nicht (not c)}.|]
-      , translate $ german
-          [i|Ben kommt #{nicht b} mit, wenn Astrid #{nicht a} mitkommt.|]
-      , translate $ german
-          [i|Wenn Ben #{nicht b} kommt, kommt #{if b == c then auch else ""} Claudia #{nicht c}.|]
-      , translate $ german
-          [i|Wenn Claudia #{nicht c} kommt, kommt #{if c == d then auch else ""} David #{nicht d}.|]
-      , translate $ german $
-          [i|Wenn David #{nicht d} kommt, |] ++
-          if a == b
-            then [i|kommen #{if d == a then auch else ""} Astrid oder Ben #{nicht a}.|]
-            else
-              if a
-                then [i|kommt #{if d then auch else ""} Astrid nicht oder Ben kommt.|]
-                else [i|kommt #{if d then "" else auch} Astrid oder Ben kommt nicht.|]
-      ]
+    itemizeM $ map (translate . german) hints
     paragraph $ translate $ german
       "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
     paragraph $ translate $ german
       "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
     paragraph $ translate $ german
       "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
-    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","⇒","⇔"]
+    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
     pure ()
-  where
-    nicht :: Bool -> String
-    nicht f = if f then "nicht" else ""
-    -- to avoid inline type annotations due to String vs Text
-    auch :: String
-    auch = " auch"
 
 
 
@@ -188,18 +199,22 @@ instance Formify [Namen] where
 
 
 
-nonTableFields :: [[FieldInfo]]
-nonTableFields = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" ["Anna","Ben","Claudia","David"]]]
+nonTableFields :: (Text,Text,Text,Text) -> [[FieldInfo]]
+nonTableFields (a,b,c,d) = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" [a,b,c,d]]]
 
 
 
-form :: Rendered
-form = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe Solution) nonTableFields
+pShow :: PropFormula Char -> String
+pShow (Atomic c) = "Atomic " ++ show c
+pShow (Neg f) = "Neg " ++ '(' : pShow f ++ ")"
+pShow (Brackets f) = "Brackets " ++ '(' : pShow f ++ ")"
+pShow (Assoc o f1 f2) = "Assoc " ++ show o ++ withParens f1 ++ withParens f2
+  where
+    withParens x = ' ' : '(' : pShow x ++ ")"
 
 =============================================
 
 {-# language ApplicativeDo #-}
-{-# language DeriveGeneric #-}
 {-# language OverloadedStrings #-}
 module ParseAndCheck where
 
@@ -226,10 +241,13 @@ import Text.Parsec (
 import Text.Parsec.Char       (char, oneOf)
 import Text.Parsec.String     (Parser)
 
+import Trees.Types (PropFormula)
+import Trees.Parsing ()
+
 import qualified Data.Text as T
+import qualified Formula.Parsing as FP
 
 import Global
-
 
 
 
@@ -239,12 +257,8 @@ instance Parse Binary where
     pure $ Binary $ toEnum $ read val
 
 
-
-instance Parse Formula where
-  parseInput = escaped $ do
-    symbols <- many1 $ choice $ map (try . char) validSymbols
-    pure $ Formula $ T.pack $ symbols
-
+instance Parse (PropFormula Char) where
+  parseInput = escaped FP.parser
 
 
 instance Parse [Namen] where
@@ -255,7 +269,7 @@ instance Parse [Namen] where
 instance Parse Table where
   parseInput = do
     (headers,values) <- parseInput
-    let allHeaders = map (Just . Formula) ["A","B","C","D"] ++ headers
+    let allHeaders = map (Just . Atomic) "ABCD" ++ headers
     pure $ Table $ zip allHeaders $ transpose $ chunksOf 7 values
 
 
@@ -265,65 +279,118 @@ parseSubmission = parse parseInput ""
 
 =============================================
 
-interpolate solution = [i|
+interpolate (fSol,nSol) tableRequired showSolution = [i|
 
 
-import Control.Monad (when)
+import Control.Monad (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
+    GenericOutput(..)
     )
 import Data.Char     (digitToInt)
+import Data.Foldable (toList)
 import Data.Functor  (($>))
-import Data.Maybe    (catMaybes)
-import Data.Ratio    (Ratio)
+import Data.List     (isInfixOf, transpose)
+import Data.Maybe    (catMaybes, fromJust, isJust)
+import Data.Map      ((!), fromList)
+import Data.Ratio    (Ratio, (%))
+import Data.Tuple    (swap)
 import Numeric       (showBin)
+
+import LogicTasks.Formula (isSemanticEqual, ToSAT(..))
+import Trees.Types (PropFormula(..), BinOp(..))
+
+import qualified SAT.MiniSat as Sat
+
+
+
+
+correctColumn :: (PropFormula Char,[Maybe Binary]) -> Bool
+correctColumn (f,bs) = all lookFor allocationsAndValues
+  where
+    ones = Sat.solve_all $ convert f
+    allocations = map (zip (toList f) . map (unBinary . fromJust)) $ transpose startingTable
+    allocationsAndValues = [(unBinary a,b) | (Just a,b) <- zip bs allocations]
+    lookFor (True,a) = fromList a `elem` ones
+    lookFor (False,a) = fromList a `notElem` ones
+
+
+
+isSubFormula :: PropFormula Char -> PropFormula Char -> Bool
+isSubFormula a b = noSpaces a `isInfixOf` noSpaces b
+  where
+    noSpaces = filter (/=' ') . show
+
+
+
+-- Not available in logic-tasks
+-- needed for equivalence test without excessive brackets in formulas
+instance ToSAT (PropFormula Char) where
+   convert (Atomic c) = Sat.Var c
+   convert (Neg p) = Sat.Not (convert p)
+   convert (Brackets p) = convert p
+   convert (Assoc op l r) = convertBinOp op left right
+     where
+       (left, right) = (if op == BackImpl then swap else id) (convert l, convert r)
+       convertBinOp And = (Sat.:&&:)
+       convertBinOp Or = (Sat.:||:)
+       convertBinOp Impl = (Sat.:->:)
+       convertBinOp BackImpl = (Sat.:->:)
+       convertBinOp Equi = (Sat.:<->:)
 
 
 
 checkSyntax :: OutputCapable m => FilePath -> Either ParseError Submission -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (Table xs,f,n))
-    | any (`elem` (map (Just . Formula) ["A","B","C","D"])) nonStaticHeaders =
-        indent $ refuse $ translate $ german
-          "Mindestens eine der atomaren Formeln wurde mehrfach eingetragen."
-    | null n =
-        indent $ refuse $ translate $ german
-          "Es wurden keine Namen angekreuzt. Es ist nicht möglich, dass keiner zum Konzert geht!"
-    | T.any isNumber f = refuse $ translate $ german "Die Formel enthält Zahlen."
-    | otherwise = pure ()
+checkSyntax _ (Right (Table xs,f,n)) = do
+    assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ translate $
+      german "Tabellenspalten existieren nur einmal?."
+    assertion (not (null n)) $ translate $
+      german "Es wurden Namen angekreuzt? (Alleine gehen ist ausgeschlossen)"
+    pure ()
   where
-    isNumber c = c `elem` ['1'..'9']
-    (headers,columns) = unzip xs
-    nonStaticHeaders = drop 4 headers
+    nonStaticHeaders = drop 4 $ map fst xs
+
 
 
 checkSemantics :: OutputCapable m => FilePath -> Either ParseError Submission -> Rated m
 checkSemantics _ (Left err) = refuse (code $ show err) $> 0
 checkSemantics _ (Right (Table xs,f,n)) = do
-    when (take 4 columns /= startingTable) $
-        indent $ refuse $ translate $ german
-          "Die Spalten der atomaren Formeln ergeben keine sinnvolle Wahrheitstabelle."
-    when (T.any notInAnswer "ABCD") $
-        indent $ refuse $ translate $
-           german "Die Formel enthält nicht alle vorkommenden Literale."
-    when (f /= fSol) $
-        indent $ refuse $ translate $ german "Die aussagenlogische Formel ist falsch."
-    when (n /= nSol) $
-        indent $ refuse $ translate $ german "Die Liste der Teilnehmer ist falsch."
-    pure 1
+    let correctStart = take 4 columns == startingTable
+    #{checkType} correctStart $ translate $
+          german "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstabelle?"
+    let subFormulas = all (`isSubFormula` f) $ catMaybes nonStaticHeaders
+    #{checkType} subFormulas $ translate $
+          german "Tabellenspalten sind Teilformeln der Gesamtformel?"
+    let correctValues = all correctColumn [(f,b)| (Just f,b) <- drop 4 xs]
+    #{checkType} correctValues $ translate $
+          german "Tabellenspalten enthalten korrekte Warheitswerte?"
+    yesNo (T.all (`elem` f) "ABCD") $ translate $
+          german "Formel enthält alle vorkommenden Literale?"
+    let correctFormula = isSemanticEqual (#{pShow fSol}) f
+    yesNo correctFormula $ translate $
+          german "Die aussagenlogische Formel ist korrekt?"
+    let correctNames = n == #{nSol}
+    yesNo correctNames $ translate $
+          german "Die Liste der Teilnehmer ist korrekt?"
+    let correct = filter (==True) [correctStart, correctFormula, correctNames, correctValues]
+    let points = fromIntegral (length correct) % 4
+    res <- printSolutionAndAssert IndefiniteArticle maybeAnswer points
+    pure res
   where
-    notInAnswer c = not (c `T.elem` f)
     (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
-    (fSol,nSol) = sol
+    maybeAnswer = if #{showSolution} then Just ("Formel:  " ++ #{show $ show fSol} ++ "\\nEs kommt: " ++ #{show $ show nSol})
+                                     else Nothing
+
 
 
 startingTable :: [[Maybe Binary]]
 startingTable = map (Just . Binary . toEnum . digitToInt) . T.unpack <$>
   T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
 
-
-sol = #{solution}
 |]
+  where
+    checkType :: String
+    checkType = if tableRequired then "assertion" else "yesNo"
 
