@@ -64,7 +64,7 @@ import Global
 
 
 
-getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
+getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([String],String))
 getTask _ = do
     tree <- addToTree <$> vectorOf 3000 (chooseInt (-100000,100000))
     pure (output tree, interpolate tree, getFormData form)

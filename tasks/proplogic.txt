@@ -63,7 +63,7 @@ getParticipants :: Gen [Bool]
 getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 
 
-getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([Text],Html))
+getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([String],String))
 getTask _ = do
     values@[a,b,c,d] <- getParticipants
     names <- getNames

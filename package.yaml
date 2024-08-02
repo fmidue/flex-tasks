@@ -3,6 +3,7 @@ name: ma-patrick-ritzenfeld
 extra-source-files: [ ]
 dependencies:
   - base
+  - blaze-html
   - blaze-markup
   - extra
   - fast-logger

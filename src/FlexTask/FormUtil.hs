@@ -10,11 +10,12 @@ module FlexTask.FormUtil
   ) where
 
 
-import Data.Text             (Text, pack)
-import System.Log.FastLogger (defaultBufSize, newStdoutLoggerSet)
-import Text.Julius           (RawJS(..))
+import Data.Text                       (Text, pack, unpack)
+import System.Log.FastLogger           (defaultBufSize, newStdoutLoggerSet)
+import Text.Blaze.Html.Renderer.String (renderHtml)
+import Text.Julius                     (RawJS(..))
 import Yesod
-import Yesod.Default.Config2 (makeYesodLogger)
+import Yesod.Default.Config2           (makeYesodLogger)
 
 import qualified Control.Monad.Trans.RWS as RWS   (get)
 import qualified Data.Text               as T     (replace)
@@ -90,10 +91,13 @@ var fieldNames = #{rawJS (show names)};|]
 
 
 
-getFormData :: Rendered -> IO ([Text],Html)
+getFormData :: Rendered -> IO ([String],String)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    unsafeHandler FlexForm {appLogger = logger} writeHtml
+    (fNames,html) <- unsafeHandler FlexForm {appLogger = logger} writeHtml
+    let fields = unpack <$> fNames
+    let form = concat $ lines $ renderHtml html
+    return (fields,form)
   where
     unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
