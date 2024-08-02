@@ -43,7 +43,6 @@ import FlexTask.Generic.Form (
   )
 import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
 import Test.QuickCheck.Gen
-import Text.Blaze.Internal     (MarkupM)
 import Yesod
 
 import qualified Data.Text as T

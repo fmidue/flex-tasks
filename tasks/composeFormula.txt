@@ -25,9 +25,6 @@ import LogicTasks.Syntax.ComposeFormula (description)
 import Tasks.ComposeFormula.Config      (defaultComposeFormulaConfig)
 import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
-import Text.Blaze.Internal              (MarkupM)
-import Yesod                            (Html)
-
 
 import Global
 
