@@ -42,32 +42,22 @@ getTask _ = do
 output :: OutputCapable m => [Int] -> LangM m
 output input = do
   paragraph $ translate $ do
-    german "Betrachten Sie die folgende Liste von Integer-Zahlen."
-    english "Consider the following list of Integer numbers."
+    german "Betrachten Sie die folgende Liste von Zahlen."
+    english "Consider the following list of numbers."
   code $ show input
   paragraph $ translate $ do
-    german "Stellen Sie sich vor wir bilden das Kreuzprodukt dieser Liste mit sich selbst."
-    english "Now imagine we are calculating the cross product of this list with itself."
+    german "Wählen Sie zwei Elemente der Liste aus."
+    english "Choose two elements of the list."
   paragraph $ translate $ do
-    german "Geben Sie ein Zahlen-Tupel an, dass in diesem Kreuzprodukt "
-    german "enthalten ist und folgende Bedingungen erfüllt:"
-    english "Enter a tuple of numbers which is contained in this cross product "
-    english "and satisfies the following conditions:"
+    german "Die Antwort muss folgendes erfüllen:"
+    english "Your answer has to satisfy the following:"
   itemizeM [
       translate $ do
-        german "Eine Zahl ist positiv, eine negativ."
-        english "One number is positive, one is negative."
+       german "Keines hat zwei negative Nachbarn."
+       english "None has two negative Neighbours."
     , translate $ do
-        german "Das Product der Zahlen ist eine gerade Zahl."
-        english "The product of the numbers is even."
-    , translate $ do
-        german "Keine der Zahlen steht in der ursprünglichen Liste zwischen zwei negativen Zahlen."
-        english "None of the numbers is between two negative numbers in the original list."
-    , translate $ do
-        german "Keine der Zahlen steht in der ursprünglichen Liste "
-        german "zwischen zwei glatt durch 3 teilbahren Zahlen."
-        english "None of the numbers is between "
-        english "two numbers wholly divisible by 3 in the original list."
+       german "Keines hat zwei durch 3 teilbare Nachbarn."
+       english "None has two Neighbours divisible by 3."
     ]
   pure ()
 
@@ -111,20 +101,19 @@ interpolate solution = [i|
 import Control.Monad                (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
+    GenericOutput,
     )
 import Data.Ratio
 
 
 checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (a,b))
-  | not (all (`elem` sol) [a,b]) =
-      refuse $ indent $ translate $ do
-        german "Das Tupel kommt nicht im Kreuzprodukt vor"
-        english "The tuple is not inside the cross product"
-
-  | otherwise = pure ()
+checkSyntax _ (Right (a,b))= do
+    assertion (all (`elem` sol) [a,b]) $
+      translate $ do
+        german "Das Tupel kommt im Kreuzprodukt vor?"
+        english "Tuple is inside the cross product?"
+    pure ()
   where
     sol = #{solution}
 
@@ -132,25 +121,15 @@ checkSyntax _ (Right (a,b))
 checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
 checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
 checkSemantics _ (Right (a,b)) = do
-    unless (signum a + signum b == 0) $
-      refuse $ indent $ translate $ do
-          german "Die Zahlen haben kein unterschiedliches Vorzeichen."
-          english "The numbers do not have different signs"
-    unless (even (a * b)) $
-      refuse $ indent $ translate $ do
-          german "Das Produkt der Zahlen ist nicht gerade."
-          english "The product of the numbers is not even."
-    unless (all (`elem` #{noNegNeighbours}) [a,b]) $
-      refuse $ indent $ translate $ do
-          german "Mindesten eine Zahl ist zwischen negativen Zahlen."
-          english "At least one number is between two negative numbers."
+    assertion (all (`elem` #{noNegNeighbours}) [a,b]) $
+      translate $ do
+        german "Mindestens ein Nachbar ist positiv?"
+        english "At least one Neighbour is positive?"
+    assertion (all (`elem` #{noDiv3Neighbours}) [a,b]) $
+      translate $ do
+        german "Nachbarn sind nicht durch drei teilbar?"
+        english "Neighbours are not divisible by three?"
     pure 1.0
-    unless (all (`elem` #{noDiv3Neighbours}) [a,b]) $
-      refuse $ indent $ translate $ do
-          german "Mindesten eine Zahl ist zwischen zwei durch 3 teilbaren Zahlen."
-          english "At least one number is between two numbers divisible by three."
-    pure 1.0
-
 |]
   where
     neighbourTups = zip3 solution (drop 1 solution) (drop 2 solution)

@@ -3,12 +3,15 @@ checktemplate
 clearpage
 cname
 deng
+eingabe
 eingabefeld
 einsendung
 elems
 emph
 Equi
 fillform
+flexident
+flexinput
 getparams
 hyperlink
 hline
@@ -22,7 +25,9 @@ lockform
 loesen
 Loesungs
 minipage
+newpage
 nobreakdash
+nointer
 pkgdb
 RWS
 staticpost

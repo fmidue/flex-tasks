@@ -125,14 +125,18 @@ checkSyntax _ _          = pure ()
 
 
 checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
+checkSemantics _ (Left err) = refuse (code $ show err) *>
+                              pure 0.0
 checkSemantics _ (Right (s,p)) = do
-    unless (s == #{getSum solution}) $ do
-      refuse $ text $ "Nein"
-    unless (p == #{getProd solution}) $ do
-      refuse $ text $ "Nein"
+    assertion (s == #{getSum solution}) $
+      translate $ do
+        german "Summe ist korrekt?"
+        english "Sum ist correct?"
+    assertion (p == #{getProd solution}) $ do
+      translate $ do
+        german "Produkt ist korrekt?"
+        english "Product is correct?"
     pure 1.0
-
 |]
 
 

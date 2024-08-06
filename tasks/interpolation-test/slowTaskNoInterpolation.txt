@@ -1,4 +1,3 @@
-
 interpolate solution = [i|
 
 
@@ -12,43 +11,38 @@ import Data.Ratio
 
 checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (a,b))
-  | not (a `elem` sol) || not (b `elem` sol) =
-      refuse $ indent $ translate $ do
-        german "Das Tupel kommt nicht im Kreuzprodukt vor"
-        english "The tuple is not inside the cross product"
-
-  | otherwise = pure ()
+checkSyntax _ (Right (a,b)) = do
+  assertion (all (`elem` sol) [a,b]) $
+    translate $ do
+      german "Tupel ist im Kreuzprodukt?"
+      english "Tuple is inside the cross product?"
+  pure ()
 
 
 checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
+checkSemantics _ (Left err) = refuse (code $ show err) *>
+                              pure 0.0
 checkSemantics _ (Right (a,b)) = do
-    unless (signum a + signum b == 0) $
-      refuse $ indent $ translate $ do
-          german "Die Zahlen haben kein unterschiedliches Vorzeichen."
-          english "The numbers do not have different signs"
-    unless (even (a * b)) $
-      refuse $ indent $ translate $ do
-          german "Das Produkt der Zahlen ist nicht gerade."
-          english "The product of the numbers is not even."
-    unless (a `elem` noNegNeighbours && b `elem` noNegNeighbours) $
-      refuse $ indent $ translate $ do
-          german "Mindesten eine Zahl ist zwischen negativen Zahlen."
-          english "At least one number is between two negative numbers."
-    pure 1.0
-    unless (a `elem` noDiv3Neighbours && b `elem` noDiv3Neighbours) $
-      refuse $ indent $ translate $ do
-          german "Mindesten eine Zahl ist zwischen zwei durch 3 teilbaren Zahlen."
-          english "At least one number is between two numbers divisible by three."
+    assertion (a `elem` noNegNeighbours && b `elem` noNegNeighbours) $
+      translate $ do
+        german "Mindestens ein Nachbar ist positiv?"
+        english "At least one Neighbour is positive?"
+    assertion (a `elem` noDiv3Neighbours && b `elem` noDiv3Neighbours) $
+      translate $ do
+        german "Nachbarn sind nicht durch drei teilbar?"
+        english "Neighbours are not divisible by three?"
     pure 1.0
   where
-    fromNeighbourTups f = map (\\(a,b,c) -> b) $ filter f $ zip3 sol (drop 1 sol) (drop 2 sol)
-    noNegNeighbours = fromNeighbourTups (\\(a,b,c) -> a >= 0 || c >= 0)
-    noDiv3Neighbours = fromNeighbourTups (\\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
+    neighbourTups = zip3 sol (drop 1 sol) (drop 2 sol)
+    fromNeighbourTups f =
+      map (\\(a,b,c) -> b) $ filter f $ neighbourTups
+    noNegNeighbours =
+      fromNeighbourTups (\\(a,b,c) -> a >= 0 || c >= 0)
+    noDiv3Neighbours =
+      fromNeighbourTups (\\(a,b,c) -> a `mod` 3 /= 0 ||
+                                      c `mod` 3 /= 0
+                        )
 
 
 sol = #{solution}
 |]
-
-

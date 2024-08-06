@@ -1,4 +1,3 @@
-
 interpolate solution = [i|
 
 
@@ -16,16 +15,19 @@ checkSyntax _ _          = pure ()
 
 
 checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
+checkSemantics _ (Left err) = refuse (code $ show err) *>
+                              pure 0.0
 checkSemantics _ (Right (s,p)) = do
-    unless (s == getSum sol) $ do
-      refuse $ text $ "Nein"
-    unless (p == getProd sol) $ do
-      refuse $ text $ "Nein"
+    assertion (s == getSum sol) $
+      translate $ do
+        german "Summe ist korrekt?"
+        english "Sum ist correct?"
+    assertion (p == getProd sol) $ do
+      translate $ do
+        german "Produkt ist korrekt?"
+        english "Product is correct?"
     pure 1.0
 
 
 sol = #{solution}
 |]
-
-
