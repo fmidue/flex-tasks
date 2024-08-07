@@ -134,6 +134,7 @@ rightarrow
 readerlatex
 scanl
 snd
+Snoyman
 startstate
 startuml
 stdout

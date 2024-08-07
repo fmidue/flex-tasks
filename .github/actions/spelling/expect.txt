@@ -13,6 +13,8 @@ fillform
 flexident
 flexinput
 getparams
+haskell
+Haskelltasks
 hyperlink
 hline
 infixr
@@ -33,5 +35,6 @@ RWS
 staticpost
 tAndFImports
 tAndFModule
+testinter
 textbackslash
 writeUncachedAndGetPaths
