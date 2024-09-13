@@ -1,14 +1,12 @@
 {-# language DefaultSignatures #-}
+{-# language OverloadedStrings #-}
 {-# language TypeOperators #-}
+
 
 module FlexTask.Generic.ParseInternal
   ( Parse(..)
   , parseInstanceSingleChoice
   , parseInstanceMultiChoice
-
-  , argDelim
-  , listDelim
-  , escape
   , escaped
   ) where
 
@@ -32,6 +30,8 @@ import Text.Parsec.String (Parser)
 
 import qualified Data.Text    as T
 
+import FlexTask.Processing.Text (argDelimiter, listDelimiter, inputEscape)
+
 
 
 
@@ -51,7 +51,7 @@ class GParse f where
 instance (GParse a, GParse b) => GParse (a :*: b) where
   gparse = do
     a <- gparse
-    void $ string argDelim
+    void $ parseText argDelimiter
     b <- gparse
     pure (a :*: b)
 
@@ -81,7 +81,7 @@ instance Parse Int where
 
 instance Parse String where
   parseInput = escaped $ manyTill anyChar $ try $ lookAhead $
-      string escape >> notFollowedBy (string "\"")
+      escape >> notFollowedBy (string "\"")
 
 
 
@@ -123,7 +123,7 @@ instance (Parse a, Parse b, Parse c, Parse d) => Parse (a,b,c,d)
 
 
 instance {-# Overlappable #-} Parse a => Parse [a] where
-  parseInput = try (escaped parseEmpty) <|> sepBy parseInput (string listDelim)
+  parseInput = try (escaped parseEmpty) <|> sepBy parseInput (parseText listDelimiter)
     where
       parseEmpty = string "Missing" >> pure []
 
@@ -148,22 +148,16 @@ parseInstanceMultiChoice = fmap (toEnum . subtract 1) <$> parseInput
 
 
 
-escape :: String
-escape = "\"\""
-
-
-
-argDelim :: String
-argDelim = "\a\a"
-
-
-
-listDelim :: String
-listDelim = "\b\b"
+escape :: Parser String
+escape = esc >> esc
+  where esc = parseText inputEscape
 
 
 
 escaped :: Parser a -> Parser a
-escaped = between escParse escParse
-  where escParse = string escape
+escaped = between escape escape
 
+
+
+parseText :: Text -> Parser String
+parseText t = string $ T.unpack t

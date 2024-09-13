@@ -5,10 +5,18 @@ dependencies:
   - base
   - blaze-html
   - blaze-markup
+  - directory
   - extra
   - fast-logger
+  - filepath
+  - hint
+  - output-blocks
   - parsec
+  - QuickCheck
+  - raw-strings-qq
+  - SHA
   - shakespeare
+  - split
   - text
   - transformers
   - yesod
@@ -26,9 +34,13 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
+    - FlexTask.DefaultConfig
     - FlexTask.FormUtil
     - FlexTask.Generic.Form
     - FlexTask.Generic.Parse
+    - FlexTask.Interpreter
+    - FlexTask.Processing.Text
+    - FlexTask.Types
     - FlexTask.YesodConfig
   ghc-options:
     - -Wall

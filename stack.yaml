@@ -2,3 +2,8 @@
 resolver: nightly-2024-03-20
 packages:
   - .
+extra-deps:
+  - git: https://github.com/fmidue/output-blocks.git
+    commit: f2418656472b9c32bde06ec3b916fe6d749d0290
+    subdirs:
+      - output-blocks
