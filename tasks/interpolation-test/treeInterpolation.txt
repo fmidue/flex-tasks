@@ -76,7 +76,7 @@ output input = do
 
 
 fields :: [[FieldInfo]]
-fields = [[Single "Tree Sum"],[Single "Tree Product"]]
+fields = [[single "Tree Sum"],[single "Tree Product"]]
 
 
 form :: Rendered

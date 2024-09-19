@@ -101,7 +101,7 @@ output one two three = do
 
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [[Single "Product"], [Single "Sum"]]
+fieldNames = [[single "Product"], [single "Sum"]]
 
 
 form :: Rendered

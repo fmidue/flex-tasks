@@ -1,15 +1,14 @@
 {-# language DefaultSignatures #-}
+{-# language GeneralizedNewtypeDeriving #-}
 {-# language OverloadedStrings #-}
+{-# language RankNTypes #-}
 {-# language TypeOperators #-}
 
 module FlexTask.Generic.Form
   ( Alignment(..)
-  , FieldInfo(
-      Single
-    , List
-    , ChoicesDropdown
-    , ChoicesButtons
-    )
+  , FieldInfo
+  , SingleChoiceSelection
+  , MultipleChoiceSelection
 
   , BaseForm(..)
   , Formify(..)
@@ -19,10 +18,24 @@ module FlexTask.Generic.Form
   , formifyInstanceSingleChoice
 
   , formify
+  , buttonsAnonymous
+  , buttonsAnonymousNoHeader
+  , buttonsForEnum
+  , buttonsForEnumNoHeader
+  , dropdownAnonymous
+  , dropdownAnonymousNoHeader
+  , dropdownForEnum
+  , dropdownForEnumNoHeader
+  , list
+  , listNoLabels
+  , listSomeLabels
+  , single
+  , singleNoLabel
   ) where
 
 
 import Data.Either         (isRight)
+import Data.Maybe          (fromMaybe)
 import GHC.Generics        (Generic(..), K1(..), M1(..), (:*:)(..))
 import Data.Text           (Text, pack, unpack)
 import Yesod
@@ -48,6 +61,11 @@ data FieldInfo
 
 
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
+
+
+newtype SelectionOption = SelectionOption Int deriving (Bounded, Enum, Show, Eq)
+type SingleChoiceSelection = SelectionOption
+type MultipleChoiceSelection = [SelectionOption]
 
 
 
@@ -156,6 +174,14 @@ instance (BaseForm a, Formify a) => Formify (Maybe a) where
 
 instance Formify (Maybe a) => Formify [Maybe a] where
   formifyImplementation = formifyInstanceList
+
+
+instance Formify SelectionOption where
+  formifyImplementation = formifyInstanceSingleChoice
+
+
+instance Formify [SelectionOption] where
+  formifyImplementation = formifyInstanceMultiChoice
 
 
 
@@ -327,3 +353,83 @@ restAndRenderMethod
        )
 restAndRenderMethod [] xss = (xss,renderFlatOrBreak True)
 restAndRenderMethod xs xss = (xs:xss, renderFlatOrBreak False)
+
+
+
+buttonsForEnum
+  :: Alignment
+  -> Text
+  -> (forall a. (Bounded a, Enum a) => (a -> Maybe String) -> FieldInfo)
+buttonsForEnum align t s =
+    ChoicesButtons align t $ map (maybe "" pack . s) [minBound .. maxBound]
+
+
+
+buttonsForEnumNoHeader
+  :: Alignment
+  -> (forall a. (Bounded a, Enum a) => (a -> Maybe String) -> FieldInfo)
+buttonsForEnumNoHeader align = buttonsForEnum align ""
+
+
+
+buttonsAnonymous
+  :: Alignment
+  -> Text
+  -> Int
+  -> (Int -> Maybe String)
+  -> FieldInfo
+buttonsAnonymous align t amount s =
+    ChoicesButtons align t $ map (maybe "" pack . s) $ take amount [1 .. maxBound]
+
+
+buttonsAnonymousNoHeader
+  :: Alignment
+  -> Int
+  -> (Int -> Maybe String)
+  -> FieldInfo
+buttonsAnonymousNoHeader align = buttonsAnonymous align ""
+
+
+dropdownForEnum
+  :: Text
+  -> (forall a. (Bounded a, Enum a) => (a -> String) -> FieldInfo)
+dropdownForEnum t s =
+    ChoicesDropdown t $ map (pack . s) [minBound .. maxBound]
+
+
+
+dropdownForEnumNoHeader
+  :: (forall a. (Bounded a, Enum a) => (a -> String) -> FieldInfo)
+dropdownForEnumNoHeader = dropdownForEnum ""
+
+
+
+dropdownAnonymous :: Text -> Int -> (Int -> String) -> FieldInfo
+dropdownAnonymous t amount s =
+    ChoicesDropdown t $ map (pack .s) $ take amount [1 .. maxBound]
+
+
+
+dropdownAnonymousNoHeader :: Int -> (Int -> String) -> FieldInfo
+dropdownAnonymousNoHeader = dropdownAnonymous ""
+
+
+
+list :: Alignment -> [Text] -> FieldInfo
+list = List
+
+
+listNoLabels :: Alignment -> Int -> FieldInfo
+listNoLabels align amount = List align $ replicate amount ""
+
+
+listSomeLabels :: Alignment -> [Maybe Text] -> FieldInfo
+listSomeLabels align = List align . map (fromMaybe "")
+
+
+single :: Text -> FieldInfo
+single = Single
+
+
+singleNoLabel :: FieldInfo
+singleNoLabel = Single ""

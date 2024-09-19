@@ -2,6 +2,7 @@ module Global where
 
 
 import Trees.Types (PropFormula)
+import FlexTask.Generic.Form (MultipleChoiceSelection)
 
 
 
@@ -11,7 +12,7 @@ newtype Table = Table [(Maybe (PropFormula Char), [Maybe Binary])] deriving (Eq,
 
 data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
 
-type FormType = (String,[Namen])
+type FormType = (String,MultipleChoiceSelection)
 
 type Submission = (Table,PropFormula Char,[Namen])
 
@@ -36,10 +37,12 @@ import Data.String.Interpolate (i)
 import FlexTask.FormUtil       (($$>), getFormData, newFlexId, newFlexName)
 import FlexTask.Generic.Form (
   Alignment(..),
-  FieldInfo(..),
+  FieldInfo,
   Formify(..),
   formify,
-  formifyInstanceMultiChoice
+  MultipleChoiceSelection,
+  single,
+  buttonsForEnum
   )
 import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
 import Test.QuickCheck.Gen
@@ -73,10 +76,10 @@ getTask _ = do
       coming = [ n | (b,n) <- zipped, b==True]
     pure (description, interpolate (formula,coming) False True, getFormData (form names))
   where
-    form :: (Text,Text,Text,Text) -> Rendered
+    form :: (String,String,String,String) -> Rendered
     form n = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
 
-    getNames :: Gen (Text,Text,Text,Text)
+    getNames :: Gen (String,String,String,String)
     getNames = do
       a <- elements ["Astrid","Anna"]
       b <- elements ["Ben","Bernd"]
@@ -86,7 +89,7 @@ getTask _ = do
 
 
 
-formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (Text,Text,Text,Text) -> Gen (PropFormula Char, String, [String])
+formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (String,String,String,String) -> Gen (PropFormula Char, String, [String])
 formulaAndHints a b c d (aN,bN,cN,dN) = do
     shuffled <- shuffle (zip [part1,part2,part3,part4,part5] [hint1,hint2,hint3,hint4,hint5])
     let (parts,hints) = unzip shuffled
@@ -193,13 +196,12 @@ tableForm staticHeaders rowAmount columnAmount extra = do
          )
 
 
-instance Formify [Namen] where
-  formifyImplementation = formifyInstanceMultiChoice
 
 
-
-nonTableFields :: (Text,Text,Text,Text) -> [[FieldInfo]]
-nonTableFields (a,b,c,d) = [[Single "Formel"], [ChoicesButtons Vertical "Wer kommt?" [a,b,c,d]]]
+nonTableFields :: (String,String,String,String) -> [[FieldInfo]]
+nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsForEnum Vertical "Wer kommt?" @Namen (\n -> lookup n nameMatching)]]
+  where
+    nameMatching = zip [minBound .. maxBound :: Namen] [a,b,c,d]
 
 
 

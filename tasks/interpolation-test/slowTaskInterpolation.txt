@@ -63,7 +63,7 @@ output input = do
 
 
 fields :: [[FieldInfo]]
-fields = [[Single "Number one"], [Single "Number two"]]
+fields = [[single "Number one"], [single "Number two"]]
 
 
 form :: Rendered

@@ -42,7 +42,7 @@ getTask path = do
 
 
 fields :: [[FieldInfo]]
-fields = [[Single "First Formula", Single "Second Formula"]]
+fields = [[single "First Formula", single "Second Formula"]]
 
 
 
