@@ -3,6 +3,7 @@
 {-# language OverloadedStrings #-}
 {-# language RankNTypes #-}
 {-# language TypeOperators #-}
+{-# language ScopedTypeVariables #-}
 
 module FlexTask.Generic.Form
   ( Alignment(..)
@@ -337,8 +338,11 @@ formifyInstanceMultiChoice = formifyInstanceChoice . Left
 
 
 
-enumOptionsPairs :: (Bounded a, Enum a) => [Text] -> Handler (OptionList a)
-enumOptionsPairs labels = optionsPairs $ zip labels [minBound..maxBound]
+enumOptionsPairs :: forall a. (Bounded a, Enum a) => [Text] -> Handler (OptionList a)
+enumOptionsPairs labels
+  | length labels == length options = optionsPairs (zip labels options)
+  | otherwise = error "IMPOSSIBLE!"
+  where options = [minBound .. maxBound :: a]
 
 
 
