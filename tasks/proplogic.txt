@@ -72,8 +72,8 @@ getTask _ = do
     (formula, legend, hints) <- formulaAndHints a b c d names
     let
       description = output legend hints
-      zipped = zip values ([minBound .. maxBound] :: [Namen])
-      coming = [ n | (b,n) <- zipped, b==True]
+      zipped = [(a, A), (b, B), (c, C), (d, D)]
+      coming = [ n | (f,n) <- zipped, f ]
     pure (description, interpolate (formula,coming) False True, getFormData (form names))
   where
     form :: (String,String,String,String) -> Rendered
@@ -201,7 +201,7 @@ tableForm staticHeaders rowAmount columnAmount extra = do
 nonTableFields :: (String,String,String,String) -> [[FieldInfo]]
 nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsForEnum Vertical "Wer kommt?" @Namen (\n -> lookup n nameMatching)]]
   where
-    nameMatching = zip [minBound .. maxBound :: Namen] [a,b,c,d]
+    nameMatching = [(A, a), (B, b), (C, c), (D, d)]
 
 
 
