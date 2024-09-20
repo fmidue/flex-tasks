@@ -1,5 +1,4 @@
 {-# language DefaultSignatures #-}
-{-# language GeneralizedNewtypeDeriving #-}
 {-# language OverloadedStrings #-}
 {-# language RankNTypes #-}
 {-# language TypeOperators #-}
@@ -8,8 +7,8 @@
 module FlexTask.Generic.Form
   ( Alignment(..)
   , FieldInfo
-  , SingleChoiceSelection
-  , MultipleChoiceSelection
+  , SingleChoiceSelection(..)
+  , MultipleChoiceSelection(..)
 
   , BaseForm(..)
   , Formify(..)
@@ -19,12 +18,12 @@ module FlexTask.Generic.Form
   , formifyInstanceSingleChoice
 
   , formify
-  , buttonsAnonymous
-  , buttonsAnonymousNoHeader
+  , buttonsForOptions
+  , buttonsForOptionsNoHeader
   , buttonsForEnum
   , buttonsForEnumNoHeader
-  , dropdownAnonymous
-  , dropdownAnonymousNoHeader
+  , dropdownForOptions
+  , dropdownForOptionsNoHeader
   , dropdownForEnum
   , dropdownForEnumNoHeader
   , list
@@ -64,9 +63,9 @@ data FieldInfo
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
-newtype SelectionOption = SelectionOption Int deriving (Bounded, Enum, Show, Eq)
-type SingleChoiceSelection = SelectionOption
-type MultipleChoiceSelection = [SelectionOption]
+newtype SingleChoiceSelection = SingleChoiceSelection { getAnswer :: Int} deriving (Show,Eq)
+newtype MultipleChoiceSelection = MultipleChoiceSelection { getAnswers :: [Int]} deriving (Show,Eq)
+
 
 
 
@@ -177,12 +176,12 @@ instance Formify (Maybe a) => Formify [Maybe a] where
   formifyImplementation = formifyInstanceList
 
 
-instance Formify SelectionOption where
-  formifyImplementation = formifyInstanceSingleChoice
+instance Formify SingleChoiceSelection where
+  formifyImplementation = formifyInstanceSingleChoice . fmap getAnswer
 
 
-instance Formify [SelectionOption] where
-  formifyImplementation = formifyInstanceMultiChoice
+instance Formify MultipleChoiceSelection where
+  formifyImplementation = formifyInstanceMultiChoice . fmap getAnswers
 
 
 
@@ -363,59 +362,57 @@ restAndRenderMethod xs xss = (xs:xss, renderFlatOrBreak False)
 buttonsForEnum
   :: Alignment
   -> Text
-  -> (forall a. (Bounded a, Enum a) => (a -> Maybe String) -> FieldInfo)
+  -> ( forall a. (Bounded a, Enum a) => (a -> Maybe String)
+       -> FieldInfo
+     )
 buttonsForEnum align t s =
-    ChoicesButtons align t $ map (maybe "" pack . s) [minBound .. maxBound]
+    ChoicesButtons align t $ maybe "" pack . s <$> [minBound .. maxBound]
 
 
 
 buttonsForEnumNoHeader
   :: Alignment
-  -> (forall a. (Bounded a, Enum a) => (a -> Maybe String) -> FieldInfo)
+  -> ( forall a. (Bounded a, Enum a) => (a -> Maybe String)
+       -> FieldInfo
+     )
 buttonsForEnumNoHeader align = buttonsForEnum align ""
 
 
 
-buttonsAnonymous
-  :: Alignment
-  -> Text
-  -> Int
-  -> (Int -> Maybe String)
-  -> FieldInfo
-buttonsAnonymous align t amount s =
-    ChoicesButtons align t $ map (maybe "" pack . s) $ take amount [1 .. maxBound]
+buttonsForOptions :: Alignment -> Text -> [Maybe String] -> FieldInfo
+buttonsForOptions align t = ChoicesButtons align t . map (maybe "" pack)
 
 
-buttonsAnonymousNoHeader
-  :: Alignment
-  -> Int
-  -> (Int -> Maybe String)
-  -> FieldInfo
-buttonsAnonymousNoHeader align = buttonsAnonymous align ""
+
+buttonsForOptionsNoHeader :: Alignment -> [Maybe String] -> FieldInfo
+buttonsForOptionsNoHeader align = buttonsForOptions align ""
+
 
 
 dropdownForEnum
   :: Text
-  -> (forall a. (Bounded a, Enum a) => (a -> String) -> FieldInfo)
-dropdownForEnum t s =
-    ChoicesDropdown t $ map (pack . s) [minBound .. maxBound]
+  -> ( forall a. (Bounded a, Enum a) => (a -> String)
+       -> FieldInfo
+     )
+dropdownForEnum t s = ChoicesDropdown t $ pack . s <$> [minBound .. maxBound]
 
 
 
 dropdownForEnumNoHeader
-  :: (forall a. (Bounded a, Enum a) => (a -> String) -> FieldInfo)
+  :: ( forall a. (Bounded a, Enum a) => (a -> String)
+       -> FieldInfo
+     )
 dropdownForEnumNoHeader = dropdownForEnum ""
 
 
 
-dropdownAnonymous :: Text -> Int -> (Int -> String) -> FieldInfo
-dropdownAnonymous t amount s =
-    ChoicesDropdown t $ map (pack .s) $ take amount [1 .. maxBound]
+dropdownForOptions :: Text -> [String] -> FieldInfo
+dropdownForOptions t = ChoicesDropdown t . map pack
 
 
 
-dropdownAnonymousNoHeader :: Int -> (Int -> String) -> FieldInfo
-dropdownAnonymousNoHeader = dropdownAnonymous ""
+dropdownForOptionsNoHeader :: [String] -> FieldInfo
+dropdownForOptionsNoHeader = dropdownForOptions ""
 
 
 
@@ -423,16 +420,20 @@ list :: Alignment -> [Text] -> FieldInfo
 list = List
 
 
+
 listNoLabels :: Alignment -> Int -> FieldInfo
 listNoLabels align amount = List align $ replicate amount ""
+
 
 
 listSomeLabels :: Alignment -> [Maybe Text] -> FieldInfo
 listSomeLabels align = List align . map (fromMaybe "")
 
 
+
 single :: Text -> FieldInfo
 single = Single
+
 
 
 singleNoLabel :: FieldInfo

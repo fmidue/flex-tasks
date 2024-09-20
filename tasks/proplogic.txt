@@ -40,7 +40,7 @@ import FlexTask.Generic.Form (
   FieldInfo,
   Formify(..),
   formify,
-  MultipleChoiceSelection,
+  formifyInstanceMultiChoice,
   single,
   buttonsForEnum
   )
@@ -202,6 +202,11 @@ nonTableFields :: (String,String,String,String) -> [[FieldInfo]]
 nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsForEnum Vertical "Wer kommt?" @Namen (\n -> lookup n nameMatching)]]
   where
     nameMatching = [(A, a), (B, b), (C, c), (D, d)]
+
+
+
+instance Formify [Namen] where
+  formifyImplementation = formifyInstanceMultiChoice
 
 
 
