@@ -1,14 +1,13 @@
 {-# language DefaultSignatures #-}
+{-# language DeriveGeneric #-}
 {-# language OverloadedStrings #-}
-{-# language RankNTypes #-}
 {-# language TypeOperators #-}
-{-# language ScopedTypeVariables #-}
 
 module FlexTask.Generic.Form
   ( Alignment(..)
   , FieldInfo
-  , SingleChoiceSelection(..)
-  , MultipleChoiceSelection(..)
+  , SingleChoiceSelection
+  , MultipleChoiceSelection
 
   , BaseForm(..)
   , Formify(..)
@@ -16,27 +15,29 @@ module FlexTask.Generic.Form
   , formifyInstanceBase
   , formifyInstanceMultiChoice
   , formifyInstanceSingleChoice
-
   , formify
-  , buttonsForOptions
-  , buttonsForOptionsNoHeader
-  , buttonsForEnum
-  , buttonsForEnumNoHeader
-  , dropdownForOptions
-  , dropdownForOptionsNoHeader
-  , dropdownForEnum
-  , dropdownForEnumNoHeader
+
+  , getAnswer
+  , getAnswers
+  , multipleChoiceAnswer
+  , multipleChoiceEmpty
+  , singleChoiceAnswer
+  , singleChoiceEmpty
+
+  , buttons
+  , buttonsEnum
+  , dropdown
+  , dropdownEnum
   , list
-  , listNoLabels
-  , listSomeLabels
+  , listWithoutLabels
   , single
-  , singleNoLabel
   ) where
 
 
 import Data.Either         (isRight)
-import Data.Maybe          (fromMaybe)
+import Data.List.Extra     (nubSort)
 import GHC.Generics        (Generic(..), K1(..), M1(..), (:*:)(..))
+import GHC.Utils.Misc      (equalLength)
 import Data.Text           (Text, pack, unpack)
 import Yesod
 
@@ -56,16 +57,31 @@ data FieldInfo
   | List Alignment [Text]
   | ChoicesDropdown Text [Text]
   | ChoicesButtons Alignment Text [Text]
-  | InternalListElem Text -- Not exported
+  | InternalListElem Text
   deriving (Eq,Show)
 
 
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
-newtype SingleChoiceSelection = SingleChoiceSelection { getAnswer :: Int} deriving (Show,Eq)
-newtype MultipleChoiceSelection = MultipleChoiceSelection { getAnswers :: [Int]} deriving (Show,Eq)
+newtype SingleChoiceSelection = SingleChoiceSelection {getAnswer :: Maybe Int} deriving (Show,Eq,Generic)
+newtype MultipleChoiceSelection = MultipleChoiceSelection { getAnswers :: [Int]} deriving (Show,Eq,Generic)
 
+
+
+singleChoiceEmpty :: SingleChoiceSelection
+singleChoiceEmpty = SingleChoiceSelection Nothing
+
+
+singleChoiceAnswer :: Int -> SingleChoiceSelection
+singleChoiceAnswer = SingleChoiceSelection . Just
+
+
+multipleChoiceEmpty :: MultipleChoiceSelection
+multipleChoiceEmpty = MultipleChoiceSelection []
+
+multipleChoiceAnswer :: [Int] -> MultipleChoiceSelection
+multipleChoiceAnswer = MultipleChoiceSelection . nubSort
 
 
 
@@ -177,11 +193,11 @@ instance Formify (Maybe a) => Formify [Maybe a] where
 
 
 instance Formify SingleChoiceSelection where
-  formifyImplementation = formifyInstanceSingleChoice . fmap getAnswer
+  formifyImplementation = formifyInstanceChoice (`zip` [1..]) . Right . (=<<) getAnswer
 
 
 instance Formify MultipleChoiceSelection where
-  formifyImplementation = formifyInstanceMultiChoice . fmap getAnswers
+  formifyImplementation = formifyInstanceChoice (`zip` [1..]) . Left . fmap getAnswers
 
 
 
@@ -280,26 +296,27 @@ formifyInstanceSingleChoice
     => Maybe a
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceSingleChoice = formifyInstanceChoice . Right
+formifyInstanceSingleChoice = formifyInstanceChoice zipWithEnum . Right
 
 formifyInstanceChoice
-    :: (Bounded a, Enum a, Eq a)
-    => Either (Maybe [a]) (Maybe a)
+    :: Eq a
+    => ([Text] -> [(Text, a)])
+    -> Either (Maybe [a]) (Maybe a)
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceChoice _ [] = error "ran out of field names!"
-formifyInstanceChoice eMa ((ChoicesDropdown t opts : xs) : xss) =
+formifyInstanceChoice _ _ [] = error "ran out of field names!"
+formifyInstanceChoice pairsWith eMa ((ChoicesDropdown t opts : xs) : xss) =
     ( rest
     , case eMa of
         Right ma -> render True (
-          flip (areq $ selectField $ enumOptionsPairs opts) ma) t
+          flip (areq $ selectField $ optionsPairs (pairsWith opts)) ma) t
         Left mas -> render True (
-          flip (areq $ multiSelectField $ enumOptionsPairs opts) mas) t
+          flip (areq $ multiSelectField $ optionsPairs (pairsWith opts)) mas) t
     )
   where
     (rest,render) = restAndRenderMethod xs xss
 
-formifyInstanceChoice eMa ((ChoicesButtons align t opts : xs) : xss) =
+formifyInstanceChoice pairsWith eMa ((ChoicesButtons align t opts : xs) : xss) =
     ( rest
     , case eMa of
         Right ma  -> render True (flip (areq
@@ -307,7 +324,7 @@ formifyInstanceChoice eMa ((ChoicesButtons align t opts : xs) : xss) =
               case align of
                 Vertical   -> radioField
                 Horizontal -> horizontalRadioField
-              $ enumOptionsPairs opts
+              $ optionsPairs (pairsWith opts)
             )
             )
             ma
@@ -318,14 +335,14 @@ formifyInstanceChoice eMa ((ChoicesButtons align t opts : xs) : xss) =
               case align of
                 Vertical   -> verticalCheckboxesField
                 Horizontal -> checkboxesField
-              $ enumOptionsPairs opts
+              $ optionsPairs (pairsWith opts)
             )) mas) t
     )
   where
     (rest,render) = restAndRenderMethod xs xss
 
 
-formifyInstanceChoice eMa _ = error $ "Incorrect naming scheme for a "
+formifyInstanceChoice _ eMa _ = error $ "Incorrect naming scheme for a "
     ++ if isRight eMa then "single choice!" else "multi choice!"
 
 formifyInstanceMultiChoice
@@ -333,14 +350,14 @@ formifyInstanceMultiChoice
     => Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceMultiChoice = formifyInstanceChoice . Left
+formifyInstanceMultiChoice = formifyInstanceChoice zipWithEnum . Left
 
 
 
-enumOptionsPairs :: forall a. (Bounded a, Enum a) => [Text] -> Handler (OptionList a)
-enumOptionsPairs labels
-  | length labels == length options = optionsPairs (zip labels options)
-  | otherwise = error "IMPOSSIBLE!"
+zipWithEnum :: forall a. (Bounded a, Enum a) => [Text] -> [(Text, a)]
+zipWithEnum labels
+  | equalLength labels options = zip labels options
+  | otherwise = error "Labels list and options list are of different lengths in an Enum choice form."
   where options = [minBound .. maxBound :: a]
 
 
@@ -359,60 +376,28 @@ restAndRenderMethod xs xss = (xs:xss, renderFlatOrBreak False)
 
 
 
-buttonsForEnum
-  :: Alignment
+buttonsEnum
+  :: (Bounded a, Enum a)
+  => Alignment
   -> Text
-  -> ( forall a. (Bounded a, Enum a) => (a -> Maybe String)
-       -> FieldInfo
-     )
-buttonsForEnum align t s =
-    ChoicesButtons align t $ maybe "" pack . s <$> [minBound .. maxBound]
+  -> (a -> Text)
+  -> FieldInfo
+buttonsEnum align t f = ChoicesButtons align t $ map f [minBound .. maxBound]
 
 
 
-buttonsForEnumNoHeader
-  :: Alignment
-  -> ( forall a. (Bounded a, Enum a) => (a -> Maybe String)
-       -> FieldInfo
-     )
-buttonsForEnumNoHeader align = buttonsForEnum align ""
+buttons :: Alignment -> Text -> [Text] -> FieldInfo
+buttons = ChoicesButtons
 
 
 
-buttonsForOptions :: Alignment -> Text -> [Maybe String] -> FieldInfo
-buttonsForOptions align t = ChoicesButtons align t . map (maybe "" pack)
+dropdownEnum :: (Bounded a, Enum a) => Text -> (a -> Text) -> FieldInfo
+dropdownEnum t f = ChoicesDropdown t $ map f [minBound .. maxBound]
 
 
 
-buttonsForOptionsNoHeader :: Alignment -> [Maybe String] -> FieldInfo
-buttonsForOptionsNoHeader align = buttonsForOptions align ""
-
-
-
-dropdownForEnum
-  :: Text
-  -> ( forall a. (Bounded a, Enum a) => (a -> String)
-       -> FieldInfo
-     )
-dropdownForEnum t s = ChoicesDropdown t $ pack . s <$> [minBound .. maxBound]
-
-
-
-dropdownForEnumNoHeader
-  :: ( forall a. (Bounded a, Enum a) => (a -> String)
-       -> FieldInfo
-     )
-dropdownForEnumNoHeader = dropdownForEnum ""
-
-
-
-dropdownForOptions :: Text -> [String] -> FieldInfo
-dropdownForOptions t = ChoicesDropdown t . map pack
-
-
-
-dropdownForOptionsNoHeader :: [String] -> FieldInfo
-dropdownForOptionsNoHeader = dropdownForOptions ""
+dropdown :: Text -> [Text] -> FieldInfo
+dropdown = ChoicesDropdown
 
 
 
@@ -421,20 +406,10 @@ list = List
 
 
 
-listNoLabels :: Alignment -> Int -> FieldInfo
-listNoLabels align amount = List align $ replicate amount ""
-
-
-
-listSomeLabels :: Alignment -> [Maybe Text] -> FieldInfo
-listSomeLabels align = List align . map (fromMaybe "")
+listWithoutLabels :: Alignment -> Int -> FieldInfo
+listWithoutLabels align amount = List align $ replicate amount ""
 
 
 
 single :: Text -> FieldInfo
 single = Single
-
-
-
-singleNoLabel :: FieldInfo
-singleNoLabel = Single ""

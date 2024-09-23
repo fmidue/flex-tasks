@@ -8,6 +8,7 @@ dependencies:
   - extra
   - fast-logger
   - filepath
+  - ghc
   - hint
   - output-blocks
   - parsec

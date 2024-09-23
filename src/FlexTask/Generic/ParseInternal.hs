@@ -31,7 +31,12 @@ import Text.Parsec.String (Parser)
 import qualified Data.Text    as T
 
 import FlexTask.Processing.Text (argDelimiter, listDelimiter, inputEscape)
-import FlexTask.Generic.Form (SingleChoiceSelection(..), MultipleChoiceSelection(..))
+import FlexTask.Generic.Form
+  ( MultipleChoiceSelection
+  , SingleChoiceSelection
+  , multipleChoiceAnswer
+  , singleChoiceAnswer
+  )
 
 
 
@@ -139,21 +144,21 @@ instance Parse a => Parse (Maybe a) where
 
 
 instance Parse SingleChoiceSelection where
-  parseInput = SingleChoiceSelection <$> parseInstanceSingleChoice
+  parseInput = singleChoiceAnswer <$> parseInstanceSingleChoice
 
 
 instance Parse MultipleChoiceSelection where
-  parseInput = MultipleChoiceSelection <$> parseInstanceMultiChoice
+  parseInput = multipleChoiceAnswer <$> parseInstanceMultiChoice
 
 
 
 parseInstanceSingleChoice :: (Bounded a, Enum a, Eq a) => Parser a
-parseInstanceSingleChoice = toEnum . subtract 1 <$> parseInput
+parseInstanceSingleChoice = toEnum <$> parseInput
 
 
 
 parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser [a]
-parseInstanceMultiChoice = fmap (toEnum . subtract 1) <$> parseInput
+parseInstanceMultiChoice = fmap toEnum <$> parseInput
 
 
 

@@ -2,7 +2,6 @@ module Global where
 
 
 import Trees.Types (PropFormula)
-import FlexTask.Generic.Form (MultipleChoiceSelection)
 
 
 
@@ -12,7 +11,7 @@ newtype Table = Table [(Maybe (PropFormula Char), [Maybe Binary])] deriving (Eq,
 
 data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
 
-type FormType = (String,MultipleChoiceSelection)
+type FormType = (String,[Namen])
 
 type Submission = (Table,PropFormula Char,[Namen])
 
