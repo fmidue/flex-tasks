@@ -43,36 +43,23 @@ type Solution = (Int,Int)
 module TaskAndForm where
 
 
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
-    )
 import Data.String.Interpolate (i)
-import Data.Text               (Text)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Handler, Rendered)
-import GHC.Generics            (Generic)
+import FlexTask.YesodConfig    (Rendered)
 import Test.QuickCheck.Gen
 
-import qualified Data.Text as T
 
 import Global
 
 
 
 
-getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([String],String))
-getTask _ = do
+getTask :: Gen (String, String, IO ([String],String))
+getTask = do
     tree <- addToTree <$> vectorOf 3000 (chooseInt (-100000,100000))
-    pure (output tree, interpolate tree, getFormData form)
+    pure (show tree, interpolate tree, getFormData form)
 
-
-
-output :: OutputCapable m => Tree -> LangM m
-output input = do
-  code $ show input
-  pure ()
 
 
 fields :: [[FieldInfo]]
@@ -81,6 +68,32 @@ fields = [[single "Tree Sum"],[single "Tree Product"]]
 
 form :: Rendered
 form = formify (Nothing :: Maybe Solution) fields
+
+
+
+=============================================
+{-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+generate the task description by supplying a function "description" here.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-}
+{-# Language ApplicativeDo #-}
+
+module Description where
+
+
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+
+import Global
+
+
+
+description :: OutputCapable m => FilePath -> Tree -> LangM m
+description _ input = do
+  code $ show input
+  pure ()
+
 
 =============================================
 
@@ -138,5 +151,4 @@ checkSemantics _ (Right (s,p)) = do
         english "Product is correct?"
     pure 1.0
 |]
-
 

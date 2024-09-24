@@ -30,6 +30,7 @@ minipage
 newpage
 nobreakdash
 nointer
+oss
 pkgdb
 RWS
 staticpost

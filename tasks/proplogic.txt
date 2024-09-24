@@ -17,7 +17,6 @@ type Submission = (Table,PropFormula Char,[Namen])
 
 =============================================
 
-{-# language ApplicativeDo #-}
 {-# language DeriveGeneric #-}
 {-# Language FlexibleContexts #-}
 {-# language OverloadedStrings #-}
@@ -26,11 +25,8 @@ type Submission = (Table,PropFormula Char,[Namen])
 module TaskAndForm where
 
 
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
-    )
 import Data.List.Split         (chunksOf)
+import Data.Maybe              (fromJust)
 import Data.Text               (Text)
 import Data.String.Interpolate (i)
 import FlexTask.FormUtil       (($$>), getFormData, newFlexId, newFlexName)
@@ -41,7 +37,7 @@ import FlexTask.Generic.Form (
   formify,
   formifyInstanceMultiChoice,
   single,
-  buttonsForEnum
+  buttonsEnum
   )
 import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
 import Test.QuickCheck.Gen
@@ -64,21 +60,20 @@ getParticipants :: Gen [Bool]
 getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
 
 
-getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([String],String))
-getTask _ = do
+getTask :: Gen (String, String, IO ([String],String))
+getTask = do
     values@[a,b,c,d] <- getParticipants
     names <- getNames
     (formula, legend, hints) <- formulaAndHints a b c d names
     let
-      description = output legend hints
       zipped = [(a, A), (b, B), (c, C), (d, D)]
       coming = [ n | (f,n) <- zipped, f ]
-    pure (description, interpolate (formula,coming) False True, getFormData (form names))
+    pure (show (legend,hints), interpolate (formula,coming) False True, getFormData (form names))
   where
-    form :: (String,String,String,String) -> Rendered
+    form :: (Text,Text,Text,Text) -> Rendered
     form n = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
 
-    getNames :: Gen (String,String,String,String)
+    getNames :: Gen (Text,Text,Text,Text)
     getNames = do
       a <- elements ["Astrid","Anna"]
       b <- elements ["Ben","Bernd"]
@@ -88,7 +83,7 @@ getTask _ = do
 
 
 
-formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (String,String,String,String) -> Gen (PropFormula Char, String, [String])
+formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (Text,Text,Text,Text) -> Gen (PropFormula Char, String, [String])
 formulaAndHints a b c d (aN,bN,cN,dN) = do
     shuffled <- shuffle (zip [part1,part2,part3,part4,part5] [hint1,hint2,hint3,hint4,hint5])
     let (parts,hints) = unzip shuffled
@@ -131,24 +126,6 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
     part5 = Assoc Impl
              (neg d 'D')
              (Brackets $ Assoc Or (neg a 'A') (neg b 'B'))
-
-
-output :: OutputCapable m => String -> [String] -> LangM m
-output legend hints = do
-    paragraph $ translate $ german
-      ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
-        legend ++
-        "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
-      )
-    itemizeM $ map (translate . german) hints
-    paragraph $ translate $ german
-      "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
-    paragraph $ translate $ german
-      "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
-    paragraph $ translate $ german
-      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
-    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
-    pure ()
 
 
 
@@ -197,8 +174,8 @@ tableForm staticHeaders rowAmount columnAmount extra = do
 
 
 
-nonTableFields :: (String,String,String,String) -> [[FieldInfo]]
-nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsForEnum Vertical "Wer kommt?" @Namen (\n -> lookup n nameMatching)]]
+nonTableFields :: (Text,Text,Text,Text) -> [[FieldInfo]]
+nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
   where
     nameMatching = [(A, a), (B, b), (C, c), (D, d)]
 
@@ -217,10 +194,45 @@ pShow (Assoc o f1 f2) = "Assoc " ++ show o ++ withParens f1 ++ withParens f2
   where
     withParens x = ' ' : '(' : pShow x ++ ")"
 
+
+=============================================
+
+{-# Language ApplicativeDo #-}
+
+module Description where
+
+
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+import Data.String.Interpolate                   (i)
+
+import Global
+
+
+
+description :: OutputCapable m => FilePath -> (String,[String]) -> LangM m
+description _ (legend,hints) = do
+    paragraph $ translate $ german
+      ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
+        legend ++
+        "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
+      )
+    itemizeM $ map (translate . german) hints
+    paragraph $ translate $ german
+      "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
+    paragraph $ translate $ german
+      "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
+    paragraph $ translate $ german
+      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
+    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
+    pure ()
+
+
 =============================================
 
 {-# language ApplicativeDo #-}
 {-# language OverloadedStrings #-}
+
 module ParseAndCheck where
 
 

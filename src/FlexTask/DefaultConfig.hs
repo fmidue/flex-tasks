@@ -11,7 +11,7 @@ import FlexTask.Types (FlexConf(..))
 
 
 defaultConfig :: FlexConf
-defaultConfig = FlexConf dGlobalDefs dTaskAndForm dParse dCheckTemplate
+defaultConfig = FlexConf dGlobalDefs dTaskAndForm dDescription dParse dCheckTemplate
 
 
 
@@ -36,9 +36,9 @@ dTaskAndForm :: String
 dTaskAndForm = [rQ|
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-generate the solution, task description and form here.
+generate the solution, description data and form here.
 supply a function 'getTask',
-which returns a tuple of task description, interpolated feedback functions and input form.
+which returns a tuple of description data, interpolated feedback functions and input form.
 
 If no special form is required you may use
 the generic function 'formify' to generate a form for you.
@@ -57,16 +57,12 @@ When using a custom form, consider that the field names must match the actual fo
 module TaskAndForm where
 
 
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
-    )
-import Data.String.Interpolate (i)
 import Data.Text               (Text)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig    (Rendered)
 import GHC.Generics            (Generic)
+import Data.String.Interpolate (i)
 import Test.QuickCheck.Gen
 
 import qualified Data.Text as T
@@ -74,30 +70,18 @@ import qualified Data.Text as T
 import Global
 
 
+
+
 genNumbers = vectorOf 3 $ elements ([1..6] :: [Int])
 
 
-getTask :: OutputCapable m => FilePath -> Gen (LangM m, String, IO ([String],String))
-getTask _ = do
+getTask :: Gen (String, String, IO ([String],String))
+getTask = do
     numbers <- genNumbers
     let sol = (product numbers, sum numbers)
-        description = output (numbers !! 0) (numbers !! 1) (numbers !! 2)
-    pure (description, interpolate sol, getFormData form)
+        descData = (numbers !! 0, numbers !! 1, numbers !! 2)
+    pure (show descData, interpolate sol, getFormData form)
 
-
-
-output :: OutputCapable m => Int -> Int -> Int -> LangM m
-output one two three = do
-  paragraph $ translate $ do
-    german "Ich würfle drei Zahlen."
-    english "I throw a die three times."
-  paragraph $ translate $ do
-    german [i|Die erste ist #{one}, die zweite ist #{two}, die letzte ist #{three}.|~]
-    english [i|On the first throw I roll #{one}, the second #{two} and on the third one #{three}.|~]
-  indent $ paragraph $ translate $ do
-    german "Was ist die Summe dieser Zahlen?"
-    english "What is the sum of these numbers?"
-  pure ()
 
 
 fieldNames :: [[FieldInfo]]
@@ -109,7 +93,41 @@ form = formify (Nothing :: Maybe Solution) fieldNames
 
 |]
 
+-- EXPAND/EDIT INSTRUCTIONS
+dDescription :: String
+dDescription = [rQ|
+{-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+generate the task description by supplying a function "description" here.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-}
+{-# Language ApplicativeDo #-}
+{-# Language QuasiQuotes #-}
+module Description where
 
+
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+import Data.String.Interpolate                   (i)
+
+import Global
+
+
+
+
+description :: OutputCapable m => FilePath -> (Int,Int,Int) -> LangM m
+description _ (one,two,three) = do
+  paragraph $ translate $ do
+    german "Ich würfle drei Zahlen."
+    english "I throw a die three times."
+  paragraph $ translate $ do
+    german [i|Die erste ist #{one}, die zweite ist #{two}, die letzte ist #{three}.|~]
+    english [i|On the first throw I roll #{one}, the second #{two} and on the third one #{three}.|~]
+  indent $ paragraph $ translate $ do
+    german "Was ist die Summe dieser Zahlen?"
+    english "What is the sum of these numbers?"
+  pure ()
+|]
 
 -- REMINDER: REWRITE THIS USAGE MANUAL!
 dParse :: String

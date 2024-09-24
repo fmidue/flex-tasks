@@ -4,6 +4,7 @@ extra-source-files: [ ]
 dependencies:
   - base
   - blaze-html
+  - containers
   - directory
   - extra
   - fast-logger

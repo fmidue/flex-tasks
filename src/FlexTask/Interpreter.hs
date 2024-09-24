@@ -1,27 +1,21 @@
-{-# language PatternSynonyms #-}
 
 module FlexTask.Interpreter
   ( checkSolution
   , genFlexInst
   , runWithPackageDB
-  , writeUncachedAndGetPaths
+  , validDescription
   ) where
 
 
 import Control.Monad                (unless, void)
 import Control.Monad.IO.Class       (liftIO)
-import Control.OutputCapable.Blocks (LangM, ReportT)
-import Control.OutputCapable.Blocks.Type (
-      Output,
-      pattern Assertion,
-      pattern Refuse,
-      getOutputSequence,
-      getOutputSequenceWithRating
-      )
+import Control.OutputCapable.Blocks.Type
+import Control.OutputCapable.Blocks (OutputCapable, LangM, ReportT)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List                    (isPrefixOf)
 import Data.List.Extra              (replace)
 import Data.List.Split              (split, whenElt)
+import Data.Map                     (elems)
 import Data.Tuple.Extra             (both)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
@@ -51,20 +45,18 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
-type GenOutput = (LangM (ReportT Output IO), String, IO ([String],String))
+type GenOutput = (String, String, IO ([String],String))
 
 
 genFlexInst
   :: FlexConf
   -> (Gen GenOutput -> a -> GenOutput)
   -> a
-  -> FilePath
   -> IO FlexInst
 genFlexInst
-  (FlexConf global taskAndForm parse checkTemplate)
+  (FlexConf global taskAndForm description parse checkTemplate)
   genMethod
   seed
-  picPath
   = do
       filePaths <- writeUncachedAndGetPaths
         [ ("Global", global)
@@ -73,18 +65,56 @@ genFlexInst
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
       let gen = extract taskAndFormResult
-      let (output, iCheck, io) = genMethod gen seed
+      let (descData, iCheck, io) = genMethod gen seed
       (fields,html) <- io
-      desc <- getOutputSequence output
       let parseAndCheck = joinCode parse iCheck
       void $ writeUncachedAndGetPaths [("ParseAndCheck", parseAndCheck)]
-      pure $ FlexInst desc fields html global parseAndCheck
+      pure $ FlexInst fields html descData global description parseAndCheck
     where
-      extract = either (error . show) id
-
       tfInter :: Interpreter (Gen GenOutput)
       tfInter = setTopLevelModules ["TaskAndForm"] >>
-                  interpret ("getTask " ++ show picPath) infer
+                  interpret "getTask " infer
+
+
+
+makeDescription :: FlexInst -> FilePath -> IO (Either InterpreterError (LangM (ReportT Output IO)))
+makeDescription (FlexInst _ _ descData global description _) picPath = do
+    filePaths <- writeUncachedAndGetPaths
+          [ ("Global", global)
+          , ("Description", description)
+          ]
+    runWithPackageDB $ loadModules filePaths >> descInter
+  where
+    descInter =
+      setTopLevelModules ["Description"] >>
+        interpret ("description " ++ show picPath ++ " $ " ++ descData) infer
+
+
+
+validDescription :: OutputCapable m => FlexInst -> FilePath -> IO (LangM m)
+validDescription inst picPath = do
+  let fileName = hash $  descriptionModule inst ++ descriptionData inst
+  cDir <- cacheDir
+  let path = cDir </> fileName
+  b <- doesFileExist path
+  if b
+    then do
+      output <- readFile path
+      let fileLinks = imageLinks $ read output
+      exist <- mapM doesFileExist fileLinks
+      if and exist
+        then
+          return $ toOutputCapable $ read output
+        else
+          makeDescAndWrite path
+    else
+      makeDescAndWrite path
+  where
+    makeDescAndWrite p = do
+      res <- makeDescription inst picPath
+      output <- getOutputSequence $ extract res
+      writeFile p $ show output
+      return $ toOutputCapable output
 
 
 
@@ -101,7 +131,7 @@ checkSolution
     -> FilePath
     -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
 checkSolution
-  (FlexInst _ _ _ globalCode parseAndCheckCode)
+  (FlexInst _ _ _ globalCode _ parseAndCheckCode)
   submission
   picPath
   = do
@@ -136,22 +166,12 @@ checkSolution
 
 
 
-writeUncachedAndGetPaths :: [(String,String)] -> IO [FilePath]
+writeUncachedAndGetPaths :: [(String, String)] -> IO [FilePath]
 writeUncachedAndGetPaths xs = do
     paths <- getCachePaths xs
     writeUncachedFiles paths
     pure $ map fst paths
   where
-    hash :: Show a => a -> String
-    hash = showDigest . sha256 . encodeUtf8 . pack . show
-
-    cacheDir :: IO FilePath
-    cacheDir = do
-      temporary <- getTemporaryDirectory
-      let dir = temporary </> "FlexCache"
-      createDirectoryIfMissing False dir
-      pure dir
-
     getCachePaths :: [(String,String)] -> IO [(FilePath,String)]
     getCachePaths files = do
       dir <- cacheDir
@@ -178,3 +198,39 @@ splitImports code =
     both (unlines . concat) $ splitAt (length splitOff -1) splitOff
   where
     splitOff = (split . whenElt) (isPrefixOf "import") $ lines code
+
+
+
+extract :: Either InterpreterError c -> c
+extract = either (error . show) id
+
+
+hash :: Show a => a -> String
+hash = showDigest . sha256 . encodeUtf8 . pack . show
+
+
+
+cacheDir :: IO FilePath
+cacheDir = do
+  temporary <- getTemporaryDirectory
+  let dir = temporary </> "FlexCache"
+  createDirectoryIfMissing False dir
+  pure dir
+
+
+
+imageLinks :: [Output] -> [FilePath]
+imageLinks = concatMap gatherLinks
+  where
+    gatherLinks :: Output -> [FilePath]
+    gatherLinks (Image l)        = [l]
+    gatherLinks (Images m)       = elems m
+    gatherLinks (Assertion _ os) = imageLinks os
+    gatherLinks (Paragraph os)   = imageLinks os
+    gatherLinks (Refuse os)      = imageLinks os
+    gatherLinks (Enumerated os)  = imageLinks $ concat together
+      where
+        together = concatMap (\(a,b) -> [a,b]) os
+    gatherLinks (Itemized oss)   = imageLinks $ concat oss
+    gatherLinks (Indented os)    = imageLinks os
+    gatherLinks _                = []

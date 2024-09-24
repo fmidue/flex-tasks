@@ -10,7 +10,6 @@ module FlexTask.Types
 
 
 import Control.Monad                     (void)
-import Control.OutputCapable.Blocks.Type (Output)
 import Data.List                         (intercalate)
 import GHC.Generics                      (Generic)
 import Text.Parsec (
@@ -27,10 +26,11 @@ import Text.Parsec.String                (Parser)
 
 
 data FlexInst = FlexInst {
-    desc                ::  [Output],
     formFields          ::  [String],
     formHtml            ::   String,
+    descriptionData     ::   String,
     globalModule        ::   String,
+    descriptionModule   ::   String,
     parseAndCheckModule ::   String
   } deriving (Generic)
 
@@ -38,6 +38,7 @@ data FlexInst = FlexInst {
 data FlexConf = FlexConf {
     globalCode        :: String,
     taskAndFormCode   :: String,
+    descriptionCode   :: String,
     parseCode         :: String,
     checktemplate     :: String
   } deriving (Eq,Generic,Ord,Show)
@@ -50,8 +51,8 @@ delimiter = "============================================="
 
 
 showFlexConfig :: FlexConf -> String
-showFlexConfig (FlexConf global taskAndForm parse check) =
-    intercalate delimiter [global, taskAndForm, parse, check]
+showFlexConfig (FlexConf global taskAndForm description parse check) =
+    intercalate delimiter [global, taskAndForm, description, parse, check]
 
 
 
@@ -59,9 +60,10 @@ parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
       global <- untilSep
       taskAndForm <- untilSep
+      description <- untilSep
       parse <- untilSep
       check <- many anyChar
-      pure $ FlexConf global taskAndForm parse check
+      pure $ FlexConf global taskAndForm description parse check
     where
       atLeastThree = do
         void $ string "==="
@@ -71,4 +73,4 @@ parseFlexConfig = do
 
 
 getFormData :: FlexInst -> ([String],String)
-getFormData (FlexInst _ fields html _ _) = (fields, html)
+getFormData (FlexInst fields html _ _ _ _) = (fields, html)

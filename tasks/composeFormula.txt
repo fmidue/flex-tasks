@@ -11,17 +11,10 @@ type Solution = (String,String)
 module TaskAndForm where
 
 
-import Control.Monad.IO.Class           (MonadIO)
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
-    )
 import Data.String.Interpolate          (i)
-import Data.Text                        (Text)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (Handler, Rendered)
-import LogicTasks.Syntax.ComposeFormula (description)
+import FlexTask.YesodConfig             (Rendered)
 import Tasks.ComposeFormula.Config      (defaultComposeFormulaConfig)
 import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
@@ -30,14 +23,10 @@ import Global
 
 
 
-getTask
-  :: (MonadIO m, OutputCapable m)
-  => FilePath
-  -> Gen (LangM m, String, IO ([String],String))
-getTask path = do
+getTask :: Gen (String, String, IO ([String],String))
+getTask = do
     inst <- generateComposeFormulaInst defaultComposeFormulaConfig
-    let text = description (path <> "/") inst
-    pure (text, interpolate inst, getFormData form)
+    pure (show inst, interpolate inst, getFormData form)
 
 
 
@@ -48,6 +37,24 @@ fields = [[single "First Formula", single "Second Formula"]]
 
 form :: Rendered
 form = formify (Nothing :: Maybe Solution) fields
+
+=============================================
+
+module Description where
+
+
+import Control.Monad.IO.Class                    (MonadIO)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+import Tasks.ComposeFormula.Config               (ComposeFormulaInst(..))
+import Trees.Types                               (BinOp(..), SynTree(..))
+
+import qualified LogicTasks.Syntax.ComposeFormula as LT
+
+
+
+description :: (OutputCapable m, MonadIO m) => FilePath -> ComposeFormulaInst -> LangM m
+description path inst = LT.description (path <> "/") inst
 
 =============================================
 
@@ -81,6 +88,7 @@ import Formula.Parsing.Delayed          (delayed)
 import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
 import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
+
 
 
 toListString :: (String,String) -> String
