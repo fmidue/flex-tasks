@@ -99,12 +99,12 @@ validDescription inst picPath = do
   b <- doesFileExist path
   if b
     then do
-      output <- readFile path
-      let fileLinks = imageLinks $ read output
+      output <- read <$> readFile path
+      let fileLinks = imageLinks output
       exist <- mapM doesFileExist fileLinks
       if and exist
         then
-          return $ toOutputCapable $ read output
+          return $ toOutputCapable output
         else
           makeDescAndWrite path
     else
