@@ -8,14 +8,14 @@ type Solution = (String,String)
 {-# language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
 
-module TaskAndForm where
+module TaskData where
 
 
 import Data.String.Interpolate          (i)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig             (Rendered)
-import Tasks.ComposeFormula.Config      (defaultComposeFormulaConfig)
+import Tasks.ComposeFormula.Config      (ComposeFormulaInst, defaultComposeFormulaConfig)
 import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
 
@@ -38,44 +38,14 @@ fields = [[single "First Formula", single "Second Formula"]]
 form :: Rendered
 form = formify (Nothing :: Maybe Solution) fields
 
-=============================================
-
-module Description where
 
 
-import Control.Monad.IO.Class                    (MonadIO)
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
-import Tasks.ComposeFormula.Config               (ComposeFormulaInst(..))
-import Trees.Types                               (BinOp(..), SynTree(..))
-
-import qualified LogicTasks.Syntax.ComposeFormula as LT
-
-
-
-description :: (OutputCapable m, MonadIO m) => FilePath -> ComposeFormulaInst -> LangM m
-description path inst = LT.description (path <> "/") inst
-
-=============================================
-
-{-# language ApplicativeDo #-}
-
-module ParseAndCheck where
-
-
-import FlexTask.Generic.Parse  (Parse(parseInput))
-import Text.Parsec             (ParseError, parse)
-
-import Global
-
-
-
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = parse parseInput ""
-
-=============================================
-
+interpolate :: ComposeFormulaInst -> String
 interpolate inst = [i|
+
+{-\# language ApplicativeDo \#-}
+
+module Check where
 
 
 import Control.Monad.IO.Class           (MonadIO (liftIO))
@@ -88,7 +58,10 @@ import Formula.Parsing.Delayed          (delayed)
 import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
 import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
+import Text.Parsec             (ParseError)
 
+import Global
+import Parse (parseSubmission)
 
 
 toListString :: (String,String) -> String
@@ -116,3 +89,37 @@ checkSemantics path (Right try) = completeGrade path inst (delayed $ toListStrin
 
 inst = #{inst}
 |]
+
+=============================================
+
+module Description (description) where
+
+
+import Control.Monad.IO.Class                    (MonadIO)
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+import Tasks.ComposeFormula.Config               (ComposeFormulaInst(..))
+import Trees.Types                               (BinOp(..), SynTree(..))
+
+import qualified LogicTasks.Syntax.ComposeFormula as LT
+
+
+
+description :: (OutputCapable m, MonadIO m) => FilePath -> ComposeFormulaInst -> LangM m
+description path inst = LT.description (path <> "/") inst
+
+=============================================
+
+module Parse (parseSubmission) where
+
+
+import FlexTask.Generic.Parse  (Parse(parseInput))
+import Text.Parsec             (ParseError, parse)
+
+import Global
+
+
+
+parseSubmission :: String -> Either ParseError Solution
+parseSubmission = parse parseInput ""
+

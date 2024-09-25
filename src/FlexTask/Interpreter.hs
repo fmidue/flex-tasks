@@ -12,11 +12,8 @@ import Control.Monad.IO.Class       (liftIO)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM, ReportT)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
-import Data.List                    (isPrefixOf)
 import Data.List.Extra              (replace)
-import Data.List.Split              (split, whenElt)
 import Data.Map                     (elems)
-import Data.Tuple.Extra             (both)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Language.Haskell.Interpreter (
@@ -54,31 +51,29 @@ genFlexInst
   -> a
   -> IO FlexInst
 genFlexInst
-  (FlexConf global taskAndForm description parse checkTemplate)
+  (FlexConf global taskData description parse)
   genMethod
   seed
   = do
       filePaths <- writeUncachedAndGetPaths
         [ ("Global", global)
-        , ("TaskAndForm", joinCode taskAndForm checkTemplate)
+        , ("TaskData", taskData)
         ]
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
       let gen = extract taskAndFormResult
       let (descData, iCheck, io) = genMethod gen seed
       (fields,html) <- io
-      let parseAndCheck = joinCode parse iCheck
-      void $ writeUncachedAndGetPaths [("ParseAndCheck", parseAndCheck)]
-      pure $ FlexInst fields html descData global description parseAndCheck
+      pure $ FlexInst fields html descData global description parse iCheck
     where
       tfInter :: Interpreter (Gen GenOutput)
-      tfInter = setTopLevelModules ["TaskAndForm"] >>
+      tfInter = setTopLevelModules ["TaskData"] >>
                   interpret "getTask " infer
 
 
 
 makeDescription :: FlexInst -> FilePath -> IO (Either InterpreterError (LangM (ReportT Output IO)))
-makeDescription (FlexInst _ _ descData global description _) picPath = do
+makeDescription (FlexInst _ _ descData global description _ _) picPath = do
     filePaths <- writeUncachedAndGetPaths
           [ ("Global", global)
           , ("Description", description)
@@ -131,19 +126,20 @@ checkSolution
     -> FilePath
     -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
 checkSolution
-  (FlexInst _ _ _ globalCode _ parseAndCheckCode)
+  (FlexInst _ _ _ globalCode _ parseCode checkCode)
   submission
   picPath
   = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
-      , ("ParseAndCheck", parseAndCheckCode)
+      , ("Parse", parseCode)
+      , ("Check", checkCode)
       ]
     runWithPackageDB $ loadModules filePaths >> runCheck
   where
     runCheck = do
       let arguments = show picPath <> parseSolution
-      setTopLevelModules ["ParseAndCheck"]
+      setTopLevelModules ["Check"]
       first <- interpret
         ("checkSyntax" <> arguments)
         infer
@@ -181,23 +177,6 @@ writeUncachedAndGetPaths xs = do
     writeUncachedFiles :: [(FilePath,String)] -> IO ()
     writeUncachedFiles = void . mapM (\ (path,content) ->
       doesFileExist path >>= flip unless (writeFile path content))
-
-
-
-joinCode :: String -> String -> String
-joinCode code1 code2 =
-  let
-    (imports1, restCode1) = splitImports code1
-  in
-    imports1 <> code2 <> restCode1
-
-
-
-splitImports :: String -> (String,String)
-splitImports code =
-    both (unlines . concat) $ splitAt (length splitOff -1) splitOff
-  where
-    splitOff = (split . whenElt) (isPrefixOf "import") $ lines code
 
 
 

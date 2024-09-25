@@ -22,7 +22,8 @@ type Submission = (Table,PropFormula Char,[Namen])
 {-# language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
 {-# language TupleSections #-}
-module TaskAndForm where
+
+module TaskData (getTask) where
 
 
 import Data.List.Split         (chunksOf)
@@ -195,108 +196,14 @@ pShow (Assoc o f1 f2) = "Assoc " ++ show o ++ withParens f1 ++ withParens f2
     withParens x = ' ' : '(' : pShow x ++ ")"
 
 
-=============================================
 
-{-# Language ApplicativeDo #-}
-
-module Description where
-
-
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
-import Data.String.Interpolate                   (i)
-
-import Global
-
-
-
-description :: OutputCapable m => FilePath -> (String,[String]) -> LangM m
-description _ (legend,hints) = do
-    paragraph $ translate $ german
-      ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
-        legend ++
-        "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
-      )
-    itemizeM $ map (translate . german) hints
-    paragraph $ translate $ german
-      "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
-    paragraph $ translate $ german
-      "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
-    paragraph $ translate $ german
-      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
-    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
-    pure ()
-
-
-=============================================
-
-{-# language ApplicativeDo #-}
-{-# language OverloadedStrings #-}
-
-module ParseAndCheck where
-
-
-import Data.Char               (showLitChar)
-import Data.String.Interpolate (i)
-import Data.Text               (Text)
-import Data.List               (transpose)
-import Data.List.Split         (chunksOf)
-import FlexTask.Generic.Parse (
-  Parse(..),
-  parseInstanceMultiChoice,
-  escaped
-  )
-import Text.Parsec (
-  (<|>),
-  ParseError,
-  choice,
-  many1,
-  parse,
-  string,
-  try
-  )
-import Text.Parsec.Char       (char, oneOf)
-import Text.Parsec.String     (Parser)
-
-import Trees.Types (PropFormula)
-import Trees.Parsing ()
-
-import qualified Data.Text as T
-import qualified Formula.Parsing as FP
-
-import Global
-
-
-
-instance Parse Binary where
-  parseInput = escaped $ do
-    val <- string "0" <|> string "1"
-    pure $ Binary $ toEnum $ read val
-
-
-instance Parse (PropFormula Char) where
-  parseInput = escaped FP.parser
-
-
-instance Parse [Namen] where
-  parseInput = parseInstanceMultiChoice
-
-
-
-instance Parse Table where
-  parseInput = do
-    (headers,values) <- parseInput
-    let allHeaders = map (Just . Atomic) "ABCD" ++ headers
-    pure $ Table $ zip allHeaders $ transpose $ chunksOf 7 values
-
-
-
-parseSubmission :: String -> Either ParseError Submission
-parseSubmission = parse parseInput ""
-
-=============================================
-
+interpolate :: (PropFormula Char, [Namen]) -> Bool -> Bool -> String
 interpolate (fSol,nSol) tableRequired showSolution = [i|
+
+{-\# language ApplicativeDo \#-}
+{-\# language OverloadedStrings \#-}
+
+module Check (checkSemantics, checkSyntax) where
 
 
 import Control.Monad (when, unless)
@@ -313,11 +220,16 @@ import Data.Map      ((!), fromList)
 import Data.Ratio    (Ratio, (%))
 import Data.Tuple    (swap)
 import Numeric       (showBin)
+import Text.Parsec   (ParseError)
 
 import LogicTasks.Formula (isSemanticEqual, ToSAT(..))
 import Trees.Types (PropFormula(..), BinOp(..))
 
 import qualified SAT.MiniSat as Sat
+import qualified Data.Text   as T
+
+import Global
+import Parse         (parseSubmission)
 
 
 
@@ -410,4 +322,100 @@ startingTable = map (Just . Binary . toEnum . digitToInt) . T.unpack <$>
   where
     checkType :: String
     checkType = if tableRequired then "assertion" else "yesNo"
+
+=============================================
+
+{-# Language ApplicativeDo #-}
+
+module Description (description) where
+
+
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+import Data.String.Interpolate                   (i)
+
+import Global
+
+
+
+description :: OutputCapable m => FilePath -> (String,[String]) -> LangM m
+description _ (legend,hints) = do
+    paragraph $ translate $ german
+      ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
+        legend ++
+        "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
+      )
+    itemizeM $ map (translate . german) hints
+    paragraph $ translate $ german
+      "Übersetzen Sie die Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das gleichnamige Textfeld ein."
+    paragraph $ translate $ german
+      "Wer geht mit Eva zum Konzert? Begründen Sie Ihr Ergebnis systematisch. Kreuzen Sie dafür alle Konzertgänger in der Namensliste an."
+    paragraph $ translate $ german
+      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A,B,C,D und die folgenden Operatoren:"
+    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
+    pure ()
+
+
+=============================================
+
+module Parse (parseSubmission) where
+
+
+import Data.Char               (showLitChar)
+import Data.String.Interpolate (i)
+import Data.Text               (Text)
+import Data.List               (transpose)
+import Data.List.Split         (chunksOf)
+import FlexTask.Generic.Parse (
+  Parse(..),
+  parseInstanceMultiChoice,
+  escaped
+  )
+import Text.Parsec (
+  (<|>),
+  ParseError,
+  choice,
+  many1,
+  parse,
+  string,
+  try
+  )
+import Text.Parsec.Char       (char, oneOf)
+import Text.Parsec.String     (Parser)
+
+import Trees.Types (PropFormula(..))
+import Trees.Parsing ()
+
+import qualified Data.Text as T
+import qualified Formula.Parsing as FP
+
+import Global
+
+
+
+instance Parse Binary where
+  parseInput = escaped $ do
+    val <- string "0" <|> string "1"
+    pure $ Binary $ toEnum $ read val
+
+
+instance Parse (PropFormula Char) where
+  parseInput = escaped FP.parser
+
+
+instance Parse [Namen] where
+  parseInput = parseInstanceMultiChoice
+
+
+
+instance Parse Table where
+  parseInput = do
+    (headers,values) <- parseInput
+    let allHeaders = map (Just . Atomic) "ABCD" ++ headers
+    pure $ Table $ zip allHeaders $ transpose $ chunksOf 7 values
+
+
+
+parseSubmission :: String -> Either ParseError Submission
+parseSubmission = parse parseInput ""
 

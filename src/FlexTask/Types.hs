@@ -26,21 +26,21 @@ import Text.Parsec.String                (Parser)
 
 
 data FlexInst = FlexInst {
-    formFields          ::  [String],
-    formHtml            ::   String,
-    descriptionData     ::   String,
-    globalModule        ::   String,
-    descriptionModule   ::   String,
-    parseAndCheckModule ::   String
+    formFields        :: [String],
+    formHtml          ::  String,
+    descriptionData   ::  String,
+    globalModule      ::  String,
+    descriptionModule ::  String,
+    parseModule       ::  String,
+    checkModule       ::  String
   } deriving (Generic)
 
 
 data FlexConf = FlexConf {
-    globalCode        :: String,
-    taskAndFormCode   :: String,
-    descriptionCode   :: String,
-    parseCode         :: String,
-    checktemplate     :: String
+    globalCode      :: String,
+    taskData        :: String,
+    descriptionCode :: String,
+    parseCode       :: String
   } deriving (Eq,Generic,Ord,Show)
 
 
@@ -51,19 +51,18 @@ delimiter = "============================================="
 
 
 showFlexConfig :: FlexConf -> String
-showFlexConfig (FlexConf global taskAndForm description parse check) =
-    intercalate delimiter [global, taskAndForm, description, parse, check]
+showFlexConfig (FlexConf global taskData description parse) =
+    intercalate delimiter [global, taskData, description, parse]
 
 
 
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
       global <- untilSep
-      taskAndForm <- untilSep
+      taskData <- untilSep
       description <- untilSep
-      parse <- untilSep
-      check <- many anyChar
-      pure $ FlexConf global taskAndForm description parse check
+      parse <- many anyChar
+      pure $ FlexConf global taskData description parse
     where
       atLeastThree = do
         void $ string "==="
@@ -73,4 +72,4 @@ parseFlexConfig = do
 
 
 getFormData :: FlexInst -> ([String],String)
-getFormData (FlexInst fields html _ _ _ _) = (fields, html)
+getFormData (FlexInst fields html _ _ _ _ _) = (fields, html)

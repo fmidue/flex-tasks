@@ -11,18 +11,20 @@ import FlexTask.Types (FlexConf(..))
 
 
 defaultConfig :: FlexConf
-defaultConfig = FlexConf dGlobalDefs dTaskAndForm dDescription dParse dCheckTemplate
+defaultConfig = FlexConf dGlobalDefs dTaskData dDescription dParse
 
 
 
 dGlobalDefs :: String
 dGlobalDefs = [rQ|
+
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Definitions inside this module can be imported everywhere.
 Adjust the solution type or add utility functions here.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
+
 module Global where
 
 
@@ -32,8 +34,9 @@ type Solution = (Int,Int)
 
 
 -- REMINDER: REWRITE THIS USAGE MANUAL!
-dTaskAndForm :: String
-dTaskAndForm = [rQ|
+dTaskData :: String
+dTaskData = [rQ|
+
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 generate the solution, description data and form here.
@@ -49,12 +52,11 @@ with synced field names.
 When using a custom form, consider that the field names must match the actual form.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
-{-# language ApplicativeDo #-}
-{-# language DeriveGeneric #-}
-{-# Language FlexibleContexts #-}
+
 {-# language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
-module TaskAndForm where
+
+module TaskData (getTask) where
 
 
 import Data.Text               (Text)
@@ -91,107 +93,36 @@ fieldNames = [[single "Product"], [single "Sum"]]
 form :: Rendered
 form = formify (Nothing :: Maybe Solution) fieldNames
 
-|]
-
--- EXPAND/EDIT INSTRUCTIONS
-dDescription :: String
-dDescription = [rQ|
-{-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-generate the task description by supplying a function "description" here.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
--}
-{-# Language ApplicativeDo #-}
-{-# Language QuasiQuotes #-}
-module Description where
 
 
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
-import Data.String.Interpolate                   (i)
-
-import Global
-
-
-
-
-description :: OutputCapable m => FilePath -> (Int,Int,Int) -> LangM m
-description _ (one,two,three) = do
-  paragraph $ translate $ do
-    german "Ich würfle drei Zahlen."
-    english "I throw a die three times."
-  paragraph $ translate $ do
-    german [i|Die erste ist #{one}, die zweite ist #{two}, die letzte ist #{three}.|~]
-    english [i|On the first throw I roll #{one}, the second #{two} and on the third one #{three}.|~]
-  indent $ paragraph $ translate $ do
-    german "Was ist die Summe dieser Zahlen?"
-    english "What is the sum of these numbers?"
-  pure ()
-|]
-
--- REMINDER: REWRITE THIS USAGE MANUAL!
-dParse :: String
-dParse = [rQ|
-{-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Parse the solution given as a String here.
-Supply a function 'parseSubmission',
-which parses the input and returns your desired solution type.
-If no special parsing is required, you can do as above and
-generate a parser by using the generic function parseInput.
-Instantiate your type for the type class Parse and derive
-Generic for it to use this feature.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
--}
-{-# language ApplicativeDo #-}
-{-# language DeriveGeneric #-}
-module ParseAndCheck where
-
-
-import Data.String.Interpolate (i)
-import Data.Text               (Text)
-import FlexTask.Generic.Parse  (parseInput)
-import GHC.Generics            (Generic)
-import Text.Parsec             (ParseError, parse)
-
-import qualified Data.Text as T
-
-import Global
-
-
-
-
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = parse parseInput ""
-
-|]
-
-
-
-dCheckTemplate :: String
-dCheckTemplate = [rQ|
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Evaluate the parsed solution here.
 edit this interpolation function to create a checker for syntax
 as well as semantics.
 You may import additional modules in this template.
-The interpolated code will be inserted into the above module
-'ParseAndCheck'. Therefore, every import from that module is
-also in scope for this code snippet. Please avoid directly
-conflicting imports inside this template and the above module.
-
 Keep in mind that slashes must be escaped.
 I.e. when writing an anonymous function, write
 '\\x -> ...' instead of '\x -> ...' to avoid compile failure.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
+
+interpolate :: (Int,Int) -> String
 interpolate solution = [i|
+
+
+{-\# language ApplicativeDo \#-}
+
+module Check (checkSyntax, checkSemantics) where
 
 
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
 import Data.Ratio
+import Text.Parsec                               (ParseError)
+
+import Global
+import Parse                                     (parseSubmission)
 
 
 checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
@@ -217,5 +148,82 @@ checkSemantics _ (Right try)
 
 sol = #{solution}
 |~]
+
+|]
+
+-- EXPAND/EDIT INSTRUCTIONS
+dDescription :: String
+dDescription = [rQ|
+
+{-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+generate the task description by supplying a function "description" here.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-}
+
+{-# Language ApplicativeDo #-}
+{-# Language QuasiQuotes #-}
+
+module Description (description) where
+
+
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+import Data.String.Interpolate                   (i)
+
+import Global
+
+
+
+
+description :: OutputCapable m => FilePath -> (Int,Int,Int) -> LangM m
+description _ (one,two,three) = do
+  paragraph $ translate $ do
+    german "Ich würfle drei Zahlen."
+    english "I throw a die three times."
+  paragraph $ translate $ do
+    german [i|Die erste ist #{one}, die zweite ist #{two}, die letzte ist #{three}.|~]
+    english [i|On the first throw I roll #{one}, the second #{two} and on the third one #{three}.|~]
+  indent $ paragraph $ translate $ do
+    german "Was ist die Summe dieser Zahlen?"
+    english "What is the sum of these numbers?"
+  pure ()
+
+|]
+
+-- REMINDER: REWRITE THIS USAGE MANUAL!
+dParse :: String
+dParse = [rQ|
+
+{-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Parse the solution given as a String here.
+Supply a function 'parseSubmission',
+which parses the input and returns your desired solution type.
+If no special parsing is required, you can do as above and
+generate a parser by using the generic function parseInput.
+Instantiate your type for the type class Parse and derive
+Generic for it to use this feature.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-}
+
+module Parse (parseSubmission) where
+
+
+import Data.String.Interpolate (i)
+import Data.Text               (Text)
+import FlexTask.Generic.Parse  (parseInput)
+import GHC.Generics            (Generic)
+import Text.Parsec             (ParseError, parse)
+
+import qualified Data.Text as T
+
+import Global
+
+
+
+
+parseSubmission :: String -> Either ParseError Solution
+parseSubmission = parse parseInput ""
 
 |]

@@ -5,12 +5,9 @@ type Solution = (Int,Int)
 
 =============================================
 
-{-# language ApplicativeDo #-}
-{-# language DeriveGeneric #-}
-{-# Language FlexibleContexts #-}
 {-# language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
-module TaskAndForm where
+module TaskData (getTask) where
 
 
 import Data.String.Interpolate (i)
@@ -39,74 +36,12 @@ form :: Rendered
 form = formify (Nothing :: Maybe Solution) fields
 
 
-=============================================
-{-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-generate the task description by supplying a function "description" here.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
--}
-{-# Language ApplicativeDo #-}
-
-module Description where
-
-
-import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
-
-import Global
-
-
-
-description :: OutputCapable m => FilePath -> [Int] -> LangM m
-description _ input = do
-  paragraph $ translate $ do
-    german "Betrachten Sie die folgende Liste von Zahlen."
-    english "Consider the following list of numbers."
-  code $ show input
-  paragraph $ translate $ do
-    german "Wählen Sie zwei Elemente der Liste aus."
-    english "Choose two elements of the list."
-  paragraph $ translate $ do
-    german "Die Antwort muss folgendes erfüllen:"
-    english "Your answer has to satisfy the following:"
-  itemizeM [
-      translate $ do
-       german "Keines hat zwei negative Nachbarn."
-       english "None has two negative Neighbours."
-    , translate $ do
-       german "Keines hat zwei durch 3 teilbare Nachbarn."
-       english "None has two Neighbours divisible by 3."
-    ]
-  pure ()
-
-
-=============================================
-
-{-# language ApplicativeDo #-}
-{-# language DeriveGeneric #-}
-module ParseAndCheck where
-
-
-import Data.String.Interpolate (i)
-import Data.Text               (Text)
-import FlexTask.Generic.Parse  (parseInput)
-import GHC.Generics            (Generic)
-import Text.Parsec             (ParseError, parse)
-
-import qualified Data.Text as T
-
-import Global
-
-
-
-
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = parse parseInput ""
-
-=============================================
-
-
+interpolate :: [Int] -> String
 interpolate solution = [i|
+
+{-\# language ApplicativeDo \#-}
+
+module Check (checkSemantics, checkSyntax) where
 
 
 import Control.Monad                (when, unless)
@@ -115,6 +50,10 @@ import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput,
     )
 import Data.Ratio
+import Text.Parsec                  (ParseError)
+
+import Global
+import Parse                        (parseSubmission)
 
 
 checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
@@ -147,4 +86,61 @@ checkSemantics _ (Right (a,b)) = do
     fromNeighbourTups f = map (\(a,b,c) -> b) $ filter f $ neighbourTups
     noNegNeighbours = fromNeighbourTups (\(a,b,c) -> a >= 0 || c >= 0)
     noDiv3Neighbours = fromNeighbourTups (\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
+
+=============================================
+
+{-# Language ApplicativeDo #-}
+
+module Description (description) where
+
+
+import Control.OutputCapable.Blocks
+import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
+
+import Global
+
+
+
+description :: OutputCapable m => FilePath -> [Int] -> LangM m
+description _ input = do
+  paragraph $ translate $ do
+    german "Betrachten Sie die folgende Liste von Zahlen."
+    english "Consider the following list of numbers."
+  code $ show input
+  paragraph $ translate $ do
+    german "Wählen Sie zwei Elemente der Liste aus."
+    english "Choose two elements of the list."
+  paragraph $ translate $ do
+    german "Die Antwort muss folgendes erfüllen:"
+    english "Your answer has to satisfy the following:"
+  itemizeM [
+      translate $ do
+       german "Keines hat zwei negative Nachbarn."
+       english "None has two negative Neighbours."
+    , translate $ do
+       german "Keines hat zwei durch 3 teilbare Nachbarn."
+       english "None has two Neighbours divisible by 3."
+    ]
+  pure ()
+
+=============================================
+
+module Parse (parseSubmission) where
+
+
+import Data.String.Interpolate (i)
+import Data.Text               (Text)
+import FlexTask.Generic.Parse  (parseInput)
+import GHC.Generics            (Generic)
+import Text.Parsec             (ParseError, parse)
+
+import qualified Data.Text as T
+
+import Global
+
+
+
+
+parseSubmission :: String -> Either ParseError Solution
+parseSubmission = parse parseInput ""
 

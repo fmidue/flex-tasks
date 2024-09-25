@@ -1,4 +1,9 @@
+interpolate :: Tree -> String
 interpolate solution = [i|
+
+{-\# language ApplicativeDo \#-}
+
+module Check (checkSemantics, checkSyntax) where
 
 
 import Control.Monad                (when, unless)
@@ -7,6 +12,10 @@ import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput
     )
 import Data.Ratio
+import Text.Parsec                 (ParseError)
+
+import Global
+import Parse                       (parseSubmission)
 
 
 checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
@@ -30,4 +39,6 @@ checkSemantics _ (Right (s,p)) = do
 
 
 sol = #{solution}
+
 |]
+

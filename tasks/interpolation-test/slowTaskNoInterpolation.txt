@@ -1,48 +1,53 @@
 interpolate solution = [i|
 
+{-\# language ApplicativeDo \#-}
 
-import Control.Monad (when, unless)
+module Check (checkSemantics, checkSyntax) where
+
+
+import Control.Monad                (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
+    GenericOutput,
     )
 import Data.Ratio
+import Text.Parsec                  (ParseError)
+
+import Global
+import Parse                        (parseSubmission)
 
 
 checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
 checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (a,b)) = do
-  assertion (all (`elem` sol) [a,b]) $
-    translate $ do
-      german "Tupel ist im Kreuzprodukt?"
-      english "Tuple is inside the cross product?"
-  pure ()
+checkSyntax _ (Right (a,b))= do
+    assertion (all (`elem` sol) [a,b]) $
+      translate $ do
+        german "Das Tupel kommt im Kreuzprodukt vor?"
+        english "Tuple is inside the cross product?"
+    pure ()
+  where
+    sol = #{solution}
 
 
 checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) *>
-                              pure 0.0
+checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
 checkSemantics _ (Right (a,b)) = do
-    assertion (a `elem` noNegNeighbours && b `elem` noNegNeighbours) $
+    assertion (all (`elem` noNegNeighbours) [a,b]) $
       translate $ do
         german "Mindestens ein Nachbar ist positiv?"
         english "At least one Neighbour is positive?"
-    assertion (a `elem` noDiv3Neighbours && b `elem` noDiv3Neighbours) $
+    assertion (all (`elem` noDiv3Neighbours) [a,b]) $
       translate $ do
         german "Nachbarn sind nicht durch drei teilbar?"
         english "Neighbours are not divisible by three?"
     pure 1.0
-  where
-    neighbourTups = zip3 sol (drop 1 sol) (drop 2 sol)
-    fromNeighbourTups f =
-      map (\\(a,b,c) -> b) $ filter f $ neighbourTups
-    noNegNeighbours =
-      fromNeighbourTups (\\(a,b,c) -> a >= 0 || c >= 0)
-    noDiv3Neighbours =
-      fromNeighbourTups (\\(a,b,c) -> a `mod` 3 /= 0 ||
-                                      c `mod` 3 /= 0
-                        )
 
+
+neighbourTups = zip3 sol (drop 1 sol) (drop 2 sol)
+fromNeighbourTups f = map (\(a,b,c) -> b) $ filter f $ neighbourTups
+noNegNeighbours = fromNeighbourTups (\(a,b,c) -> a >= 0 || c >= 0)
+noDiv3Neighbours = fromNeighbourTups (\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
 
 sol = #{solution}
 |]
+
