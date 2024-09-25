@@ -3,6 +3,7 @@
 module FlexTask.Processing.Text
   ( argDelimiter
   , formatAnswer
+  , formatIfFlexSubmission
   , formatForJS
   , inputEscape
   , listDelimiter
@@ -10,11 +11,12 @@ module FlexTask.Processing.Text
   ) where
 
 
-import Data.Char (isAscii, isDigit)
+import Data.Char  (isAscii, isDigit)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
-import Numeric (showHex)
-import Text.Read (readMaybe)
+import Data.Text  (Text)
+import Numeric    (showHex)
+import Text.Read  (readMaybe)
+
 import qualified Data.Text as T
 
 
@@ -89,3 +91,17 @@ removeUnicodeEscape (a:b:xs)
     | a == '\\' && isDigit b   = b : removeUnicodeEscape xs
     | otherwise                = a : removeUnicodeEscape (b:xs)
 removeUnicodeEscape xs         = xs
+
+
+
+-- Stopgap solution until Autotool frontend is updated to allow for display of task form in comments
+formatIfFlexSubmission :: Text -> Text
+formatIfFlexSubmission t
+    | not (T.isInfixOf argDelimiter t) = t
+    | null splitArgs || any T.null splitArgs = ""
+    | otherwise = T.unlines numberInputs
+    where
+      splitArgs = T.splitOn argDelimiter t
+      unescaped = map (read . T.unpack . T.init . T.tail) . T.splitOn listDelimiter <$> splitArgs
+      fieldIndices = map (\i -> "Field " <> T.pack (show @Int i) <> ": ") [1..]
+      numberInputs = zipWith (<>) fieldIndices $ map (T.intercalate ",") unescaped
