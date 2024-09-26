@@ -116,10 +116,10 @@ description _ input = do
   itemizeM [
       translate $ do
        german "Keines hat zwei negative Nachbarn."
-       english "None has two negative Neighbours."
+       english "None has two negative neighbours."
     , translate $ do
        german "Keines hat zwei durch 3 teilbare Nachbarn."
-       english "None has two Neighbours divisible by 3."
+       english "None has two neighbours divisible by 3."
     ]
   pure ()
 
@@ -143,4 +143,3 @@ import Global
 
 parseSubmission :: String -> Either ParseError Solution
 parseSubmission = parse parseInput ""
-

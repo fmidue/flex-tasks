@@ -35,7 +35,7 @@ checkSemantics _ (Right (a,b)) = do
     assertion (all (`elem` noNegNeighbours) [a,b]) $
       translate $ do
         german "Mindestens ein Nachbar ist positiv?"
-        english "At least one Neighbour is positive?"
+        english "At least one neighbour is positive?"
     assertion (all (`elem` noDiv3Neighbours) [a,b]) $
       translate $ do
         german "Nachbarn sind nicht durch drei teilbar?"
@@ -50,4 +50,3 @@ noDiv3Neighbours = fromNeighbourTups (\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /=
 
 sol = #{solution}
 |]
-

@@ -58,7 +58,7 @@ instance MonadFail Gen where
 
 
 getParticipants :: Gen [Bool]
-getParticipants = suchThat (vectorOf 4 chooseAny) $ not . all (==False)
+getParticipants = vectorOf 4 arbitrary `suchThat` or
 
 
 getTask :: Gen (String, String, IO ([String],String))
@@ -68,7 +68,7 @@ getTask = do
     (formula, legend, hints) <- formulaAndHints a b c d names
     let
       zipped = [(a, A), (b, B), (c, C), (d, D)]
-      coming = [ n | (f,n) <- zipped, f ]
+      coming = [ n | (True,n) <- zipped ]
     pure (show (legend,hints), interpolate (formula,coming) False True, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
@@ -418,4 +418,3 @@ instance Parse Table where
 
 parseSubmission :: String -> Either ParseError Submission
 parseSubmission = parse parseInput ""
-
