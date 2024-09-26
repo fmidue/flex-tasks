@@ -19,6 +19,6 @@ dependencies:
   - output-blocks
   - parsec
   - string-interpolate
-  - yesod
+  - yesod-form
 library:
   source-dirs: .

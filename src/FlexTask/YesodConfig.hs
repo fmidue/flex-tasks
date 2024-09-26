@@ -1,13 +1,16 @@
 {-# language TypeFamilies #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module FlexTask.YesodConfig
   ( FlexForm(..)
   , Handler
   , Rendered
+  , Rendered'
   , Widget
   ) where
 
 
+import Control.Monad.Reader
 import Data.Text (Text)
 import Yesod
 import Yesod.Core.Types (Logger)
@@ -22,10 +25,12 @@ newtype FlexForm = FlexForm {
 
 type Handler = HandlerFor FlexForm
 type Widget = WidgetFor FlexForm ()
-type Rendered = Html -> MForm Handler ([Text],Widget)
+type Rendered' m = m (MForm Handler ([Text],Widget))
+type Rendered = Rendered' (Reader Html)
 
 
 instance Eq (Route FlexForm) where
+  (==) :: Route FlexForm -> Route FlexForm -> Bool
   (==) _ _ = True
 
 

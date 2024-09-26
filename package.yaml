@@ -11,6 +11,7 @@ dependencies:
   - filepath
   - ghc
   - hint
+  - mtl
   - output-blocks
   - parsec
   - QuickCheck

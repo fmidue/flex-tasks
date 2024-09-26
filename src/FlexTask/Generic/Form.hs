@@ -34,14 +34,14 @@ module FlexTask.Generic.Form
   ) where
 
 
-import Data.Either         (isRight)
-import Data.List.Extra     (nubSort)
-import GHC.Generics        (Generic(..), K1(..), M1(..), (:*:)(..))
-import GHC.Utils.Misc      (equalLength)
-import Data.Text           (Text, pack, unpack)
+import Data.Either          (isRight)
+import Data.List.Extra      (nubSort)
+import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
+import GHC.Utils.Misc       (equalLength)
+import Data.Text            (Text, pack, unpack)
 import Yesod
 
-import FlexTask.FormUtil   (($$>))
+import FlexTask.FormUtil    (($$>))
 import FlexTask.Widgets
   ( horizontalRadioField
   , renderFlatOrBreak
@@ -201,7 +201,7 @@ instance Formify MultipleChoiceSelection where
 
 
 
-formify :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered
+formify :: (Formify a) => Maybe a -> [[FieldInfo]] -> Rendered
 formify ma xs
       | null names = form
       | otherwise  = error "mismatched amount of field names and actual fields!"
@@ -235,7 +235,7 @@ formifyInstanceBase eMa _ = error $ "Incorrect naming scheme for "
 
 
 formifyInstanceList
-    :: Formify a
+    :: (Formify a)
     => Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)

@@ -4,6 +4,7 @@ module FlexTask.Widgets where
 
 
 
+import Control.Monad.Reader (reader)
 import Data.Text            (Text)
 import Yesod
 
@@ -18,14 +19,15 @@ renderFlatOrBreak
     -> (FieldSettings FlexForm -> AForm Handler a)
     -> Text
     -> Rendered
-renderFlatOrBreak lBreak newId aformStub label fragment = do
-    ident <- newFlexId
-    name <- if newId then newFlexName else repeatFlexName
-    let addAttrs = (fieldSettingsLabel label)
-                     {fsName = Just name, fsId = Just ident}
-    (_, views') <- aFormToForm $ aformStub addAttrs
-    let views = views' []
-    let widget = [whamlet|
+renderFlatOrBreak lBreak newId aformStub label =
+    reader $ \fragment -> do
+      ident <- newFlexId
+      name <- if newId then newFlexName else repeatFlexName
+      let addAttrs = (fieldSettingsLabel label)
+                       {fsName = Just name, fsId = Just ident}
+      (_, views') <- aFormToForm $ aformStub addAttrs
+      let views = views' []
+      let widget = [whamlet|
 $newline never
 \#{fragment}
 $forall view <- views
@@ -39,7 +41,7 @@ $forall view <- views
 $if lBreak
   <div>
 |]
-    return ([name],widget)
+      return ([name],widget)
 
 
 

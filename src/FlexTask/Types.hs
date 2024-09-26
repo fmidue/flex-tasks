@@ -3,7 +3,7 @@
 module FlexTask.Types
   ( FlexConf(..)
   , FlexInst(..)
-  , getFormData
+  , getForm
   , parseFlexConfig
   , showFlexConfig
   ) where
@@ -71,5 +71,5 @@ parseFlexConfig = do
 
 
 
-getFormData :: FlexInst -> ([String],String)
-getFormData (FlexInst fields html _ _ _ _ _) = (fields, html)
+getForm :: FlexInst -> ([String],String)
+getForm (FlexInst fields html _ _ _ _ _) = (fields, html)

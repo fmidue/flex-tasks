@@ -10,6 +10,7 @@ module FlexTask.FormUtil
   ) where
 
 
+import Control.Monad.Reader            (runReader)
 import Data.Text                       (Text, pack, unpack)
 import System.Log.FastLogger           (defaultBufSize, newStdoutLoggerSet)
 import Text.Blaze.Html.Renderer.String (renderHtml)
@@ -21,13 +22,13 @@ import qualified Control.Monad.Trans.RWS as RWS   (get)
 import qualified Data.Text               as T     (replace)
 import qualified Yesod.Core.Unsafe       as Unsafe
 
-import FlexTask.YesodConfig  (FlexForm(..), Handler, Rendered)
+import FlexTask.YesodConfig  (FlexForm(..), Handler, Rendered, Rendered')
 
 
 
 
 infixr 0 $$>
-($$>) :: Rendered -> Rendered -> Rendered
+($$>) :: Monad m => Rendered' m -> Rendered' m -> Rendered' m
 first $$> second = do
     res1 <- first
     res2 <- second
@@ -103,7 +104,7 @@ getFormData widget = do
 
     writeHtml :: Handler ([Text],Html)
     writeHtml = do
-      ((names,wid),_) <- runFormGet widget
+      ((names,wid),_) <- runFormGet $ runReader widget
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
       html <- withUrlRenderer [hamlet|^{pageBody content}|]
