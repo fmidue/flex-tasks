@@ -38,6 +38,8 @@ module FlexTask.Generic.Form
   , single
 
     -- * Formify Convenience Functions
+  , formifyInstanceBasicField
+  , formifyInstanceOptionalField
   , formifyInstanceSingleChoice
   , formifyInstanceMultiChoice
   ) where
@@ -378,6 +380,10 @@ renderNextField h ma ((x : xs) : xss) =
     else (xs:xss, renderFlatOrBreak False newId (`g` ma) lab)
 renderNextField _ _ _ = error "Incorrect naming scheme for a field or single/multi choice!"
 
+{- |
+Premade `formifyImplementation` for types with `BaseForm` instances.
+Use within manual instances of `Formify`.
+-}
 formifyInstanceBasicField
     :: BaseForm a
     => Maybe a
@@ -390,6 +396,9 @@ formifyInstanceBasicField = renderNextField
       _ -> error "Internal mismatch of FieldInfo and rendering function"
   )
 
+{- |
+Same as `formifyInstanceBasicField`, but for optional fields with `Maybe` wrapping.
+-}
 formifyInstanceOptionalField
     :: BaseForm a
     => Maybe (Maybe a)
