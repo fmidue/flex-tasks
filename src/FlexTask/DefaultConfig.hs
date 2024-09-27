@@ -10,6 +10,7 @@ import FlexTask.Types (FlexConf(..))
 
 
 
+-- | Simple task configuration with textual user guide
 defaultConfig :: FlexConf
 defaultConfig = FlexConf dGlobalDefs dTaskData dDescription dParse
 

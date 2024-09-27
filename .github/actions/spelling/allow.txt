@@ -64,8 +64,10 @@ Parserfehler
 Parserkombinatoren
 Parsern
 Programmierparadigmen
+prebuilt
 README
 Rightarrow
+typeclasses
 Typfelds
 Typkomplexität
 Typkorrekte
@@ -135,6 +137,7 @@ readerlatex
 scanl
 snd
 Snoyman
+standalone
 startstate
 startuml
 stdout

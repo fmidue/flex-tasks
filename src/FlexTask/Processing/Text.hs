@@ -1,12 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{- |
+Various text processing functions used to format input for display.
+-}
+
 module FlexTask.Processing.Text
-  ( argDelimiter
+  ( -- * Control sequences
+    -- $control
+    argDelimiter
+  , listDelimiter
+  , inputEscape
+    -- * formatting functions
   , formatAnswer
   , formatIfFlexSubmission
   , formatForJS
-  , inputEscape
-  , listDelimiter
   , removeUnicodeEscape
   ) where
 
@@ -21,13 +28,20 @@ import qualified Data.Text as T
 
 
 
+{- $control
+Student answers for FlexTasks are compiled into a single String after retrieval.
+The answer String contains control sequences which encode the structure of the input form.
+-}
 
+-- | Outer delimiter for individual fields.
 argDelimiter :: Text
 argDelimiter = "\a\a"
 
+-- | Inner delimiter for elements of a field list.
 listDelimiter :: Text
 listDelimiter = "\b\b"
 
+-- | Sequence denoting the start and end of a fields value.
 inputEscape :: Text
 inputEscape = "\""
 
@@ -46,6 +60,7 @@ process s    = T.intercalate listDelimiter $ map (escape . checkEmpty) s
 
 
 
+-- | format a list of (nested) individual answers into a single answer String
 formatAnswer :: [[Text]] -> Maybe Text
 formatAnswer values
   | all null values = Nothing
@@ -81,11 +96,16 @@ correctUnicodeEscape t = T.replace "\\\\\\u" "\\\\u" stepOne
 
 
 
+-- | Process Text containing Haskell Unicode representation for use in JavaScript.
 formatForJS :: Text -> Text
 formatForJS t = correctUnicodeEscape $ T.pack $ show $ asUnicode t
 
 
 
+{- |
+Remove excessive escape characters in front of Unicode
+caused by conversion between Haskell and JavaScript representation.
+-}
 removeUnicodeEscape :: String -> String
 removeUnicodeEscape (a:b:xs)
     | a == '\\' && isDigit b   = b : removeUnicodeEscape xs
@@ -95,6 +115,11 @@ removeUnicodeEscape xs         = xs
 
 
 -- Stopgap solution until Autotool frontend is updated to allow for display of task form in comments
+{- |
+Format an answer String into a vertical text listing of individual values.
+
+__temporary solution: Will be replaced in future versions.__
+-}
 formatIfFlexSubmission :: Text -> Text
 formatIfFlexSubmission t
     | not (T.isInfixOf argDelimiter t) = t

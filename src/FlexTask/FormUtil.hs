@@ -1,6 +1,9 @@
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 
+{- | Functions for creating and composing forms.
+-}
+
 module FlexTask.FormUtil
   ( ($$>)
   , getFormData
@@ -27,6 +30,10 @@ import FlexTask.YesodConfig  (FlexForm(..), Handler, Rendered, Rendered')
 
 
 
+{- |
+compose two forms sequentially.
+The output form contains all of the fields from both input forms.
+-}
 infixr 0 $$>
 ($$>) :: Monad m => Rendered' m -> Rendered' m -> Rendered' m
 first $$> second = do
@@ -38,19 +45,25 @@ first $$> second = do
       pure (names1++names2, wid1 >> wid2)
 
 
-
+{- |
+Get a unique identifier for an html element.
+The format is "flexident[number]"
+-}
 newFlexId :: MForm Handler Text
 newFlexId = T.replace "h" "flex" <$> newIdent
 
 
-
+-- | repeat the last received name.
 repeatFlexName :: MForm Handler Text
 repeatFlexName = do
   i <- RWS.get
   pure $ pack $ "flex" ++ show i
 
 
-
+{- |
+Get a unique name for an html element.
+The format is "flex[number]"
+-}
 newFlexName :: MForm Handler Text
 newFlexName = T.replace "f" "flex" <$> newFormIdent
 
@@ -91,7 +104,10 @@ function setDefaults(values){
 var fieldNames = #{rawJS (show names)};|]
 
 
-
+{- |
+Extract a form from the environment.
+The result is an IO embedded tuple of field IDs and Html code.
+-}
 getFormData :: Rendered -> IO ([String],String)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger

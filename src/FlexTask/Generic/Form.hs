@@ -4,21 +4,23 @@
 {-# language TypeOperators #-}
 {-# language LambdaCase #-}
 
+{- |
+Generic `Yesod` input form generation and related utility functions.
+-}
+
 module FlexTask.Generic.Form
-  ( Alignment(..)
+  (
+    -- * Data Types
+    Alignment(..)
   , FieldInfo
   , SingleChoiceSelection
   , MultipleChoiceSelection
 
+    -- * Type Classes
   , BaseForm(..)
   , Formify(..)
-
-  , formifyInstanceBasicField
-  , formifyInstanceOptionalField
-  , formifyInstanceMultiChoice
-  , formifyInstanceSingleChoice
   , formify
-
+    -- * Anonymous Enum Type Builders and Accessors.
   , getAnswer
   , getAnswers
   , multipleChoiceAnswer
@@ -26,6 +28,7 @@ module FlexTask.Generic.Form
   , singleChoiceAnswer
   , singleChoiceEmpty
 
+    -- * Field Builders
   , buttons
   , buttonsEnum
   , dropdown
@@ -33,6 +36,10 @@ module FlexTask.Generic.Form
   , list
   , listWithoutLabels
   , single
+
+    -- * Formify Convenience Functions
+  , formifyInstanceSingleChoice
+  , formifyInstanceMultiChoice
   ) where
 
 
@@ -53,6 +60,72 @@ import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
 
 
 
+{- |
+Data type representing a prebuilt input field.
+This type is used to determine the structure of a generated form.
+The form is represented by a @[[FieldInfo]]@ type value.
+Each FieldInfo value is an individual form element.
+Inner lists represent the rows of the form.
+All FieldInfo values in an inner list are rendered besides each other.
+The outer list represents the columns of the form.
+Inner lists are rendered below each other.
+
+__Examples__
+
+Input
+
+@
+[[Single \"field1\", Single \"field2\"]]
+@
+
+Renders as:
+
+@
+field1     field2
+@
+
+Input
+
+@
+[[single \"field1\"], [single \"field2\"]]
+@
+
+Renders as:
+
+@
+field1
+
+field2
+@
+
+__Caution: Not all horizontal alignments work as one would expect.__
+__If an element uses inner `Alignment` parameters,__
+__then the next form will only be rendered besides the last form component of the former.__
+
+Input
+
+@
+[[listWithoutLabels Vertical 2],[listWithoutLabels Vertical 2]]
+@
+
+will __not__ result in
+
+@
+list11      list21
+
+list12      list22
+@
+
+but instead in
+
+@
+list11
+
+list12     list21
+
+list22
+@
+-}
 data FieldInfo
   = Single Text
   | List Alignment [Text]
@@ -62,30 +135,54 @@ data FieldInfo
   deriving (Eq,Show)
 
 
+-- | Inner alignment of input field elements.
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
-newtype SingleChoiceSelection = SingleChoiceSelection {getAnswer :: Maybe Int} deriving (Show,Eq,Generic)
-newtype MultipleChoiceSelection = MultipleChoiceSelection { getAnswers :: [Int]} deriving (Show,Eq,Generic)
+{- |
+Generic single choice answer type.
+Use if you want a 'choose one of multiple' style input
+without caring about the underlying type.
+-}
+newtype SingleChoiceSelection = SingleChoiceSelection
+  {getAnswer :: Maybe Int -- ^ Retrieve the selected option. @Nothing@ if none.
+  } deriving (Show,Eq,Generic)
+-- | Same as `SingleChoiceSelection`, but for multiple choice input.
+newtype MultipleChoiceSelection = MultipleChoiceSelection
+  { getAnswers :: [Int] -- ^ Retrieve the list of selected options. @[]@ if none.
+  } deriving (Show,Eq,Generic)
 
 
-
+-- | Value with no option selected.
 singleChoiceEmpty :: SingleChoiceSelection
 singleChoiceEmpty = SingleChoiceSelection Nothing
 
 
+-- | Value with given number option selected.
 singleChoiceAnswer :: Int -> SingleChoiceSelection
 singleChoiceAnswer = SingleChoiceSelection . Just
 
 
+-- | Value with no options selected.
 multipleChoiceEmpty :: MultipleChoiceSelection
 multipleChoiceEmpty = MultipleChoiceSelection []
 
+{- |
+Value with given list of options selected.
+The order of list elements is inconsequential.
+-}
 multipleChoiceAnswer :: [Int] -> MultipleChoiceSelection
 multipleChoiceAnswer = MultipleChoiceSelection . nubSort
 
 
 
+{- |
+Members have a basic Yesod field representing Html input fields.
+A `BaseForm` instance of type @a@ is needed for generically producing forms
+for @[a]@ and @Maybe a@ types.
+An instance can be given manually with the `Field` constructor
+or using the `convertField` function on an existing `Field`.
+-}
 class BaseForm a where
   baseForm :: Field Handler a
 
@@ -111,11 +208,17 @@ instance BaseForm Double where
 
 
 
+{- |
+Class for generic generation of Html input forms for a given type.
+Bodyless instances can be declared for any type instancing Generic.
+__Exception: Types with multiple constructors.__
+Use utility functions for those or provide your own instance.
+-}
 class Formify a where
   formifyImplementation
-      :: Maybe a
-      -> [[FieldInfo]]
-      -> ([[FieldInfo]], Rendered)
+      :: Maybe a -- ^ Optional default value for form.
+      -> [[FieldInfo]] -- ^ Structure and type of form.
+      -> ([[FieldInfo]], Rendered) -- ^ remaining structure and rendered form.
 
   default formifyImplementation
       :: (Generic a, GFormify (Rep a))
@@ -130,7 +233,7 @@ class GFormify f where
   gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], Rendered)
 
 
--- | Products: parse a constructor with multiple arguments
+
 instance (GFormify a, GFormify b) => GFormify (a :*: b) where
   gformify mDefault xs = (rightRest, leftRender $$> rightRender)
     where
@@ -142,12 +245,12 @@ instance (GFormify a, GFormify b) => GFormify (a :*: b) where
 
 
 
--- | Meta-information (constructor names, etc.)
+
 instance GFormify a => GFormify (M1 i c a) where
   gformify mDefault = gformify $ unM1 <$> mDefault
 
 
--- | Constants, additional parameters and recursion of kind *
+
 instance Formify a => GFormify (K1 i a) where
   gformify mDefault = formifyImplementation $ unK1 <$> mDefault
 
@@ -202,7 +305,51 @@ instance Formify MultipleChoiceSelection where
 
 
 
-formify :: (Formify a) => Maybe a -> [[FieldInfo]] -> Rendered
+{- |
+Alternative to `formifyImplementation`
+that only produces the rendered form.
+Will fail if remaining form structure is not empty,
+indicating the form is finished or faulty.
+
+This is the main way to build generic forms.
+Use in conjunction with `FieldInfo` builders to generate a form.
+
+__Examples__
+
+@
+formify (Nothing \@Int) [[single \"Age\"]]
+@
+
+Renders an input field with /type=number/ attribute, no default value and label /Age/.
+
+@
+formify (Just [\"Hallo\", \"Hello\", \"Hola\", \"Ciao\"]) [[listWithoutLabels Vertical]]
+@
+
+Renders a series of four input fields, each for the type String
+and organized vertically beneath each other.
+They are prefilled with the values given above and have no labels attached to them.
+
+@
+formify
+  (Nothing \@SingleChoiceSelection)
+  [[ buttons
+      \"Make your choice\"
+      [ \"this one\"
+      , \"or rather that one\"
+      , \"I just can't decide\"
+      ]
+  ]]
+@
+
+Renders a radio button field with the given title and option labels attached.
+No option is selected when the form is loaded.
+-}
+formify
+  :: (Formify a)
+  => Maybe a -- ^ Optional default value for form.
+  -> [[FieldInfo]] -- ^ Structure of form.
+  -> Rendered -- ^ Rendered form.
 formify ma xs
       | null names = form
       | otherwise  = error "mismatched amount of field names and actual fields!"
@@ -313,6 +460,10 @@ formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
 
 
 
+{- |
+Premade `formifyImplementation` for "single choice" forms of enum types.
+Use within manual instances of `Formify`.
+-}
 formifyInstanceSingleChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe a
@@ -372,6 +523,7 @@ renderNextMultipleChoiceField pairsWith =
 
 
 
+-- | Same as `formifyInstanceSingleChoice`, but for multiple choice.
 formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe [a]
@@ -392,40 +544,81 @@ zipWithEnum labels
 
 
 
+{- |
+Same as `buttons`, but using an explicit enum type.
+-}
 buttonsEnum
   :: (Bounded a, Enum a)
   => Alignment
-  -> Text
-  -> (a -> Text)
+  -> Text        -- ^ Field title label
+  -> (a -> Text) -- ^ Function from enum type values to labels.
   -> FieldInfo
 buttonsEnum align t f = ChoicesButtons align t $ map f [minBound .. maxBound]
 
 
 
-buttons :: Alignment -> Text -> [Text] -> FieldInfo
+{- |
+Create FieldInfo for a button field.
+Will turn into either radio buttons or checkboxes
+depending on the form type.
+-}
+buttons
+  :: Alignment
+  -> Text   -- ^ Field title label
+  -> [Text] -- ^ Option labels
+  -> FieldInfo
 buttons = ChoicesButtons
 
 
 
-dropdownEnum :: (Bounded a, Enum a) => Text -> (a -> Text) -> FieldInfo
+{- |
+Same as `dropdown`, but using an explicit enum type.
+-}
+dropdownEnum
+  :: (Bounded a, Enum a)
+  => Text        -- ^ Field title label
+  -> (a -> Text) -- ^ Function from enum type values to labels.
+  -> FieldInfo
 dropdownEnum t f = ChoicesDropdown t $ map f [minBound .. maxBound]
 
 
 
-dropdown :: Text -> [Text] -> FieldInfo
+{- |
+Create FieldInfo for a dropdown menu field.
+Will turn into either single or multiple selection field
+depending on the form type.
+-}
+dropdown
+  :: Text   -- ^ Field title label
+  -> [Text] -- ^ Option labels
+  -> FieldInfo
 dropdown = ChoicesDropdown
 
 
 
-list :: Alignment -> [Text] -> FieldInfo
+{- |
+Create FieldInfo for a number of fields.
+Their result will be handled as a list of values.
+-}
+list
+  :: Alignment
+  -> [Text] -- ^ Labels of individual fields
+  -> FieldInfo
 list = List
 
 
 
-listWithoutLabels :: Alignment -> Int -> FieldInfo
+-- | Same as `list`, but without using any field labels.
+listWithoutLabels
+  :: Alignment
+  -> Int -- ^ Amount of fields
+  -> FieldInfo
 listWithoutLabels align amount = List align $ replicate amount ""
 
 
 
-single :: Text -> FieldInfo
+-- | Create FieldInfo for a standalone field.
+single
+  :: Text -- ^ Label
+  -> FieldInfo
 single = Single

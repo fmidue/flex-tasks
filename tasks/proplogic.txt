@@ -26,6 +26,7 @@ type Submission = (Table,PropFormula Char,[Namen])
 module TaskData (getTask) where
 
 
+import Control.Monad.Reader    (reader)
 import Data.List.Split         (chunksOf)
 import Data.Maybe              (fromJust)
 import Data.Text               (Text)
@@ -132,7 +133,8 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
 
 
 tableForm :: [Text] -> Int -> Int -> Rendered
-tableForm staticHeaders rowAmount columnAmount extra = do
+tableForm staticHeaders rowAmount columnAmount = do
+  reader $ \extra -> do
     let addCssClass fs = fs {fsAttrs = addClass "tableInput" (fsAttrs fs)}
         addFieldAttrs t = (fieldSettingsLabel t) {fsName = Just t}
 

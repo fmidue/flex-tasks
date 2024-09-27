@@ -1,4 +1,9 @@
 
+{- |
+Functions using `Interpreter` to run time compile and evaluate various aspects of a task.
+The interpreted code is supplied by `FlexInst` or `FlexConf` data.
+-}
+
 module FlexTask.Interpreter
   ( checkSolution
   , genFlexInst
@@ -10,12 +15,13 @@ module FlexTask.Interpreter
 import Control.Monad                (unless, void)
 import Control.Monad.IO.Class       (liftIO)
 import Control.OutputCapable.Blocks.Type
-import Control.OutputCapable.Blocks (OutputCapable, LangM, ReportT)
+import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (replace)
 import Data.Map                     (elems)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
+import Data.Typeable                (Typeable)
 import Language.Haskell.Interpreter (
     Interpreter,
     InterpreterError,
@@ -45,10 +51,15 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 type GenOutput = (String, String, IO ([String],String))
 
 
+{- |
+Use a `FlexConf` to generate a `FlexInst`.
+Interprets `taskDataCode` to generate the input form and description data.
+Apply the given method to run the generator with a seed.
+-}
 genFlexInst
   :: FlexConf
-  -> (Gen GenOutput -> a -> GenOutput)
-  -> a
+  -> (Gen GenOutput -> a -> GenOutput) -- ^ Method of running the random generator
+  -> a                                 -- ^ Generator seed
   -> IO FlexInst
 genFlexInst
   (FlexConf global taskData description parse)
@@ -72,7 +83,11 @@ genFlexInst
 
 
 
-makeDescription :: FlexInst -> FilePath -> IO (Either InterpreterError (LangM (ReportT Output IO)))
+makeDescription
+  :: (OutputCapable m, Typeable m)
+  => FlexInst
+  -> FilePath
+  -> IO (Either InterpreterError (LangM m))
 makeDescription (FlexInst _ _ descData global description _ _) picPath = do
     filePaths <- writeUncachedAndGetPaths
           [ ("Global", global)
@@ -86,7 +101,18 @@ makeDescription (FlexInst _ _ descData global description _ _) picPath = do
 
 
 
-validDescription :: OutputCapable m => FlexInst -> FilePath -> IO (LangM m)
+{- |
+Produce the task description via caching.
+Should the solution not yet exist on disc, then it will be interpreted and saved in a file.
+If the description already exists on disc, it is read.
+Then, if any of the image links of that description are invalid (have been deleted),
+the description is interpreted again to regenerate the missing files.
+-}
+validDescription
+  :: OutputCapable m
+  => FlexInst
+  -> FilePath     -- ^ Path images will be stored in
+  -> IO (LangM m) -- ^ `OutputCapable` representation of task description
 validDescription inst picPath = do
   let fileName = hash $  descriptionModule inst ++ descriptionData inst
   cDir <- cacheDir
@@ -113,6 +139,10 @@ validDescription inst picPath = do
 
 
 
+{- |
+Run the interpreter with a custom package database.
+The filepath is given externally via an environment variable /FLEX_PKGDB/.
+-}
 runWithPackageDB :: Interpreter a -> IO (Either InterpreterError a)
 runWithPackageDB interpreter = do
   path <- getEnv "FLEX_PKGDB"
@@ -120,10 +150,16 @@ runWithPackageDB interpreter = do
 
 
 
+{- |
+Interpret `parseModule` and `checkModule` to evaluate a submission.
+The result is a tuple of syntax feedback and optional semantics feedback.
+If the syntax check fail, then no semantics feedback is provided.
+Semantics feedback is coupled with a rating given as a Rational (0 to 1).
+-}
 checkSolution
     :: FlexInst
-    -> String
-    -> FilePath
+    -> String   -- ^ Student solution
+    -> FilePath -- ^ Path images will be stored in
     -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
 checkSolution
   (FlexInst _ _ _ globalCode _ parseCode checkCode)
