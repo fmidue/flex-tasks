@@ -41,6 +41,7 @@ import FlexTask.Generic.Form (
   buttonsEnum
   )
 import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
+import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen
 import Yesod
 
