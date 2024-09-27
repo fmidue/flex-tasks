@@ -2,6 +2,7 @@
 {-# language DeriveGeneric #-}
 {-# language OverloadedStrings #-}
 {-# language TypeOperators #-}
+{-# language LambdaCase #-}
 
 module FlexTask.Generic.Form
   ( Alignment(..)
@@ -12,7 +13,8 @@ module FlexTask.Generic.Form
   , BaseForm(..)
   , Formify(..)
 
-  , formifyInstanceBase
+  , formifyInstanceBasicField
+  , formifyInstanceOptionalField
   , formifyInstanceMultiChoice
   , formifyInstanceSingleChoice
   , formify
@@ -34,7 +36,6 @@ module FlexTask.Generic.Form
   ) where
 
 
-import Data.Either          (isRight)
 import Data.List.Extra      (nubSort)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
@@ -152,24 +153,24 @@ instance Formify a => GFormify (K1 i a) where
 
 
 instance Formify Int where
-  formifyImplementation = formifyInstanceBase . Right
+  formifyImplementation = formifyInstanceBasicField
 
 
 instance Formify Text where
-  formifyImplementation = formifyInstanceBase . Right
+  formifyImplementation = formifyInstanceBasicField
 
 
 instance Formify String where
-  formifyImplementation = formifyInstanceBase . Right
+  formifyImplementation = formifyInstanceBasicField
 
 
 instance Formify Bool where
-  formifyImplementation = formifyInstanceBase . Right
+  formifyImplementation = formifyInstanceBasicField
 
 
 
 instance Formify Double where
-  formifyImplementation = formifyInstanceBase . Right
+  formifyImplementation = formifyInstanceBasicField
 
 
 instance (Formify a, Formify b) => Formify (a,b)
@@ -185,7 +186,7 @@ instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
 
 
 instance (BaseForm a, Formify a) => Formify (Maybe a) where
-  formifyImplementation = formifyInstanceBase . Left
+  formifyImplementation = formifyInstanceOptionalField
 
 
 instance Formify (Maybe a) => Formify [Maybe a] where
@@ -193,11 +194,11 @@ instance Formify (Maybe a) => Formify [Maybe a] where
 
 
 instance Formify SingleChoiceSelection where
-  formifyImplementation = formifyInstanceChoice (`zip` [1..]) . Right . (=<<) getAnswer
+  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . (=<<) getAnswer
 
 
 instance Formify MultipleChoiceSelection where
-  formifyImplementation = formifyInstanceChoice (`zip` [1..]) . Left . fmap getAnswers
+  formifyImplementation = renderNextMultipleChoiceField (`zip` [1..]) . fmap getAnswers
 
 
 
@@ -210,28 +211,49 @@ formify ma xs
 
 
 
-formifyInstanceBase
+renderNextField
+  :: (FieldInfo ->
+       ( Text
+       , Bool
+       , FieldSettings FlexForm -> Maybe a -> AForm Handler a
+       )
+     )
+  -> Maybe a
+  -> [[FieldInfo]]
+  -> ([[FieldInfo]], Rendered)
+renderNextField _ _ [] = error "Incorrect amount of field names"
+renderNextField h ma ((x : xs) : xss) =
+  let
+    (lab, newId, g) = h x
+  in
+    if null xs
+    then (xss, renderFlatOrBreak True newId (`g` ma) lab)
+    else (xs:xss, renderFlatOrBreak False newId (`g` ma) lab)
+renderNextField _ _ _ = error "Incorrect naming scheme for a field or single/multi choice!"
+
+formifyInstanceBasicField
     :: BaseForm a
-    => Either (Maybe (Maybe a)) (Maybe a)
+    => Maybe a
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceBase _ [] = error "Incorrect amount of field names"
-formifyInstanceBase eMa ((x : xs) : xss) =
-    (rest, case eMa of
-        Right ma -> render newId (flip (areq baseForm) ma) lab
-        Left mMa -> render newId (flip (aopt baseForm) mMa) lab
-    )
-  where
-    (rest,render) = restAndRenderMethod xs xss
-    (lab,newId) =
-        case x of
-          Single t -> (t,True)
-          InternalListElem t -> (t,False)
-          _ -> error "Internal mismatch of FieldInfo and rendering function"
+formifyInstanceBasicField = renderNextField
+  (\case
+      Single t -> (t, True, areq baseForm)
+      InternalListElem t -> (t, False, areq baseForm)
+      _ -> error "Internal mismatch of FieldInfo and rendering function"
+  )
 
-formifyInstanceBase eMa _ = error $ "Incorrect naming scheme for "
-    ++ if isRight eMa then "a simple field!" else "an optional value!"
-
+formifyInstanceOptionalField
+    :: BaseForm a
+    => Maybe (Maybe a)
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], Rendered)
+formifyInstanceOptionalField = renderNextField
+  (\case
+      Single t -> (t, True, aopt baseForm)
+      InternalListElem t -> (t, False, aopt baseForm)
+      _ -> error "Internal mismatch of FieldInfo and rendering function"
+  )
 
 
 formifyInstanceList
@@ -296,61 +318,66 @@ formifyInstanceSingleChoice
     => Maybe a
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceSingleChoice = formifyInstanceChoice zipWithEnum . Right
+formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
-formifyInstanceChoice
+renderNextSingleChoiceField
     :: Eq a
     => ([Text] -> [(Text, a)])
-    -> Either (Maybe [a]) (Maybe a)
+    -> Maybe a
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceChoice _ _ [] = error "ran out of field names!"
-formifyInstanceChoice pairsWith eMa ((ChoicesDropdown t opts : xs) : xss) =
-    ( rest
-    , case eMa of
-        Right ma -> render True (
-          flip (areq $ selectField $ optionsPairs (pairsWith opts)) ma) t
-        Left mas -> render True (
-          flip (areq $ multiSelectField $ optionsPairs (pairsWith opts)) mas) t
-    )
-  where
-    (rest,render) = restAndRenderMethod xs xss
+renderNextSingleChoiceField pairsWith =
+  renderNextField
+  (\case
+      ChoicesDropdown t opts -> ( t
+                                , True
+                                , areq $ selectField $ withOptions opts
+                                )
+      ChoicesButtons align t opts -> ( t
+                                     , True
+                                     , areq $
+                                         case align of
+                                           Vertical -> radioField
+                                           Horizontal -> horizontalRadioField
+                                         $ withOptions opts
+                                     )
+      _ -> error "Incorrect naming scheme for a single choice!"
+  )
+  where withOptions = optionsPairs . pairsWith
 
-formifyInstanceChoice pairsWith eMa ((ChoicesButtons align t opts : xs) : xss) =
-    ( rest
-    , case eMa of
-        Right ma  -> render True (flip (areq
-            (
-              case align of
-                Vertical   -> radioField
-                Horizontal -> horizontalRadioField
-              $ optionsPairs (pairsWith opts)
-            )
-            )
-            ma
-            ) t
+renderNextMultipleChoiceField
+    :: Eq a
+    => ([Text] -> [(Text, a)])
+    -> Maybe [a]
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], Rendered)
+renderNextMultipleChoiceField pairsWith =
+  renderNextField
+  (\case
+      ChoicesDropdown t opts -> ( t
+                                , True
+                                , areq $ multiSelectField $ withOptions opts
+                                )
+      ChoicesButtons align t opts -> ( t
+                                     , True
+                                     , areq $
+                                         case align of
+                                           Vertical -> verticalCheckboxesField
+                                           Horizontal -> checkboxesField
+                                         $ withOptions opts
+                                     )
+      _ -> error "Incorrect naming scheme for a multi choice!"
+  )
+  where withOptions = optionsPairs . pairsWith
 
-        Left mas -> render True (flip (areq
-            (
-              case align of
-                Vertical   -> verticalCheckboxesField
-                Horizontal -> checkboxesField
-              $ optionsPairs (pairsWith opts)
-            )) mas) t
-    )
-  where
-    (rest,render) = restAndRenderMethod xs xss
 
-
-formifyInstanceChoice _ eMa _ = error $ "Incorrect naming scheme for a "
-    ++ if isRight eMa then "single choice!" else "multi choice!"
 
 formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered)
-formifyInstanceMultiChoice = formifyInstanceChoice zipWithEnum . Left
+formifyInstanceMultiChoice = renderNextMultipleChoiceField zipWithEnum
 
 
 
@@ -362,17 +389,6 @@ zipWithEnum labels
 
 
 
-restAndRenderMethod
-    :: [FieldInfo]
-    -> [[FieldInfo]]
-    -> ( [[FieldInfo]]
-       , Bool
-          -> (FieldSettings FlexForm -> AForm Handler a)
-          -> Text
-          -> Rendered
-       )
-restAndRenderMethod [] xss = (xss,renderFlatOrBreak True)
-restAndRenderMethod xs xss = (xs:xss, renderFlatOrBreak False)
 
 
 
