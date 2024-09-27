@@ -1,7 +1,7 @@
 
 {- |
 Functions using `Interpreter` to run time compile and evaluate various aspects of a task.
-The interpreted code is supplied by `FlexInst` or `FlexConf` data.
+The interpreted code is usually supplied by accessing data stored in `FlexInst` or `FlexConf`.
 -}
 
 module FlexTask.Interpreter
@@ -85,10 +85,12 @@ genFlexInst
 
 makeDescription
   :: (OutputCapable m, Typeable m)
-  => FlexInst
+  => String
+  -> String
+  -> String
   -> FilePath
   -> IO (Either InterpreterError (LangM m))
-makeDescription (FlexInst _ _ descData global description _ _) picPath = do
+makeDescription descData global description picPath = do
     filePaths <- writeUncachedAndGetPaths
           [ ("Global", global)
           , ("Description", description)
@@ -102,23 +104,27 @@ makeDescription (FlexInst _ _ descData global description _ _) picPath = do
 
 
 {- |
-Produce the task description via caching.
-Should the solution not yet exist on disc, then it will be interpreted and saved in a file.
-If the description already exists on disc, it is read.
+Produce the task description by using description data
+and two interpreted modules or restore a cached result.
+Should the solution not yet exist on disc,
+then it will be created by interpreting /description/ and saved in a file.
+If the task description already exists on disc, it is read.
 Then, if any of the image links of that description are invalid (have been deleted),
 the description is interpreted again to regenerate the missing files.
 -}
 validDescription
   :: OutputCapable m
-  => FlexInst
+  => String       -- ^ Data to be used in description
+  -> String       -- ^ Additional code module
+  -> String       -- ^ Module containing the /description/ function
   -> FilePath     -- ^ Path images will be stored in
   -> IO (LangM m) -- ^ `OutputCapable` representation of task description
-validDescription inst picPath = do
-  let fileName = hash $  descriptionModule inst ++ descriptionData inst
+validDescription descData globalModule descModule picPath = do
+  let fileName = hash $ descModule ++ descData ++ globalModule
   cDir <- cacheDir
   let path = cDir </> fileName
-  b <- doesFileExist path
-  if b
+  isThere <- doesFileExist path
+  if isThere
     then do
       output <- read <$> readFile path
       let fileLinks = imageLinks output
@@ -127,14 +133,14 @@ validDescription inst picPath = do
         then
           return $ toOutputCapable output
         else
-          makeDescAndWrite path
+          makeDescAndWrite (Just output) path
     else
-      makeDescAndWrite path
+      makeDescAndWrite Nothing path
   where
-    makeDescAndWrite p = do
-      res <- makeDescription inst picPath
+    makeDescAndWrite mOldOutput p = do
+      res <- makeDescription descData globalModule descModule picPath
       output <- getOutputSequence $ extract res
-      writeFile p $ show output
+      unless (mOldOutput == Just output) $ writeFile p $ show output
       return $ toOutputCapable output
 
 
@@ -151,21 +157,21 @@ runWithPackageDB interpreter = do
 
 
 {- |
-Interpret `parseModule` and `checkModule` to evaluate a submission.
+Interpret three code modules to evaluate a submission.
+The submission ist parsed by function /parseSubmission/.
+The result is evaluated by functions /checkSyntax/ and /checkSemantics/.
 The result is a tuple of syntax feedback and optional semantics feedback.
 If the syntax check fail, then no semantics feedback is provided.
 Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 -}
 checkSolution
-    :: FlexInst
-    -> String   -- ^ Student solution
-    -> FilePath -- ^ Path images will be stored in
-    -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
-checkSolution
-  (FlexInst _ _ _ globalCode _ parseCode checkCode)
-  submission
-  picPath
-  = do
+  :: String   -- ^ Additional code module
+  -> String   -- ^ Module containing /parseSubmission/
+  -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
+  -> String   -- ^ Student solution
+  -> FilePath -- ^ Path images will be stored in
+  -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
+checkSolution globalCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
       , ("Parse", parseCode)
