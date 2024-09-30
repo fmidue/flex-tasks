@@ -11,15 +11,12 @@ import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput,
     )
 import Data.Ratio
-import Text.Parsec                  (ParseError)
 
 import Global
-import Parse                        (parseSubmission)
 
 
-checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
-checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (a,b))= do
+checkSyntax :: OutputCapable m => FilePath -> Solution -> LangM m
+checkSyntax _ (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
         german "Das Tupel kommt im Kreuzprodukt vor?"
@@ -29,9 +26,8 @@ checkSyntax _ (Right (a,b))= do
     sol = #{solution}
 
 
-checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
-checkSemantics _ (Right (a,b)) = do
+checkSemantics :: OutputCapable m => FilePath -> Solution -> Rated m
+checkSemantics _ (a,b) = do
     assertion (all (`elem` noNegNeighbours) [a,b]) $
       translate $ do
         german "Mindestens ein Nachbar ist positiv?"

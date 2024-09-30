@@ -58,10 +58,8 @@ import Formula.Parsing.Delayed          (delayed)
 import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
 import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
-import Text.Parsec             (ParseError)
 
 import Global
-import Parse (parseSubmission)
 
 
 toListString :: (String,String) -> String
@@ -71,20 +69,18 @@ toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 checkSyntax
   :: (MonadIO m, OutputCapable m)
   => FilePath
-  -> Either ParseError Solution
+  -> Solution
   -> LangM m
-checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right try) = partialGrade inst $ delayed $ toListString try
+checkSyntax _ try = partialGrade inst $ delayed $ toListString try
 
 
 
 checkSemantics
   :: (MonadIO m, OutputCapable m)
   => FilePath
-  -> Either ParseError Solution
+  -> Solution
   -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
-checkSemantics path (Right try) = completeGrade path inst (delayed $ toListString try) *> pure 1.0
+checkSemantics path try = completeGrade path inst (delayed $ toListString try) *> pure 1.0
 
 
 inst = #{inst}

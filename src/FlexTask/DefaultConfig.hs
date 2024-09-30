@@ -120,15 +120,12 @@ module Check (checkSyntax, checkSemantics) where
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
 import Data.Ratio
-import Text.Parsec                               (ParseError)
 
 import Global
-import Parse                                     (parseSubmission)
 
 
-checkSyntax :: OutputCapable m => FilePath -> Either ParseError Solution -> LangM m
-checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right try)
+checkSyntax :: OutputCapable m => FilePath -> Solution -> LangM m
+checkSyntax _ try
   | try == sol = pure ()
   | otherwise =
       refuse $ indent $ translate $ do
@@ -136,9 +133,8 @@ checkSyntax _ (Right try)
         english "syntactically wrong"
 
 
-checkSemantics :: OutputCapable m => FilePath -> Either ParseError Solution -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) *> pure 0.0
-checkSemantics _ (Right try)
+checkSemantics :: OutputCapable m => FilePath -> Solution -> Rated m
+checkSemantics _ try
   | try == sol = pure 1.0
   | otherwise = do
       refuse $ indent $ translate $ do

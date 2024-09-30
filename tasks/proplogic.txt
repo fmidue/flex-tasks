@@ -223,7 +223,6 @@ import Data.Map      ((!), fromList)
 import Data.Ratio    (Ratio, (%))
 import Data.Tuple    (swap)
 import Numeric       (showBin)
-import Text.Parsec   (ParseError)
 
 import LogicTasks.Formula (isSemanticEqual, ToSAT(..))
 import Trees.Types (PropFormula(..), BinOp(..))
@@ -232,7 +231,6 @@ import qualified SAT.MiniSat as Sat
 import qualified Data.Text   as T
 
 import Global
-import Parse         (parseSubmission)
 
 
 
@@ -272,9 +270,8 @@ instance ToSAT (PropFormula Char) where
 
 
 
-checkSyntax :: OutputCapable m => FilePath -> Either ParseError Submission -> LangM m
-checkSyntax _ (Left err) = refuse $ code $ show err
-checkSyntax _ (Right (Table xs,f,n)) = do
+checkSyntax :: OutputCapable m => FilePath -> Submission -> LangM m
+checkSyntax _ (Table xs,f,n) = do
     assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ translate $
       german "Tabellenspalten existieren nur einmal?."
     assertion (not (null n)) $ translate $
@@ -285,9 +282,8 @@ checkSyntax _ (Right (Table xs,f,n)) = do
 
 
 
-checkSemantics :: OutputCapable m => FilePath -> Either ParseError Submission -> Rated m
-checkSemantics _ (Left err) = refuse (code $ show err) $> 0
-checkSemantics _ (Right (Table xs,f,n)) = do
+checkSemantics :: OutputCapable m => FilePath -> Submission -> Rated m
+checkSemantics _ (Table xs,f,n) = do
     let correctStart = take 4 columns == startingTable
     #{checkType} correctStart $ translate $
           german "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstabelle?"

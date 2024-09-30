@@ -13,7 +13,6 @@ module FlexTask.Interpreter
 
 
 import Control.Monad                (unless, void)
-import Control.Monad.IO.Class       (liftIO)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
@@ -28,6 +27,8 @@ import Language.Haskell.Interpreter (
     infer,
     interpret,
     loadModules,
+    parens,
+    setImportsQ,
     setTopLevelModules
     )
 import Language.Haskell.Interpreter.Unsafe (
@@ -99,7 +100,7 @@ makeDescription descData global description picPath = do
   where
     descInter =
       setTopLevelModules ["Description"] >>
-        interpret ("description " ++ show picPath ++ " $ " ++ descData) infer
+        interpret ("description " ++ show picPath ++ parens descData) infer
 
 
 
@@ -170,7 +171,7 @@ checkSolution
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
-  -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
+  -> IO (Either InterpreterError (IO ([Output], Maybe (Maybe Rational, [Output]))))
 checkSolution globalCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
@@ -180,27 +181,42 @@ checkSolution globalCode parseCode checkCode submission picPath = do
     runWithPackageDB $ loadModules filePaths >> runCheck
   where
     runCheck = do
-      let arguments = show picPath <> parseSolution
-      setTopLevelModules ["Check"]
-      first <- interpret
-        ("checkSyntax" <> arguments)
-        infer
-      synRes <- liftIO $ getOutputSequence first
-      if any isAbort synRes
-        then pure (synRes,Nothing)
-        else do
-          second <- interpret
-            ("checkSemantics" <> arguments)
-            infer
-          semRes <- liftIO $ getOutputSequenceWithRating second
-          pure (synRes, Just semRes)
+      setImportsQ
+        [ ("Control.OutputCapable.Blocks.Type", Just "OC")
+        , ("Data.Either", Just "E")
+        ]
+      setTopLevelModules ["Check", "Parse"]
+      interpret checkSyntaxAbort infer
 
-    isAbort (Refuse _)          = True
-    isAbort (Assertion False _) = True
-    isAbort _                   = False
+    checkSyntaxAbort = unlines $
+      "do" :
+      indent (
+       "let" :
+       indent
+        [ "isAbort (OC.Refuse _)          = True"
+        , "isAbort (OC.Assertion False _) = True"
+        , "isAbort _                      = False"
+        , "parsed = " <> parseSubmission
+        , "syn = " <> "either (refuse . code . show)" <>
+           parens ("checkSyntax " <> show picPath) <> "parsed"
+        ]
+       ++
+       [ "synRes <- OC.getOutputSequence syn"
+       , "if any isAbort synRes"
+       , "  then"
+       , "    pure (synRes,Nothing)"
+       , "  else do"
+       , "    let sem = checkSemantics " <> show picPath <>
+              "(E.fromRight undefined parsed)"
+       , "    semRes <- OC.getOutputSequenceWithRating sem"
+       , "    pure (synRes, Just semRes)"
+       ])
 
-    parseSolution = " $ parseSubmission "
-                 <> removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
+    indent = map ("  " ++)
+
+    parseSubmission =
+        "parseSubmission " <>
+        removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
 
 
 
