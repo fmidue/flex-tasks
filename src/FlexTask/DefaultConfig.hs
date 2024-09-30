@@ -1,18 +1,23 @@
 {-# Language QuasiQuotes #-}
 
+
 module FlexTask.DefaultConfig (defaultConfig) where
 
 
 import Text.RawString.QQ (rQ)
 
-import FlexTask.Types (FlexConf(..))
+import FlexTask.Types ( CommonModules(..), FlexConf(..))
 
 
 
 
 -- | Simple task configuration with textual user guide
 defaultConfig :: FlexConf
-defaultConfig = FlexConf dGlobalDefs dTaskData dDescription dParse
+defaultConfig =
+  FlexConf {
+    taskDataModule = dTaskData,
+    commonModules = CommonModules dGlobalDefs dDescription dParse
+  }
 
 
 

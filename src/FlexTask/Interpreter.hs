@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 {- |
 Functions using `Interpreter` to run time compile and evaluate various aspects of a task.
@@ -43,7 +45,7 @@ import System.Environment          (getEnv)
 import System.FilePath             ((</>), (<.>))
 import Test.QuickCheck.Gen         (Gen)
 
-import FlexTask.Types              (FlexConf(..), FlexInst(..))
+import FlexTask.Types              (CommonModules(..), FlexConf(..), FlexInst(..))
 import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
@@ -63,20 +65,29 @@ genFlexInst
   -> a                                 -- ^ Generator seed
   -> IO FlexInst
 genFlexInst
-  (FlexConf global taskData description parse)
+  FlexConf{commonModules = CommonModules{..}, ..}
   genMethod
   seed
   = do
       filePaths <- writeUncachedAndGetPaths
-        [ ("Global", global)
-        , ("TaskData", taskData)
+        [ ("Global", globalModule)
+        , ("TaskData", taskDataModule)
         ]
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
       let gen = extract taskAndFormResult
-      let (descData, iCheck, io) = genMethod gen seed
-      (fields,html) <- io
-      pure $ FlexInst fields html descData global description parse iCheck
+      let (descriptionData, checkModule, io) = genMethod gen seed
+      form <- io
+      pure $ FlexInst {
+        form,
+        descriptionData,
+        checkModule,
+        commonModules = CommonModules {
+          globalModule,
+          descriptionModule,
+          parseModule
+        }
+      }
     where
       tfInter :: Interpreter (Gen GenOutput)
       tfInter = setTopLevelModules ["TaskData"] >>
