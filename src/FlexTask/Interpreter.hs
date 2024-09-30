@@ -171,14 +171,14 @@ checkSolution
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
-  -> IO (Either InterpreterError (IO ([Output], Maybe (Maybe Rational, [Output]))))
+  -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
 checkSolution globalCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
       ]
-    runWithPackageDB $ loadModules filePaths >> runCheck
+    runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
     runCheck = do
       setImportsQ
