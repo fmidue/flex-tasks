@@ -149,11 +149,11 @@ instance Parse a => Parse (Maybe a) where
 
 
 instance Parse SingleChoiceSelection where
-  parseInput = singleChoiceAnswer <$> parseInstanceSingleChoice
+  parseInput = singleChoiceAnswer <$> parseInput
 
 
 instance Parse MultipleChoiceSelection where
-  parseInput = multipleChoiceAnswer <$> parseInstanceMultiChoice
+  parseInput = multipleChoiceAnswer <$> parseInput
 
 
 
@@ -168,13 +168,13 @@ data MyType = One | Two | Three deriving (Bounded, Enum, Eq)
 that can not use a bodyless `Parse` instance.
 -}
 parseInstanceSingleChoice :: (Bounded a, Enum a, Eq a) => Parser a
-parseInstanceSingleChoice = toEnum <$> parseInput
+parseInstanceSingleChoice = toEnum . subtract 1 <$> parseInput
 
 
 
 -- | Same as `parseInstanceSingleChoice`, but for parsing a List of the given type, i.e. a multiple choice version.
 parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser [a]
-parseInstanceMultiChoice = fmap toEnum <$> parseInput
+parseInstanceMultiChoice = map (toEnum . subtract 1) <$> parseInput
 
 
 
