@@ -65,7 +65,7 @@ genFlexInst
   -> a                                 -- ^ Generator seed
   -> IO FlexInst
 genFlexInst
-  FlexConf{commonModules = common@CommonModules{..}, ..}
+  FlexConf{commonModules = commonModules@CommonModules{globalModule}, ..}
   genMethod
   seed
   = do
@@ -82,7 +82,7 @@ genFlexInst
         form,
         descriptionData,
         checkModule,
-        commonModules = common
+        commonModules
       }
     where
       tfInter :: Interpreter (Gen GenOutput)
