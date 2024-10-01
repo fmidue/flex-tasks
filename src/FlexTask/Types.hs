@@ -46,7 +46,7 @@ data FlexInst = FlexInst {
 
 {- |
 Configuration to use for random generation of concrete `FlexInst`.
-`taskDataCode` is interpreted upon generating an instance to produce static form data.
+`taskDataModule` is interpreted upon generating an instance to produce static form data.
 The other Haskell modules are propagated to the generated task instance.
 -}
 data FlexConf = FlexConf {

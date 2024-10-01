@@ -56,7 +56,7 @@ type GenOutput = (String, String, IO ([String],String))
 
 {- |
 Use a `FlexConf` to generate a `FlexInst`.
-Interprets `taskDataCode` to generate the input form and task data.
+Interprets `taskDataModule` to generate the input form and task data.
 Apply the given method to run the generator with a seed.
 -}
 genFlexInst
