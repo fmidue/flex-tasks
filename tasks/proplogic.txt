@@ -74,7 +74,7 @@ getTask = do
     let
       zipped = [(a, A), (b, B), (c, C), (d, D)]
       coming = [ n | (True,n) <- zipped ]
-    pure (show ((legend,hints),startingTable), checkers (formula,coming) False True, getFormData (form names))
+    pure (show ((legend,hints),coming), checkers formula startingTable False True, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
     form n = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
@@ -210,8 +210,8 @@ startingTable = map (Just . Binary . toEnum . digitToInt) <$>
 
 
 
-checkers :: (PropFormula Char, [Namen]) -> Bool -> Bool -> String
-checkers (fSol,nSol) tableRequired showSolution = [i|
+checkers :: PropFormula Char -> [[Maybe Binary]] -> Bool -> Bool -> String
+checkers fSol startingTable tableRequired showSolution = [i|
 
 {-\# language ApplicativeDo \#-}
 {-\# language OverloadedStrings \#-}
@@ -243,11 +243,11 @@ import Global
 
 
 
-correctColumn :: [[Maybe Binary]] -> (PropFormula Char,[Maybe Binary]) -> Bool
-correctColumn startTable (f,bs) = all lookFor allocationsAndValues
+correctColumn :: (PropFormula Char,[Maybe Binary]) -> Bool
+correctColumn (f,bs) = all lookFor allocationsAndValues
   where
     ones = Sat.solve_all $ convert f
-    allocations = map (zip (toList f) . map (unBinary . fromJust)) $ transpose startTable
+    allocations = map (zip (toList f) . map (unBinary . fromJust)) #{transpose startingTable}
     allocationsAndValues = [(unBinary a,b) | (Just a,b) <- zip bs allocations]
     lookFor (True,a) = fromList a `elem` ones
     lookFor (False,a) = fromList a `notElem` ones
@@ -290,15 +290,15 @@ checkSyntax _ _ (Table xs,f,n) = do
 
 
 
-checkSemantics :: OutputCapable m => (a,[[Maybe Binary]]) -> FilePath -> Submission -> Rated m
-checkSemantics (_,startingTable) _ (Table xs,f,n) = do
-    let correctStart = take 4 columns == startingTable
+checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
+checkSemantics (_,nSol) _ (Table xs,f,n) = do
+    let correctStart = take 4 columns == #{startingTable}
     #{checkType} correctStart $ translate $
           german "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstabelle?"
     let subFormulas = all (`isSubFormula` f) $ catMaybes nonStaticHeaders
     #{checkType} subFormulas $ translate $
           german "Tabellenspalten sind Teilformeln der Gesamtformel?"
-    let correctValues = all (correctColumn startingTable) [(f,b)| (Just f,b) <- drop 4 xs]
+    let correctValues = all correctColumn [(f,b)| (Just f,b) <- drop 4 xs]
     #{checkType} correctValues $ translate $
           german "Tabellenspalten enthalten korrekte Warheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ translate $
@@ -306,7 +306,7 @@ checkSemantics (_,startingTable) _ (Table xs,f,n) = do
     let correctFormula = isSemanticEqual (#{pShow fSol}) f
     yesNo correctFormula $ translate $
           german "Die aussagenlogische Formel ist korrekt?"
-    let correctNames = n == #{nSol}
+    let correctNames = n == nSol
     yesNo correctNames $ translate $
           german "Die Liste der Teilnehmer ist korrekt?"
     let correct = filter (==True) [correctStart, correctFormula, correctNames, correctValues]
@@ -316,10 +316,11 @@ checkSemantics (_,startingTable) _ (Table xs,f,n) = do
   where
     (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
-    maybeAnswer = #{if showSolution
-                     then Just ("Formel:  " ++ show fSol ++ "\nEs kommt: " ++ show nSol)
-                     else Nothing
-                   }
+    maybeAnswer = flip (++) (show nSol) <$>
+                    #{if showSolution
+                       then Just ("Formel:  " ++ show fSol ++ "\nEs kommt: ")
+                       else Nothing
+                    }
 
 |]
   where
