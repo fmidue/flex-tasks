@@ -122,7 +122,7 @@ the description is interpreted again to regenerate the missing files.
 -}
 validDescription
   :: OutputCapable m
-  => String       -- ^ Data to be used in description
+  => String       -- ^ Data available for making the description
   -> String       -- ^ Additional code module
   -> String       -- ^ Module containing the /description/ function
   -> FilePath     -- ^ Path images will be stored in
@@ -173,7 +173,7 @@ If the syntax check fail, then no semantics feedback is provided.
 Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 -}
 checkSolution
-  :: String   -- ^ Data to be used in checker functions
+  :: String   -- ^ Data made available to checker functions
   -> String   -- ^ Additional code module
   -> String   -- ^ Module containing /parseSubmission/
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
