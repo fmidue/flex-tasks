@@ -1,4 +1,5 @@
-interpolate solution = [i|
+checkers :: String
+checkers = [i|
 
 {-\# language ApplicativeDo \#-}
 
@@ -15,19 +16,17 @@ import Data.Ratio
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> Solution -> LangM m
-checkSyntax _ (a,b)= do
+checkSyntax :: OutputCapable m => [Int] -> FilePath -> Solution -> LangM m
+checkSyntax sol _ (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
         german "Das Tupel kommt im Kreuzprodukt vor?"
         english "Tuple is inside the cross product?"
     pure ()
-  where
-    sol = #{solution}
 
 
-checkSemantics :: OutputCapable m => FilePath -> Solution -> Rated m
-checkSemantics _ (a,b) = do
+checkSemantics :: OutputCapable m => [Int] -> FilePath -> Solution -> Rated m
+checkSemantics sol _ (a,b) = do
     assertion (all (`elem` noNegNeighbours) [a,b]) $
       translate $ do
         german "Mindestens ein Nachbar ist positiv?"
@@ -37,12 +36,10 @@ checkSemantics _ (a,b) = do
         german "Nachbarn sind nicht durch drei teilbar?"
         english "Neighbours are not divisible by three?"
     pure 1.0
+  where
+    neighbourTups = zip3 sol (drop 1 sol) (drop 2 sol)
+    fromNeighbourTups f = map (\\(a,b,c) -> b) $ filter f $ neighbourTups
+    noNegNeighbours = fromNeighbourTups (\\(a,b,c) -> a >= 0 || c >= 0)
+    noDiv3Neighbours = fromNeighbourTups (\\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
 
-
-neighbourTups = zip3 sol (drop 1 sol) (drop 2 sol)
-fromNeighbourTups f = map (\(a,b,c) -> b) $ filter f $ neighbourTups
-noNegNeighbours = fromNeighbourTups (\(a,b,c) -> a >= 0 || c >= 0)
-noDiv3Neighbours = fromNeighbourTups (\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
-
-sol = #{solution}
 |]

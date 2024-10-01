@@ -58,7 +58,7 @@ import Global
 getTask :: Gen (String, String, IO ([String],String))
 getTask = do
     tree <- addToTree <$> vectorOf 3000 (chooseInt (-100000,100000))
-    pure (show tree, interpolate tree, getFormData form)
+    pure (show tree, checkers tree, getFormData form)
 
 
 
@@ -70,8 +70,8 @@ form :: Rendered
 form = formify (Nothing :: Maybe Solution) fields
 
 
-interpolate :: Tree -> String
-interpolate solution = [i|
+checkers :: Tree -> String
+checkers solution = [i|
 
 {-\# language ApplicativeDo \#-}
 
@@ -88,12 +88,12 @@ import Data.Ratio
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> Solution -> LangM m
-checkSyntax _ _          = pure ()
+checkSyntax :: OutputCapable m => Tree -> FilePath -> Solution -> LangM m
+checkSyntax _ _ _ = pure ()
 
 
-checkSemantics :: OutputCapable m => FilePath -> Solution -> Rated m
-checkSemantics _ (s,p) = do
+checkSemantics :: OutputCapable m => Tree -> FilePath -> Solution -> Rated m
+checkSemantics _ _ (s,p) = do
     assertion (s == #{getSum solution}) $
       translate $ do
         german "Summe ist korrekt?"

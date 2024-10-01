@@ -38,7 +38,7 @@ Contained Haskell code is runtime interpreted to produce needed components of a 
 -}
 data FlexInst = FlexInst {
     form            :: ([String],String), -- ^ Field IDs of input elements and form as Html code.
-    descriptionData ::  String,           -- ^ Data needed to produce the task Description.
+    taskData        ::  String,           -- ^ Flexible task data used by task description and checker functions.
     commonModules   ::  CommonModules,    -- ^ Modules shared between config and instance.
     checkModule     ::  String            -- ^ Module containing the Checker functions.
   } deriving (Generic)

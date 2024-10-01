@@ -24,7 +24,7 @@ import Global
 getTask :: Gen (String, String, IO ([String],String))
 getTask = do
     numbers <- vectorOf 3000 $ chooseInt (-100000,100000)
-    pure (show numbers, interpolate numbers, getFormData form)
+    pure (show numbers, checkers numbers, getFormData form)
 
 
 
@@ -36,8 +36,8 @@ form :: Rendered
 form = formify (Nothing :: Maybe Solution) fields
 
 
-interpolate :: [Int] -> String
-interpolate solution = [i|
+checkers :: [Int] -> String
+checkers solution = [i|
 
 {-\# language ApplicativeDo \#-}
 
@@ -54,8 +54,8 @@ import Data.Ratio
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> Solution -> LangM m
-checkSyntax _ (a,b)= do
+checkSyntax :: OutputCapable m => [Int] -> FilePath -> Solution -> LangM m
+checkSyntax _ _ (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
         german "Das Tupel kommt im Kreuzprodukt vor?"
@@ -65,8 +65,8 @@ checkSyntax _ (a,b)= do
     sol = #{solution}
 
 
-checkSemantics :: OutputCapable m => FilePath -> Solution -> Rated m
-checkSemantics _ (a,b) = do
+checkSemantics :: OutputCapable m => [Int] -> FilePath -> Solution -> Rated m
+checkSemantics _ _ (a,b) = do
     assertion (all (`elem` #{noNegNeighbours}) [a,b]) $
       translate $ do
         german "Mindestens ein Nachbar ist positiv?"

@@ -35,6 +35,7 @@ module Global where
 
 
 type Solution = (Int,Int)
+type DescData = (Int,Int,Int)
 
 |]
 
@@ -86,9 +87,10 @@ genNumbers = vectorOf 3 $ elements ([1..6] :: [Int])
 getTask :: Gen (String, String, IO ([String],String))
 getTask = do
     numbers <- genNumbers
-    let sol = (product numbers, sum numbers)
-        descData = (numbers !! 0, numbers !! 1, numbers !! 2)
-    pure (show descData, interpolate sol, getFormData form)
+    let
+      descData = (numbers !! 0, numbers !! 1, numbers !! 2)
+      checkData = (product numbers, sum numbers)
+    pure (show (descData,checkData), checkers, getFormData form)
 
 
 
@@ -113,8 +115,8 @@ I.e. when writing an anonymous function, write
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
-interpolate :: (Int,Int) -> String
-interpolate solution = [i|
+checkers :: String
+checkers = [i|
 
 
 {-\# language ApplicativeDo \#-}
@@ -129,8 +131,8 @@ import Data.Ratio
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> Solution -> LangM m
-checkSyntax _ try
+checkSyntax :: OutputCapable m => (DescData,Solution) -> FilePath -> Solution -> LangM m
+checkSyntax (_,sol) _ try
   | try == sol = pure ()
   | otherwise =
       refuse $ indent $ translate $ do
@@ -138,8 +140,8 @@ checkSyntax _ try
         english "syntactically wrong"
 
 
-checkSemantics :: OutputCapable m => FilePath -> Solution -> Rated m
-checkSemantics _ try
+checkSemantics :: OutputCapable m => (DescData,Solution) -> FilePath -> Solution -> Rated m
+checkSemantics (_,sol) _ try
   | try == sol = pure 1.0
   | otherwise = do
       refuse $ indent $ translate $ do
@@ -147,8 +149,6 @@ checkSemantics _ try
         english "semantically wrong"
       pure 0.0
 
-
-sol = #{solution}
 |~]
 
 |]
@@ -178,8 +178,8 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> (Int,Int,Int) -> LangM m
-description _ (one,two,three) = do
+description :: OutputCapable m => FilePath -> (DescData,Solution) -> LangM m
+description _ ((one,two,three),_) = do
   paragraph $ translate $ do
     german "Ich würfle drei Zahlen."
     english "I throw a die three times."

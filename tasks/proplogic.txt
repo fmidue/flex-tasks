@@ -27,6 +27,7 @@ module TaskData (getTask) where
 
 
 import Control.Monad.Reader    (reader)
+import Data.Char               (digitToInt)
 import Data.List.Split         (chunksOf)
 import Data.Maybe              (fromJust)
 import Data.Text               (Text)
@@ -42,6 +43,7 @@ import FlexTask.Generic.Form (
   buttonsEnum
   )
 import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
+import Numeric                 (showBin)
 import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen
 import Yesod
@@ -71,7 +73,7 @@ getTask = do
     let
       zipped = [(a, A), (b, B), (c, C), (d, D)]
       coming = [ n | (True,n) <- zipped ]
-    pure (show (legend,hints), interpolate (formula,coming) False True, getFormData (form names))
+    pure (show ((legend,hints),startingTable), checkers (formula,coming) False True, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
     form n = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
@@ -200,8 +202,14 @@ pShow (Assoc o f1 f2) = "Assoc " ++ show o ++ withParens f1 ++ withParens f2
 
 
 
-interpolate :: (PropFormula Char, [Namen]) -> Bool -> Bool -> String
-interpolate (fSol,nSol) tableRequired showSolution = [i|
+startingTable :: [[Maybe Binary]]
+startingTable = map (Just . Binary . toEnum . digitToInt) . T.unpack <$>
+  T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
+
+
+
+checkers :: (PropFormula Char, [Namen]) -> Bool -> Bool -> String
+checkers (fSol,nSol) tableRequired showSolution = [i|
 
 {-\# language ApplicativeDo \#-}
 {-\# language OverloadedStrings \#-}
@@ -214,7 +222,6 @@ import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput(..)
     )
-import Data.Char     (digitToInt)
 import Data.Foldable (toList)
 import Data.Functor  (($>))
 import Data.List     (isInfixOf, transpose)
@@ -222,7 +229,6 @@ import Data.Maybe    (catMaybes, fromJust, isJust)
 import Data.Map      ((!), fromList)
 import Data.Ratio    (Ratio, (%))
 import Data.Tuple    (swap)
-import Numeric       (showBin)
 
 import LogicTasks.Formula (isSemanticEqual, ToSAT(..))
 import Trees.Types (PropFormula(..), BinOp(..))
@@ -235,11 +241,11 @@ import Global
 
 
 
-correctColumn :: (PropFormula Char,[Maybe Binary]) -> Bool
-correctColumn (f,bs) = all lookFor allocationsAndValues
+correctColumn :: [[Maybe Binary]] -> (PropFormula Char,[Maybe Binary]) -> Bool
+correctColumn startTable (f,bs) = all lookFor allocationsAndValues
   where
     ones = Sat.solve_all $ convert f
-    allocations = map (zip (toList f) . map (unBinary . fromJust)) $ transpose startingTable
+    allocations = map (zip (toList f) . map (unBinary . fromJust)) $ transpose startTable
     allocationsAndValues = [(unBinary a,b) | (Just a,b) <- zip bs allocations]
     lookFor (True,a) = fromList a `elem` ones
     lookFor (False,a) = fromList a `notElem` ones
@@ -270,8 +276,8 @@ instance ToSAT (PropFormula Char) where
 
 
 
-checkSyntax :: OutputCapable m => FilePath -> Submission -> LangM m
-checkSyntax _ (Table xs,f,n) = do
+checkSyntax :: OutputCapable m => ((String,[String]), [[Maybe Binary]]) -> FilePath -> Submission -> LangM m
+checkSyntax _ _ (Table xs,f,n) = do
     assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ translate $
       german "Tabellenspalten existieren nur einmal?."
     assertion (not (null n)) $ translate $
@@ -282,15 +288,15 @@ checkSyntax _ (Table xs,f,n) = do
 
 
 
-checkSemantics :: OutputCapable m => FilePath -> Submission -> Rated m
-checkSemantics _ (Table xs,f,n) = do
+checkSemantics :: OutputCapable m => ((String,[String]), [[Maybe Binary]]) -> FilePath -> Submission -> Rated m
+checkSemantics (_,startingTable) _ (Table xs,f,n) = do
     let correctStart = take 4 columns == startingTable
     #{checkType} correctStart $ translate $
           german "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstabelle?"
     let subFormulas = all (`isSubFormula` f) $ catMaybes nonStaticHeaders
     #{checkType} subFormulas $ translate $
           german "Tabellenspalten sind Teilformeln der Gesamtformel?"
-    let correctValues = all correctColumn [(f,b)| (Just f,b) <- drop 4 xs]
+    let correctValues = all (correctColumn startingTable) [(f,b)| (Just f,b) <- drop 4 xs]
     #{checkType} correctValues $ translate $
           german "Tabellenspalten enthalten korrekte Warheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ translate $
@@ -308,14 +314,10 @@ checkSemantics _ (Table xs,f,n) = do
   where
     (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
-    maybeAnswer = if #{showSolution} then Just ("Formel:  " ++ #{show $ show fSol} ++ "\\nEs kommt: " ++ #{show $ show nSol})
-                                     else Nothing
-
-
-
-startingTable :: [[Maybe Binary]]
-startingTable = map (Just . Binary . toEnum . digitToInt) . T.unpack <$>
-  T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
+    maybeAnswer = #{if showSolution
+                     then Just ("Formel:  " ++ show fSol ++ "\nEs kommt: " ++ show nSol)
+                     else Nothing
+                   }
 
 |]
   where
@@ -337,8 +339,8 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> (String,[String]) -> LangM m
-description _ (legend,hints) = do
+description :: OutputCapable m => FilePath -> ((String,[String]),[[Maybe Binary]]) -> LangM m
+description _ ((legend,hints),_) = do
     paragraph $ translate $ german
       ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
         legend ++

@@ -56,7 +56,7 @@ type GenOutput = (String, String, IO ([String],String))
 
 {- |
 Use a `FlexConf` to generate a `FlexInst`.
-Interprets `taskDataCode` to generate the input form and description data.
+Interprets `taskDataCode` to generate the input form and task data.
 Apply the given method to run the generator with a seed.
 -}
 genFlexInst
@@ -76,11 +76,11 @@ genFlexInst
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
       let gen = extract taskAndFormResult
-      let (descriptionData, checkModule, io) = genMethod gen seed
+      let (taskData, checkModule, io) = genMethod gen seed
       form <- io
       pure $ FlexInst {
         form,
-        descriptionData,
+        taskData,
         checkModule,
         commonModules
       }
@@ -98,7 +98,7 @@ makeDescription
   -> String
   -> FilePath
   -> IO (Either InterpreterError (LangM m))
-makeDescription descData global description picPath = do
+makeDescription taskData global description picPath = do
     filePaths <- writeUncachedAndGetPaths
           [ ("Global", global)
           , ("Description", description)
@@ -107,12 +107,12 @@ makeDescription descData global description picPath = do
   where
     descInter =
       setTopLevelModules ["Description"] >>
-        interpret ("description " ++ show picPath ++ parens descData) infer
+        interpret ("description " ++ show picPath ++ parens taskData) infer
 
 
 
 {- |
-Produce the task description by using description data
+Produce the task description by using task data
 and two interpreted modules or restore a cached result.
 Should the solution not yet exist on disc,
 then it will be created by interpreting /description/ and saved in a file.
@@ -127,8 +127,8 @@ validDescription
   -> String       -- ^ Module containing the /description/ function
   -> FilePath     -- ^ Path images will be stored in
   -> IO (LangM m) -- ^ `OutputCapable` representation of task description
-validDescription descData globalModule descModule picPath = do
-  let fileName = hash $ descModule ++ descData ++ globalModule
+validDescription taskData globalModule descModule picPath = do
+  let fileName = hash $ descModule ++ taskData ++ globalModule
   cDir <- cacheDir
   let path = cDir </> fileName
   isThere <- doesFileExist path
@@ -146,7 +146,7 @@ validDescription descData globalModule descModule picPath = do
       makeDescAndWrite Nothing path
   where
     makeDescAndWrite mOldOutput p = do
-      res <- makeDescription descData globalModule descModule picPath
+      res <- makeDescription taskData globalModule descModule picPath
       output <- getOutputSequence $ extract res
       unless (mOldOutput == Just output) $ writeFile p $ show output
       return $ toOutputCapable output
@@ -165,7 +165,7 @@ runWithPackageDB interpreter = do
 
 
 {- |
-Interpret three code modules to evaluate a submission.
+Use task data and interpret three code modules to evaluate a submission.
 The submission ist parsed by function /parseSubmission/.
 The result is evaluated by functions /checkSyntax/ and /checkSemantics/.
 The result is a tuple of syntax feedback and optional semantics feedback.
@@ -173,13 +173,14 @@ If the syntax check fail, then no semantics feedback is provided.
 Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 -}
 checkSolution
-  :: String   -- ^ Additional code module
+  :: String   -- ^ Data to be used in checker functions
+  -> String   -- ^ Additional code module
   -> String   -- ^ Module containing /parseSubmission/
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
   -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
-checkSolution globalCode parseCode checkCode submission picPath = do
+checkSolution taskData globalCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
       , ("Parse", parseCode)
@@ -205,7 +206,7 @@ checkSolution globalCode parseCode checkCode submission picPath = do
         , "isAbort _                      = False"
         , "parsed = " <> parseSubmission
         , "syn = " <> "either (refuse . code . show)" <>
-           parens ("checkSyntax " <> show picPath) <> "parsed"
+           parens (check "checkSyntax") <> "parsed"
         ]
        ++
        [ "synRes <- OC.getOutputSequence syn"
@@ -213,13 +214,15 @@ checkSolution globalCode parseCode checkCode submission picPath = do
        , "  then"
        , "    pure (synRes,Nothing)"
        , "  else do"
-       , "    let sem = checkSemantics " <> show picPath <>
+       , "    let sem = " <> check "checkSemantics" <>
               "(E.fromRight undefined parsed)"
        , "    semRes <- OC.getOutputSequenceWithRating sem"
        , "    pure (synRes, Just semRes)"
        ])
 
     indent = map ("  " ++)
+
+    check func = func <> parens taskData <> show picPath
 
     parseSubmission =
         "parseSubmission " <>

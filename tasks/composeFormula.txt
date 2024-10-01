@@ -26,7 +26,7 @@ import Global
 getTask :: Gen (String, String, IO ([String],String))
 getTask = do
     inst <- generateComposeFormulaInst defaultComposeFormulaConfig
-    pure (show inst, interpolate inst, getFormData form)
+    pure (show inst, checkers, getFormData form)
 
 
 
@@ -40,8 +40,8 @@ form = formify (Nothing :: Maybe Solution) fields
 
 
 
-interpolate :: ComposeFormulaInst -> String
-interpolate inst = [i|
+checkers :: String
+checkers = [i|
 
 {-\# language ApplicativeDo \#-}
 
@@ -68,22 +68,22 @@ toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 
 checkSyntax
   :: (MonadIO m, OutputCapable m)
-  => FilePath
+  => ComposeFormulaInst
+  -> FilePath
   -> Solution
   -> LangM m
-checkSyntax _ try = partialGrade inst $ delayed $ toListString try
+checkSyntax inst _ try = partialGrade inst $ delayed $ toListString try
 
 
 
 checkSemantics
   :: (MonadIO m, OutputCapable m)
-  => FilePath
+  => ComposeFormulaInst
+  -> FilePath
   -> Solution
   -> Rated m
-checkSemantics path try = completeGrade path inst (delayed $ toListString try) *> pure 1.0
+checkSemantics inst path try = completeGrade path inst (delayed $ toListString try) *> pure 1.0
 
-
-inst = #{inst}
 |]
 
 =============================================

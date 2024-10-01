@@ -1,5 +1,5 @@
-interpolate :: Tree -> String
-interpolate solution = [i|
+checkers :: String
+checkers = [i|
 
 {-\# language ApplicativeDo \#-}
 
@@ -16,12 +16,12 @@ import Data.Ratio
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> Solution -> LangM m
-checkSyntax _ _          = pure ()
+checkSyntax :: OutputCapable m => Tree -> FilePath -> Solution -> LangM m
+checkSyntax _ _ _ = pure ()
 
 
-checkSemantics :: OutputCapable m => FilePath -> Solution -> Rated m
-checkSemantics _ (s,p) = do
+checkSemantics :: OutputCapable m => Tree -> FilePath -> Solution -> Rated m
+checkSemantics sol _ (s,p) = do
     assertion (s == getSum sol) $
       translate $ do
         german "Summe ist korrekt?"
@@ -31,9 +31,6 @@ checkSemantics _ (s,p) = do
         german "Produkt ist korrekt?"
         english "Product is correct?"
     pure 1.0
-
-
-sol = #{solution}
 
 |]
 
