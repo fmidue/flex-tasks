@@ -27,6 +27,7 @@ import Text.Parsec
   )
 import Text.Parsec.Char   (anyChar, char, digit, string)
 import Text.Parsec.String (Parser)
+import Yesod              (Textarea(..))
 
 import qualified Data.Text    as T
 
@@ -98,6 +99,11 @@ instance Parse String where
 
 instance Parse Text where
   parseInput = T.pack <$> parseInput
+
+
+
+instance Parse Textarea where
+  parseInput = Textarea <$> parseInput
 
 
 

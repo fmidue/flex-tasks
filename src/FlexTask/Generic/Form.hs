@@ -201,6 +201,10 @@ instance BaseForm String where
   baseForm = convertField unpack pack textField
 
 
+instance BaseForm Textarea where
+  baseForm = textareaField
+
+
 instance BaseForm Bool where
   baseForm = boolField
 
@@ -266,6 +270,10 @@ instance Formify Text where
 
 
 instance Formify String where
+  formifyImplementation = formifyInstanceBasicField
+
+
+instance Formify Textarea where
   formifyImplementation = formifyInstanceBasicField
 
 
