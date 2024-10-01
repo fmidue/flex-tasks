@@ -131,7 +131,7 @@ import Data.Ratio
 import Global
 
 
-checkSyntax :: OutputCapable m => (DescData,Solution) -> FilePath -> Solution -> LangM m
+checkSyntax :: OutputCapable m => (a,Solution) -> FilePath -> Solution -> LangM m
 checkSyntax (_,sol) _ try
   | try == sol = pure ()
   | otherwise =
@@ -140,7 +140,7 @@ checkSyntax (_,sol) _ try
         english "syntactically wrong"
 
 
-checkSemantics :: OutputCapable m => (DescData,Solution) -> FilePath -> Solution -> Rated m
+checkSemantics :: OutputCapable m => (a,Solution) -> FilePath -> Solution -> Rated m
 checkSemantics (_,sol) _ try
   | try == sol = pure 1.0
   | otherwise = do
@@ -178,7 +178,7 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> (DescData,Solution) -> LangM m
+description :: OutputCapable m => FilePath -> (DescData,a) -> LangM m
 description _ ((one,two,three),_) = do
   paragraph $ translate $ do
     german "Ich würfle drei Zahlen."
