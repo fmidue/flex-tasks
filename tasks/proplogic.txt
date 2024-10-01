@@ -28,6 +28,7 @@ module TaskData (getTask) where
 
 import Control.Monad.Reader    (reader)
 import Data.Char               (digitToInt)
+import Data.List               (transpose)
 import Data.List.Split         (chunksOf)
 import Data.Maybe              (fromJust)
 import Data.Text               (Text)
@@ -203,8 +204,9 @@ pShow (Assoc o f1 f2) = "Assoc " ++ show o ++ withParens f1 ++ withParens f2
 
 
 startingTable :: [[Maybe Binary]]
-startingTable = map (Just . Binary . toEnum . digitToInt) . T.unpack <$>
-  T.transpose (T.justifyRight 4 '0' . T.pack . (`showBin` "") <$> [0..15])
+startingTable = map (Just . Binary . toEnum . digitToInt) <$>
+  transpose (pad . (`showBin` "") <$> [0..15])
+  where pad = T.unpack . T.justifyRight 4 '0' . T.pack
 
 
 
