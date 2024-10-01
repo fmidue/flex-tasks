@@ -49,8 +49,6 @@ import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen
 import Yesod
 
-import qualified Data.Text as T
-
 import Trees.Types (PropFormula(..), BinOp(..))
 
 import Global
@@ -205,8 +203,8 @@ pShow (Assoc o f1 f2) = "Assoc " ++ show o ++ withParens f1 ++ withParens f2
 
 startingTable :: [[Maybe Binary]]
 startingTable = map (Just . Binary . toEnum . digitToInt) <$>
-  transpose (pad . (`showBin` "") <$> [0..15])
-  where pad = T.unpack . T.justifyRight 4 '0' . T.pack
+    transpose (pad . (`showBin` "") <$> [0..15])
+  where pad s = replicate (4 - length s) '0' ++ s
 
 
 
