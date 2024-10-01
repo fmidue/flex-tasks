@@ -276,7 +276,7 @@ instance ToSAT (PropFormula Char) where
 
 
 
-checkSyntax :: OutputCapable m => ((String,[String]), [[Maybe Binary]]) -> FilePath -> Submission -> LangM m
+checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
 checkSyntax _ _ (Table xs,f,n) = do
     assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ translate $
       german "Tabellenspalten existieren nur einmal?."
@@ -288,7 +288,7 @@ checkSyntax _ _ (Table xs,f,n) = do
 
 
 
-checkSemantics :: OutputCapable m => ((String,[String]), [[Maybe Binary]]) -> FilePath -> Submission -> Rated m
+checkSemantics :: OutputCapable m => (a,[[Maybe Binary]]) -> FilePath -> Submission -> Rated m
 checkSemantics (_,startingTable) _ (Table xs,f,n) = do
     let correctStart = take 4 columns == startingTable
     #{checkType} correctStart $ translate $
@@ -339,7 +339,7 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> ((String,[String]),[[Maybe Binary]]) -> LangM m
+description :: OutputCapable m => FilePath -> ((String,[String]),a) -> LangM m
 description _ ((legend,hints),_) = do
     paragraph $ translate $ german
       ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
