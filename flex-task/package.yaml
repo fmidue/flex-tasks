@@ -1,0 +1,67 @@
+---
+name: flex-task
+extra-source-files: [ ]
+dependencies:
+  - base
+  - blaze-html
+  - containers
+  - directory
+  - extra
+  - fast-logger
+  - filepath
+  - ghc
+  - hint
+  - flex-task-processing
+  - mtl
+  - output-blocks
+  - parsec
+  - QuickCheck
+  - raw-strings-qq
+  - SHA
+  - shakespeare
+  - split
+  - string-interpolate
+  - text
+  - transformers
+  - yesod
+  - yesod-core
+default-extensions:
+  - TupleSections
+  - DuplicateRecordFields
+  - OverloadedLabels
+  - MultiParamTypeClasses
+  - FlexibleInstances
+  - TypeApplications
+  - ScopedTypeVariables
+  - NamedFieldPuns
+  - FlexibleContexts
+library:
+  source-dirs: src
+  exposed-modules:
+    - FlexTask.DefaultConfig
+    - FlexTask.FormUtil
+    - FlexTask.Generic.Form
+    - FlexTask.Generic.Parse
+    - FlexTask.Interpreter
+    - FlexTask.Types
+    - FlexTask.YesodConfig
+  ghc-options:
+    - -Wall
+    - -Widentities
+    - -Werror
+    - -Wno-x-partial
+tests:
+  flex-task-test:
+    main: Spec.hs
+    source-dirs:
+      - test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -Wall
+      - -Widentities
+      - -Werror
+    dependencies:
+      - flex-task
+      - hspec

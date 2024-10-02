@@ -14,8 +14,8 @@ category: E-Learning
 description: Please see the README on GitHub at <https://github.com/marcellussiegburg/haskell-template-setup#readme>
 dependencies:
   - base >= 4.7 && < 5
+  - flex-task
   - logic-tasks
-  - ma-patrick-ritzenfeld
   - output-blocks
   - parsec
   - string-interpolate

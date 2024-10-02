@@ -1,29 +1,9 @@
 ---
-name: ma-patrick-ritzenfeld
+name: flex-task-processing
 extra-source-files: [ ]
 dependencies:
   - base
-  - blaze-html
-  - containers
-  - directory
-  - extra
-  - fast-logger
-  - filepath
-  - ghc
-  - hint
-  - mtl
-  - output-blocks
-  - parsec
-  - QuickCheck
-  - raw-strings-qq
-  - SHA
-  - shakespeare
-  - split
-  - string-interpolate
   - text
-  - transformers
-  - yesod
-  - yesod-core
 default-extensions:
   - TupleSections
   - DuplicateRecordFields
@@ -37,21 +17,14 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
-    - FlexTask.DefaultConfig
-    - FlexTask.FormUtil
-    - FlexTask.Generic.Form
-    - FlexTask.Generic.Parse
-    - FlexTask.Interpreter
     - FlexTask.Processing.Text
-    - FlexTask.Types
-    - FlexTask.YesodConfig
   ghc-options:
     - -Wall
     - -Widentities
     - -Werror
     - -Wno-x-partial
 tests:
-  ma-patrick-ritzenfeld-test:
+  flex-task-test:
     main: Spec.hs
     source-dirs:
       - test
@@ -63,5 +36,5 @@ tests:
       - -Widentities
       - -Werror
     dependencies:
-      - ma-patrick-ritzenfeld
+      - flex-task-processing
       - hspec
