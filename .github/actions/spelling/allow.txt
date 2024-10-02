@@ -32,6 +32,7 @@ geparst
 geparste
 GHC
 Graphviz
+gshow
 Handlern
 Haskells
 Helferfunktionen
