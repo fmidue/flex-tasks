@@ -109,13 +109,13 @@ description path inst = LT.description (path <> "/") inst
 module Parse (parseSubmission) where
 
 
-import FlexTask.Generic.Parse  (Parse(parseInput))
-import Text.Parsec             (ParseError, parse)
+import FlexTask.Generic.Parse  (parseInput, useParser)
+import Text.Parsec             (ParseError)
 
 import Global
 
 
 
 parseSubmission :: String -> Either ParseError Solution
-parseSubmission = parse parseInput ""
+parseSubmission = useParser parseInput
 

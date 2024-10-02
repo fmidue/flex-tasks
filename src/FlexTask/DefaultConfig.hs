@@ -212,9 +212,8 @@ Generic for it to use this feature.
 module Parse (parseSubmission) where
 
 
-import Data.String.Interpolate (i)
 import Data.Text               (Text)
-import FlexTask.Generic.Parse  (parseInput)
+import FlexTask.Generic.Parse  (parseInput, useParser)
 import GHC.Generics            (Generic)
 import Text.Parsec             (ParseError, parse)
 
@@ -226,6 +225,6 @@ import Global
 
 
 parseSubmission :: String -> Either ParseError Solution
-parseSubmission = parse parseInput ""
+parseSubmission = useParser parseInput
 
 |]

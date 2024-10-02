@@ -371,7 +371,8 @@ import Data.List.Split         (chunksOf)
 import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
-  escaped
+  escaped,
+  useParser
   )
 import Text.Parsec (
   (<|>),
@@ -419,4 +420,4 @@ instance Parse Table where
 
 
 parseSubmission :: String -> Either ParseError Submission
-parseSubmission = parse parseInput ""
+parseSubmission = useParser parseInput

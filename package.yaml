@@ -19,6 +19,7 @@ dependencies:
   - SHA
   - shakespeare
   - split
+  - string-interpolate
   - text
   - transformers
   - yesod

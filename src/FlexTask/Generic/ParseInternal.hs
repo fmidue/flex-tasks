@@ -8,6 +8,7 @@ module FlexTask.Generic.ParseInternal
   , parseInstanceSingleChoice
   , parseInstanceMultiChoice
   , escaped
+  , useParser
   ) where
 
 
@@ -15,13 +16,15 @@ import Control.Monad      (void)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
-  ( (<|>)
+  ( ParseError
+  , (<|>)
   , between
   , lookAhead
   , manyTill
   , many1
   , notFollowedBy
   , optionMaybe
+  , parse
   , sepBy
   , try
   )
@@ -203,3 +206,8 @@ escaped = between escape escape
 
 parseText :: Text -> Parser String
 parseText t = string $ T.unpack t
+
+
+
+useParser :: Parser a -> String -> Either ParseError a
+useParser p = parse p ""

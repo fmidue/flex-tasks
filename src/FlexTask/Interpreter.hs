@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# Language QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 
 {- |
@@ -20,6 +21,7 @@ import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (replace)
 import Data.Map                     (elems)
+import Data.String.Interpolate      (i)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Data.Typeable                (Typeable)
@@ -192,41 +194,52 @@ checkSolution taskData globalCode parseCode checkCode submission picPath = do
       setImportsQ
         [ ("Control.OutputCapable.Blocks.Type", Just "OC")
         , ("Data.Either", Just "E")
+        , ("Text.Parsec", Just "P")
+        , ("Text.Parsec.Error", Just "PE")
         ]
       setTopLevelModules ["Check", "Parse"]
       interpret checkSyntaxAbort infer
 
-    checkSyntaxAbort = unlines $
-      "do" :
-      indent (
-       "let" :
-       indent
-        [ "isAbort (OC.Refuse _)          = True"
-        , "isAbort (OC.Assertion False _) = True"
-        , "isAbort _                      = False"
-        , "parsed = " <> parseSubmission
-        , "syn = " <> "either (refuse . code . show)" <>
-           parens (check "checkSyntax") <> "parsed"
-        ]
-       ++
-       [ "synRes <- OC.getOutputSequence syn"
-       , "if any isAbort synRes"
-       , "  then"
-       , "    pure (synRes,Nothing)"
-       , "  else do"
-       , "    let sem = " <> check "checkSemantics" <>
-              "(E.fromRight undefined parsed)"
-       , "    semRes <- OC.getOutputSequenceWithRating sem"
-       , "    pure (synRes, Just semRes)"
-       ])
+    checkSyntaxAbort = [i|
+    let
+      showWithFieldNumber :: String -> P.ParseError -> String
+      showWithFieldNumber input e = "Error in input field " ++ fieldNum ++ ":" ++ errors
+        where
+          fieldNum = show $ length (filter (=='\\a') consumed) `div` 2 + 1
+          errors = PE.showErrorMessages
+            "or"
+            "unknown parse error"
+            "expecting"
+            "unexpected"
+            "end of input"
+            $ PE.errorMessages e
+          consumed = take (P.sourceColumn $ P.errorPos e) input
 
-    indent = map ("  " ++)
+      isAbort (OC.Refuse _)          = True
+      isAbort (OC.Assertion False _) = True
+      isAbort _                      = False
+    in
+      do
+        let
+          parsed = parseSubmission #{input}
+          syn = either
+            (refuse . code . showWithFieldNumber #{input})
+            (checkSyntax #{tData} #{path})
+            parsed
+        synRes <- OC.getOutputSequence syn
+        if any isAbort synRes
+          then
+            pure (synRes,Nothing)
+          else do
+            let sem = checkSemantics #{tData} #{path} (E.fromRight undefined parsed)
+            semRes <- OC.getOutputSequenceWithRating sem
+            pure (synRes, Just semRes)
+    |]
 
-    check func = func <> parens taskData <> show picPath
+    tData = parens taskData
+    input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
+    path = show picPath
 
-    parseSubmission =
-        "parseSubmission " <>
-        removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
 
 
 
