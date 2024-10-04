@@ -1,6 +1,5 @@
 ABCD
 checktemplate
-clearpage
 cname
 deng
 eingabe
@@ -27,7 +26,6 @@ lockform
 loesen
 Loesungs
 minipage
-newpage
 nobreakdash
 nointer
 oss
@@ -39,3 +37,4 @@ tAndFModule
 testinter
 textbackslash
 writeUncachedAndGetPaths
+YOURFORM

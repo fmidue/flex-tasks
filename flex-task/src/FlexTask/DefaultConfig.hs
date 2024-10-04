@@ -6,7 +6,7 @@ module FlexTask.DefaultConfig (defaultConfig) where
 
 import Text.RawString.QQ (rQ)
 
-import FlexTask.Types ( CommonModules(..), FlexConf(..))
+import FlexTask.Types (CommonModules(..), FlexConf(..))
 
 
 
@@ -26,7 +26,7 @@ dGlobalDefs = [rQ|
 
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Definitions inside this module can be imported everywhere.
+Module for shared definitions. Can be imported in any other segment.
 Adjust the solution type or add utility functions here.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
@@ -40,23 +40,54 @@ type DescData = (Int,Int,Int)
 |]
 
 
--- REMINDER: REWRITE THIS USAGE MANUAL!
+
 dTaskData :: String
 dTaskData = [rQ|
 
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-generate the solution, description data and form here.
-supply a function 'getTask',
-which returns a tuple of description data, interpolated feedback functions and input form.
+Module for generating static task data, possibly randomised.
+This includes (in order):
 
-If no special form is required you may use
-the generic function 'formify' to generate a form for you.
-Derive Generic for your solution type and add
-an instance of Formify without a body.
-the expression 'formify fieldNames [OPTIONAL DEFAULT VALUE(S) or Nothing]' will then generate a form
-with synced field names.
-When using a custom form, consider that the field names must match the actual form.
+- Flexible data available to both the task description and the checks/feedback. (String)
+- The entire "Check" module, containing a syntax and a semantics check. (String, use QuasiQuoting)
+- An HTML input form represented by the names of all contained input fields and HTML code,
+  wrapped in IO. (IO ([String],String))
+
+Provide a function
+getTask :: Gen (String, String, IO ([String],String))
+implementing a generator for these elements.
+
+If no specific form is required, you may use 'formify' to generate a generic form for you,
+based on the type of your input.
+Derive Generic for your solution type and add an instance of Formify without a body. The expression
+
+formify {OPTIONAL DEFAULT VALUE(S) OR Nothing} STRUCTURE
+
+will then generate a form with synchronised field names.
+See the 'FlexTask.Generic.Form' documentation for more information.
+
+You can also create custom forms, if something more sophisticated is required.
+The forms are normal Yesod MForms that are wrapped in a Reader Monad.
+The Reader models the insertion of a security HTML fragment for POST and GET forms
+that is automatically performed when rendering the form.
+
+To write your own form, simply design an MForm first, as described in the Yesod book.
+Then replace the returned FormResult with a list of field names.
+Make sure that the field names match the names used in the actual form.
+Finally, run the form in the reader Monad using the following expression (import 'reader' from 'Control.Monad.Reader'):
+
+reader $ \frag -> YOURFORM
+
+and interpolate the HTML argument at the top of the contained widget:
+
+...
+#{frag}
+...
+
+You can compose multiple forms using the '$$>' infix function.
+This will mostly be necessary when using a generated form together with a custom one.
+Apply 'getFormData' to your finished form to obtain the data for the generator.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
@@ -105,13 +136,42 @@ form = formify (Nothing :: Maybe Solution) fieldNames
 
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Evaluate the parsed solution here.
-edit this interpolation function to create a checker for syntax
-as well as semantics.
-You may import additional modules in this template.
-Keep in mind that slashes must be escaped.
-I.e. when writing an anonymous function, write
+Use this function to create the 'Check' module.
+The entire module is first created as a String.
+It will later be written to file as an actual module.
+This module must contain two functions:
+
+checkSyntax :: OutputCapable m => StoredDataType -> FilePath -> SolutionType -> LangM m
+
+checkSemantics :: OutputCapable m => StoredDataType -> FilePath -> SolutionType -> Rated m
+
+StoredDataType is the actual type of the flexible data generated above.
+It is stored in the task instance and passed to both check functions.
+Used to store variable data affected by random generation.
+SolutionType is the actual type of the student submission after parsing.
+The FilePath argument is the server path for storing and loading images and other data.
+It is supplied by the caller of the checker functions and can be used as is, if file creation is required.
+The type signature must also be adjusted in this case.
+A 'MonadIO m' constraint must be set for file operations to work (including an import of the type class).
+Otherwise, the FilePath argument can be completely ignored.
+
+The functions' result types are taken from 'Control.OutputCapable.Blocks'.
+They model a type-independent representation of checks and corresponding feedback.
+Refer to the libraries' documentation for help.
+LangM is feedback without a score.
+Rated is feedback with a final score as a fraction, i.e. 0 to 1.
+
+As this function produces a String, you can also use interpolation.
+Use to precompute data and interpolate the results directly into the module.
+This is most useful for static data, that is not affected by random generation, and expensive calculations.
+Note that slashes must be escaped.
+I.e. when introducing an anonymous function, write
 '\\x -> ...' instead of '\x -> ...' to avoid compile failure.
+
+checkSyntax will always run first.
+If it does not succeed, then checkSemantics will not be evaluated for the submission.
+checkSemantics is only run if checkSyntax finished successfully,
+i.e. no syntax error was found in the given solution.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
@@ -153,13 +213,21 @@ checkSemantics (_,sol) _ try
 
 |]
 
--- EXPAND/EDIT INSTRUCTIONS
+
 dDescription :: String
 dDescription = [rQ|
 
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-generate the task description by supplying a function "description" here.
+Module for writing the task description.
+This needs to contain the function
+
+description :: OutputCapable m => FilePath -> StoredDataType -> LangM m
+
+where StoredDataType, FilePath and LangM are as explained in the 'Check' module.
+This function is also supplied with static task data, the same as the check functions.
+If different data is required, consider splitting the type into a tuple of two different contents,
+one for each of the modules.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
@@ -193,19 +261,39 @@ description _ ((one,two,three),_) = do
 
 |]
 
--- REMINDER: REWRITE THIS USAGE MANUAL!
+
 dParse :: String
 dParse = [rQ|
 
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Parse the solution given as a String here.
-Supply a function 'parseSubmission',
-which parses the input and returns your desired solution type.
-If no special parsing is required, you can do as above and
-generate a parser by using the generic function parseInput.
-Instantiate your type for the type class Parse and derive
-Generic for it to use this feature.
+Module for parsing the student submission.
+Must contain the function
+
+parseSubmission :: String -> Either ParseError Solution
+
+where the given String is the submission.
+The parsers used are those of 'Text.Parsec'.
+Refer to its documentation if necessary.
+
+As with forms, a generic parser interface is available.
+The steps are similar:
+Derive Generic for your data type and include an instance declaration of 'Parse' without an implementation.
+It is also possible to write your own, using standard Parsec functions.
+The submission has a specific encoding, which is already taken into account by automatically generated parsers.
+When using a custom parser, you need to include the encoding or your parser will fail.
+The 'escaped' function from 'FlexTask.Generic.Parse' takes a parser and reads the encoding around it.
+This ensures that your custom parser will work as expected.
+
+If your submission type consists of types with generic parsers, as well as custom parsers,
+do not write a custom parser for the whole type.
+Instead, use bodyless instances for the component types where possible
+and use custom parsers for those where not applicable.
+Finally, use the bodyless instance method for the entire type.
+This is again necessary to avoid encoding problems that are caused internally by argument delimiters.
+
+To implement parseSubmission, you can use the 'useParser' function, again supplied by 'FlexTask.Generic.Parse'.
+It only takes your parser as an argument.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
