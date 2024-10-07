@@ -29,7 +29,6 @@ minipage
 nobreakdash
 nointer
 oss
-pkgdb
 PKGDB
 RWS
 staticpost
