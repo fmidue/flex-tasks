@@ -124,6 +124,6 @@ getFormData widget = do
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
       html <- withUrlRenderer [hamlet|
-        ^{pageBody content}
-        ^{pageHead content}|]
+        ^{pageHead content}
+        ^{pageBody content}|]
       return (names,html)
