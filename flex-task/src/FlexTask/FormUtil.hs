@@ -123,5 +123,7 @@ getFormData widget = do
       ((names,wid),_) <- runFormGet $ runReader widget
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
-      html <- withUrlRenderer [hamlet|^{pageBody content}|]
+      html <- withUrlRenderer [hamlet|
+        ^{pageBody content}
+        ^{pageHead content}|]
       return (names,html)
