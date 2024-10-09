@@ -26,8 +26,9 @@ import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Data.Typeable                (Typeable)
 import Language.Haskell.Interpreter (
+    GhcError(errMsg),
     Interpreter,
-    InterpreterError,
+    InterpreterError(..),
     infer,
     interpret,
     loadModules,
@@ -181,14 +182,14 @@ checkSolution
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
-  -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
+  -> IO ([Output], Maybe (Maybe Rational, [Output]))
 checkSolution taskData globalCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
       ]
-    runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
+    runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence . extract
   where
     runCheck = do
       setImportsQ
@@ -262,7 +263,7 @@ writeUncachedAndGetPaths xs = do
 
 
 extract :: Either InterpreterError c -> c
-extract = either (error . show) id
+extract = either (error . prettyError) id
 
 
 hash :: Show a => a -> String
@@ -294,3 +295,10 @@ imageLinks = concatMap gatherLinks
     gatherLinks (Itemized oss)   = imageLinks $ concat oss
     gatherLinks (Indented os)    = imageLinks os
     gatherLinks _                = []
+
+
+prettyError :: InterpreterError -> String
+prettyError (UnknownError s) = "Unknown Error: " ++ s
+prettyError (NotAllowed s) = "Not allowed: " ++ s
+prettyError (GhcException s) = "GHC exception occured: " ++ s
+prettyError (WontCompile ghcErrors) = "Won't compile: " ++ unlines (map errMsg ghcErrors)
