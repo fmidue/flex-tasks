@@ -58,9 +58,7 @@ addContent form content = fmap (second (<* toWidget content)) <$> form
 
 
 {- |
-Add additional content to a rendered form.
-Use to include CSS and/or JavaScript via the usual `Yesod` Shakespeare methods.
-A direct composition without using this function is also possible for custom forms.
+Like `addContent`, but for including CSS and JavaScript at the same time.
 -}
 addCssAndJs :: (Functor m, ToWidget FlexForm a, ToWidget FlexForm b) => Rendered' m -> a -> b -> Rendered' m
 addCssAndJs form css js = fmap (second ((<* toWidget css) . (<* toWidget js))) <$> form
