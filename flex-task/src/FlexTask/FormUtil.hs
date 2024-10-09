@@ -1,5 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
+{-# language TypeOperators #-}
 
 {- | Functions for creating and composing forms.
 -}
@@ -23,6 +24,7 @@ import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Cassius                    (Css)
 import Text.Julius                     (Javascript, RawJS(..))
 import Yesod
+import Yesod.Core.Types                (RY)
 import Yesod.Default.Config2           (makeYesodLogger)
 
 import qualified Control.Monad.Trans.RWS as RWS   (get)
@@ -61,7 +63,7 @@ addContent form content = fmap (second (<* toWidget content)) <$> form
 {- |
 Like `addContent`, but for including CSS and JavaScript at the same time.
 -}
-addCssAndJs :: Functor m => Rendered' m -> Css -> Javascript -> Rendered' m
+addCssAndJs :: (render ~ RY FlexForm,Functor m) => Rendered' m -> (render -> Css) -> (render -> Javascript) -> Rendered' m
 addCssAndJs form css js = fmap (second ((<* toWidget css) . (<* toWidget js))) <$> form
 
 
