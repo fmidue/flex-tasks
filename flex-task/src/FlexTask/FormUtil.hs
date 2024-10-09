@@ -53,7 +53,7 @@ f1 $$> f2 = do
 
 {- |
 Add additional content to a rendered form.
-Use to include CSS and/or JavaScript via the usual `Yesod` Shakespeare methods.
+Use to include CSS and/or Javascript via the usual `Yesod` Shakespeare methods.
 A direct composition without using this function is also possible for custom forms.
 -}
 addContent :: (Functor m, ToWidget FlexForm a) => Rendered' m -> a -> Rendered' m
@@ -61,7 +61,7 @@ addContent form content = fmap (second (<* toWidget content)) <$> form
 
 
 {- |
-Like `addContent`, but for including CSS and JavaScript at the same time.
+Like `addContent`, but for including CSS and Javascript at the same time.
 -}
 addCssAndJs :: (render ~ RY FlexForm,Functor m) => Rendered' m -> (render -> Css) -> (render -> Javascript) -> Rendered' m
 addCssAndJs form css js = fmap (second ((<* toWidget css) . (<* toWidget js))) <$> form
