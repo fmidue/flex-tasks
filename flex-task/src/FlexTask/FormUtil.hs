@@ -6,6 +6,7 @@
 
 module FlexTask.FormUtil
   ( ($$>)
+  , addContent
   , getFormData
   , newFlexId
   , newFlexName
@@ -15,6 +16,7 @@ module FlexTask.FormUtil
 
 import Control.Monad.Reader            (runReader)
 import Data.Text                       (Text, pack, unpack)
+import Data.Tuple.Extra                (second)
 import System.Log.FastLogger           (defaultBufSize, newStdoutLoggerSet)
 import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Julius                     (RawJS(..))
@@ -31,18 +33,28 @@ import FlexTask.YesodConfig  (FlexForm(..), Handler, Rendered, Rendered')
 
 
 {- |
-compose two forms sequentially.
+Compose two forms sequentially.
 The output form contains all of the fields from both input forms.
 -}
 infixr 0 $$>
 ($$>) :: Monad m => Rendered' m -> Rendered' m -> Rendered' m
-first $$> second = do
-    res1 <- first
-    res2 <- second
+f1 $$> f2 = do
+    res1 <- f1
+    res2 <- f2
     pure $ do
       (names1,wid1) <- res1
       (names2,wid2) <- res2
       pure (names1++names2, wid1 >> wid2)
+
+
+{- |
+Add additional content to a rendered form.
+Use to include CSS and/or JavaScript via the usual `Yesod` Shakespeare methods.
+A direct composition without using this function is also possible for custom forms.
+-}
+addContent :: (Functor m, ToWidget FlexForm a) => Rendered' m -> a -> Rendered' m
+addContent form content = do
+    fmap (second (<* toWidget content)) <$> form
 
 
 {- |
