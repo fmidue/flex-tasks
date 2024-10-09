@@ -302,7 +302,7 @@ imageLinks = concatMap gatherLinks
 Custom display of Hint InterpreterError messages.
 -}
 prettyError :: InterpreterError -> String
-prettyError (UnknownError s) = "Unknown Error: " ++ s
-prettyError (NotAllowed s) = "Not allowed: " ++ s
-prettyError (GhcException s) = "GHC exception occured: " ++ s
-prettyError (WontCompile ghcErrors) = "Won't compile: " ++ unlines (map errMsg ghcErrors)
+prettyError (UnknownError s) = "Unknown error:\n" ++ s
+prettyError (NotAllowed s) = "Not allowed:\n" ++ s
+prettyError (GhcException s) = "GHC exception occured:\n" ++ s
+prettyError (WontCompile ghcErrors) = "Won't compile:\n" ++ unlines (map errMsg ghcErrors)
