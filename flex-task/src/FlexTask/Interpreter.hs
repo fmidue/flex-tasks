@@ -304,5 +304,5 @@ Custom display of Hint InterpreterError messages.
 prettyError :: InterpreterError -> String
 prettyError (UnknownError s) = "Unknown error:\n" ++ s
 prettyError (NotAllowed s) = "Not allowed:\n" ++ s
-prettyError (GhcException s) = "GHC exception occured:\n" ++ s
+prettyError (GhcException s) = "GHC exception occurred:\n" ++ s
 prettyError (WontCompile ghcErrors) = "Won't compile:\n" ++ unlines (map errMsg ghcErrors)
