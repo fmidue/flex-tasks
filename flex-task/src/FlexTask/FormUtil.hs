@@ -20,7 +20,8 @@ import Data.Text                       (Text, pack, unpack)
 import Data.Tuple.Extra                (second)
 import System.Log.FastLogger           (defaultBufSize, newStdoutLoggerSet)
 import Text.Blaze.Html.Renderer.String (renderHtml)
-import Text.Julius                     (RawJS(..))
+import Text.Cassius                    (Css)
+import Text.Julius                     (Javascript, RawJS(..))
 import Yesod
 import Yesod.Default.Config2           (makeYesodLogger)
 
@@ -60,7 +61,7 @@ addContent form content = fmap (second (<* toWidget content)) <$> form
 {- |
 Like `addContent`, but for including CSS and JavaScript at the same time.
 -}
-addCssAndJs :: (Functor m, ToWidget FlexForm a, ToWidget FlexForm b) => Rendered' m -> a -> b -> Rendered' m
+addCssAndJs :: Functor m => Rendered' m -> Css -> Javascript -> Rendered' m
 addCssAndJs form css js = fmap (second ((<* toWidget css) . (<* toWidget js))) <$> form
 
 
