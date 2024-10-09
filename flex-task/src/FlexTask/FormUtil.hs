@@ -83,7 +83,7 @@ addCss = addContent
 
 
 {- |
-Add Javascript to a form.
+Add JavaScript to a form.
 Use with `Yesod` Julius Shakespeare quasi quoters or hosted files.
 -}
 addJs
@@ -95,7 +95,7 @@ addJs = addContent
 
 
 {- |
-Like `addCss` and `addJs`, but for including CSS and Javascript in one step.
+Like `addCss` and `addJs`, but for including CSS and JavaScript in one step.
 -}
 addCssAndJs
   :: (render ~ RY FlexForm, Functor m)
