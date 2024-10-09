@@ -7,6 +7,7 @@
 module FlexTask.FormUtil
   ( ($$>)
   , addContent
+  , addCssAndJs
   , getFormData
   , newFlexId
   , newFlexName
@@ -53,8 +54,16 @@ Use to include CSS and/or JavaScript via the usual `Yesod` Shakespeare methods.
 A direct composition without using this function is also possible for custom forms.
 -}
 addContent :: (Functor m, ToWidget FlexForm a) => Rendered' m -> a -> Rendered' m
-addContent form content = do
-    fmap (second (<* toWidget content)) <$> form
+addContent form content = fmap (second (<* toWidget content)) <$> form
+
+
+{- |
+Add additional content to a rendered form.
+Use to include CSS and/or JavaScript via the usual `Yesod` Shakespeare methods.
+A direct composition without using this function is also possible for custom forms.
+-}
+addCssAndJs :: (Functor m, ToWidget FlexForm a, ToWidget FlexForm b) => Rendered' m -> a -> b -> Rendered' m
+addCssAndJs form css js = fmap (second ((<* toWidget css) . (<* toWidget js))) <$> form
 
 
 {- |
