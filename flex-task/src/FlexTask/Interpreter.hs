@@ -10,6 +10,7 @@ The interpreted code is usually supplied by accessing data stored in `FlexInst` 
 module FlexTask.Interpreter
   ( checkSolution
   , genFlexInst
+  , prettyError
   , runWithPackageDB
   , validDescription
   ) where
@@ -182,14 +183,14 @@ checkSolution
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
-  -> IO ([Output], Maybe (Maybe Rational, [Output]))
+  -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
 checkSolution taskData globalCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
       ]
-    runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence . extract
+    runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
     runCheck = do
       setImportsQ
@@ -297,6 +298,9 @@ imageLinks = concatMap gatherLinks
     gatherLinks _                = []
 
 
+{- |
+Custom display of Hint InterpreterError messages.
+-}
 prettyError :: InterpreterError -> String
 prettyError (UnknownError s) = "Unknown Error: " ++ s
 prettyError (NotAllowed s) = "Not allowed: " ++ s
