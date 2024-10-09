@@ -7,7 +7,8 @@
 
 module FlexTask.FormUtil
   ( ($$>)
-  , addContent
+  , addCss
+  , addJs
   , addCssAndJs
   , getFormData
   , newFlexId
@@ -31,7 +32,13 @@ import qualified Control.Monad.Trans.RWS as RWS   (get)
 import qualified Data.Text               as T     (replace)
 import qualified Yesod.Core.Unsafe       as Unsafe
 
-import FlexTask.YesodConfig  (FlexForm(..), Handler, Rendered, Rendered')
+import FlexTask.YesodConfig (
+  FlexForm(..),
+  Handler,
+  Rendered,
+  Rendered',
+  Widget,
+  )
 
 
 
@@ -51,20 +58,52 @@ f1 $$> f2 = do
       pure (names1++names2, wid1 >> wid2)
 
 
-{- |
-Add additional content to a rendered form.
-Use to include CSS and/or Javascript via the usual `Yesod` Shakespeare methods.
-A direct composition without using this function is also possible for custom forms.
--}
-addContent :: (Functor m, ToWidget FlexForm a) => Rendered' m -> a -> Rendered' m
-addContent form content = fmap (second (<* toWidget content)) <$> form
+applyToWidget :: Functor m => (Widget -> Widget) -> Rendered' m -> Rendered' m
+applyToWidget f form = fmap (second f) <$> form
+
+
+addContent
+  :: (ToWidget FlexForm (render -> a), Functor m)
+  => (render -> a)
+  -> Rendered' m
+  -> Rendered' m
+addContent content = applyToWidget (<* toWidget content)
 
 
 {- |
-Like `addContent`, but for including CSS and Javascript at the same time.
+Add CSS to a form.
+Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters or hosted files.
 -}
-addCssAndJs :: (render ~ RY FlexForm,Functor m) => Rendered' m -> (render -> Css) -> (render -> Javascript) -> Rendered' m
-addCssAndJs form css js = fmap (second ((<* toWidget css) . (<* toWidget js))) <$> form
+addCss
+  :: (render ~ RY FlexForm, Functor m)
+  => (render -> Css) -- ^ CSS template
+  -> Rendered' m     -- ^ Form to add to
+  -> Rendered' m
+addCss = addContent
+
+
+{- |
+Add Javascript to a form.
+Use with `Yesod` Julius Shakespeare quasi quoters or hosted files.
+-}
+addJs
+  :: (render ~ RY FlexForm, Functor m)
+  => (render -> Javascript) -- ^ Javascript template
+  -> Rendered' m            -- ^ Form to add to
+  -> Rendered' m
+addJs = addContent
+
+
+{- |
+Like `addCss` and `addJs`, but for including CSS and Javascript in one step.
+-}
+addCssAndJs
+  :: (render ~ RY FlexForm, Functor m)
+  => (render -> Css)        -- ^ CSS template
+  -> (render -> Javascript) -- ^ Javascript template
+  -> Rendered' m            -- ^ Form to add to
+  -> Rendered' m
+addCssAndJs css js = applyToWidget ((<* toWidget css) . (<* toWidget js))
 
 
 {- |
