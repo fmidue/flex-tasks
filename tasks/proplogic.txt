@@ -35,7 +35,7 @@ import Data.List.Split         (chunksOf)
 import Data.Maybe              (fromJust)
 import Data.Text               (Text)
 import Data.String.Interpolate (i)
-import FlexTask.FormUtil       (($$>), addCss, getFormData, newFlexId, newFlexName)
+import FlexTask.FormUtil       (($$>), addCss, getFormData)
 import FlexTask.Generic.Form (
   Alignment(..),
   FieldInfo,
@@ -69,13 +69,13 @@ getParticipants = vectorOf 4 arbitrary `suchThat` or
 
 getTask :: Gen (String, String, IO ([String],String))
 getTask = do
-    values@[a,b,c,d] <- getParticipants
+    [a,b,c,d] <- getParticipants
     names <- getNames
     (formula, legend, hints) <- formulaAndHints a b c d names
     let
       zipped = [(a, A), (b, B), (c, C), (d, D)]
       coming = [ n | (True,n) <- zipped ]
-    pure (show ((legend,hints),coming), checkers formula startingTable False True, getFormData (form names))
+    pure (show ((legend,hints),coming), checkers formula False True, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
     form n = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
@@ -123,7 +123,7 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
     auch :: String
     auch = " auch"
 
-    neg b x = if b then Neg (Atomic x) else Atomic x
+    neg expr x = if expr then Neg (Atomic x) else Atomic x
     part1 = Assoc Impl
              (Brackets $ Assoc And (neg b 'B') (neg d 'D'))
              (neg (not c) 'C')
@@ -198,13 +198,13 @@ deriving instance Data (PropFormula Char)
 
 startingTable :: [[Maybe Binary]]
 startingTable = map (Just . Binary . toEnum . digitToInt) <$>
-    transpose (pad . (`showBin` "") <$> [0..15])
+    transpose (pad . (`showBin` "") <$> [0..15 :: Int])
   where pad s = replicate (4 - length s) '0' ++ s
 
 
 
-checkers :: PropFormula Char -> [[Maybe Binary]] -> Bool -> Bool -> String
-checkers fSol startingTable tableRequired showSolution = [i|
+checkers :: PropFormula Char -> Bool -> Bool -> String
+checkers fSol tableRequired showSolution = [i|
 
 {-\# language ApplicativeDo \#-}
 {-\# language OverloadedStrings \#-}
@@ -212,16 +212,14 @@ checkers fSol startingTable tableRequired showSolution = [i|
 module Check (checkSemantics, checkSyntax) where
 
 
-import Control.Monad (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput(..)
     )
 import Data.Foldable (toList)
-import Data.Functor  (($>))
-import Data.List     (isInfixOf, transpose)
-import Data.Maybe    (catMaybes, fromJust, isJust)
-import Data.Map      ((!), fromList)
+import Data.List     (isInfixOf)
+import Data.Maybe    (catMaybes, fromJust)
+import Data.Map      (fromList)
 import Data.Ratio    (Ratio, (%))
 import Data.Tuple    (swap)
 
@@ -272,7 +270,7 @@ instance ToSAT (PropFormula Char) where
 
 
 checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
-checkSyntax _ _ (Table xs,f,n) = do
+checkSyntax _ _ (Table xs,_,n) = do
     assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ translate $
       german "Tabellenspalten existieren nur einmal?."
     assertion (not (null n)) $ translate $
@@ -291,18 +289,18 @@ checkSemantics (_,nSol) _ (Table xs,f,n) = do
     let subFormulas = all (`isSubFormula` f) $ catMaybes nonStaticHeaders
     #{checkType} subFormulas $ translate $
           german "Tabellenspalten sind Teilformeln der Gesamtformel?"
-    let correctValues = all correctColumn [(f,b)| (Just f,b) <- drop 4 xs]
+    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- drop 4 xs]
     #{checkType} correctValues $ translate $
           german "Tabellenspalten enthalten korrekte Warheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ translate $
           german "Formel enthält alle vorkommenden Literale?"
-    let correctFormula = isSemanticEqual (#{gshow fSol}) f
+    let correctFormula = isSemanticEqual #{gshow fSol} f
     yesNo correctFormula $ translate $
           german "Die aussagenlogische Formel ist korrekt?"
     let correctNames = n == nSol
     yesNo correctNames $ translate $
           german "Die Liste der Teilnehmer ist korrekt?"
-    let correct = filter (==True) [correctStart, correctFormula, correctNames, correctValues]
+    let correct = filter id [correctStart, correctFormula, correctNames, correctValues]
     let points = fromIntegral (length correct) % 4
     res <- printSolutionAndAssert IndefiniteArticle maybeAnswer points
     pure res
@@ -329,10 +327,8 @@ module Description (description) where
 
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
-import Data.String.Interpolate                   (i)
 
 import Global
-
 
 
 description :: OutputCapable m => FilePath -> ((String,[String]),a) -> LangM m
@@ -358,9 +354,6 @@ description _ ((legend,hints),_) = do
 module Parse (parseSubmission) where
 
 
-import Data.Char               (showLitChar)
-import Data.String.Interpolate (i)
-import Data.Text               (Text)
 import Data.List               (transpose)
 import Data.List.Split         (chunksOf)
 import FlexTask.Generic.Parse (
@@ -372,19 +365,11 @@ import FlexTask.Generic.Parse (
 import Text.Parsec (
   (<|>),
   ParseError,
-  choice,
-  many1,
-  parse,
   string,
-  try
   )
-import Text.Parsec.Char       (char, oneOf)
-import Text.Parsec.String     (Parser)
-
 import Trees.Types (PropFormula(..))
 import Trees.Parsing ()
 
-import qualified Data.Text as T
 import qualified Formula.Parsing as FP
 
 import Global
