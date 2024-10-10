@@ -1,12 +1,17 @@
 ABCD
 Buf
 Equi
+esac
 flexident
 formify
 gformify
 gparse
 gshow
+hlint
+lindex
 oss
 PKGDB
+proplogic
 RWS
 YOURFORM
+usr

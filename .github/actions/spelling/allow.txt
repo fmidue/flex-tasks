@@ -13,11 +13,13 @@ foldr
 fst
 ghc
 GHC
+ghci
 github
 Graphviz
 mform
 MForms
 mopt
+pkgdb
 standalone
 typeclasses
 uncached
