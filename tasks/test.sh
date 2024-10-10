@@ -22,6 +22,10 @@ outputfile2="${base_name}/TaskData.hs"
 outputfile3="${base_name}/Description.hs"
 outputfile4="${base_name}/Parse.hs"
 current_output="$outputfile1"
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+echo -e "${CYAN}Writing .hs files...${NC}"
 
 mkdir -p ${base_name}
 > "$outputfile1"
@@ -50,7 +54,12 @@ while IFS= read -r line || [ -n "$line" ]; do
   echo "${line//$'\r'/}" >> "$current_output"
 done < "$1"
 
+echo -e "${CYAN}Interpreting the code files...${NC}"
+
 export GHC_PACKAGE_PATH=$PWD/$2/pkgdb
 cd $base_name
 expect $expect_script $3
+
+echo -e "${CYAN}writing Hlint report...${NC}"
+
 hlint . --report
