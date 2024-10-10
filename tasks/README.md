@@ -8,7 +8,7 @@ A folder named after the task will be created, containing all of the .hs files a
 
 `./test.sh TASK_PATH PKG_DB_PATH`
 
-### example:
+### example
 
 `./test.sh proplogic.txt flex-pkgdb/pkgdb`
 

@@ -24,7 +24,7 @@ NC='\033[0m'
 echo -e "${CYAN}Writing .hs files...${NC}"
 
 mkdir -p "${base_name}"
-true > "$outputfile1"
+true >"$outputfile1"
 rm -f "$outputfile2" "$outputfile3" "$outputfile4"
 
 while IFS= read -r line || [ -n "$line" ]; do
@@ -33,22 +33,22 @@ while IFS= read -r line || [ -n "$line" ]; do
     case $current_output in
       "$outputfile1")
         current_output="$outputfile2"
-        true > "$outputfile2"
+        true >"$outputfile2"
         ;;
       "$outputfile2")
         current_output="$outputfile3"
-        true > "$outputfile3"
+        true >"$outputfile3"
         ;;
       "$outputfile3")
         current_output="$outputfile4"
-        true > "$outputfile4"
+        true >"$outputfile4"
         ;;
     esac
     # Skip writing the line with ===
     continue
   fi
-  echo "${line//$'\r'/}" >> "$current_output"
-done < "$1"
+  echo "${line//$'\r'/}" >>"$current_output"
+done <"$1"
 
 echo -e "${CYAN}Interpreting the code files...${NC}"
 
@@ -60,7 +60,7 @@ ghc_version="${temp%-*.conf.copy}"
 cd "$base_name" || exit 1
 expect "$expect_script" "$ghc_version" |
   sed '/GHCi, version/d;/ghci> /d;/Ok, [four,two]\+ modules loaded./d' |
-    ansi2html > ghc.html
+  ansi2html > ghc.html
 
 echo -e "${CYAN}writing Hlint report...${NC}"
 hlint . --report -q
