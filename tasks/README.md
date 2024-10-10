@@ -2,7 +2,7 @@
 
 Use the  `test.sh` script to develop your task configurations.
 This will interpret the individual files in GHC and run HLint on them.
-A folder named after the task will be created, containing all of the .hs files and two HTML reports. 
+A folder named after the task will be created, containing all of the .hs files and two HTML reports.
 
 ## Usage
 
