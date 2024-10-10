@@ -6,15 +6,13 @@ A folder named after the task will be created, containing all of the .hs files a
 
 ## Usage
 
-`./test.sh TASK_PATH PKG_DB_PATH GHC_VERSION`
+`./test.sh TASK_PATH PKG_DB_PATH`
 
 ### example:
 
-`./test.sh proplogic.txt flex-pkgdb/pkgdb 9.8.2`
+`./test.sh proplogic.txt flex-pkgdb/pkgdb`
 
 ## Notes
 
 - Generate a package database using [our tool](https://github.com/fmidue/haskell-template-setup)
 - Both `TASK_PATH` and `PKG_DB_PATH` are given as relative paths (have to be in this folder)
-- `GHC_VERSION` has to match the version of the package database.
-  This is determined by the used resolver inside the stack.yaml when building the database.
