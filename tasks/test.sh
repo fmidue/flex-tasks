@@ -58,8 +58,12 @@ echo -e "${CYAN}Interpreting the code files...${NC}"
 
 export GHC_PACKAGE_PATH=$PWD/$2/pkgdb
 cd $base_name
-expect $expect_script $3
+expect $expect_script $3 |
+  sed '/GHCi, version/d;/ghci> /d;/Ok, [four,two]\+ modules loaded./d' |
+    ansi2html > ghc.html
 
 echo -e "${CYAN}writing Hlint report...${NC}"
+hlint . --report -q
+echo -e "${CYAN}Done! Check the reports in ghc.html and report.html.${NC}"
 
-hlint . --report
+
