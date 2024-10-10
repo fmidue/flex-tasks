@@ -4,7 +4,7 @@ set path [lindex $argv 0];
 set ver [lindex $argv 1];
 
 log_user 0
-spawn ghc-$ver --interactive "$path/Global.hs" "$path/TaskData.hs" "$path/Parse.hs" "$path/Description.hs"
+spawn ghc-$ver --interactive $path/Global.hs $path/TaskData.hs $path/Parse.hs $path/Description.hs
 log_user 1
 expect "*"
 expect "Ok, four modules loaded.*"
