@@ -1,10 +1,9 @@
 #!/usr/bin/env expect
 
-set path [lindex $argv 0];
-set ver [lindex $argv 1];
+set ver [lindex $argv 0];
 
 log_user 0
-spawn ghc-$ver --interactive $path/Global.hs $path/TaskData.hs $path/Parse.hs $path/Description.hs
+spawn ghc-$ver --interactive Global.hs TaskData.hs Parse.hs Description.hs -Wall
 log_user 1
 expect "*"
 expect "Ok, four modules loaded.*"
@@ -13,9 +12,9 @@ send "import Test.QuickCheck.Gen\n"
 expect "ghci> "
 send "import Data.Tuple.Extra\n"
 expect "ghci> "
-send "writeFile \"$path/Check.hs\" =<< (snd3 <$> (generate TaskData.getTask))\n"
+send "writeFile \"Check.hs\" =<< (snd3 <$> (generate TaskData.getTask))\n"
 expect "ghci> "
-send ":l $path/Global.hs $path/Check.hs\n"
+send ":l Check.hs\n"
 expect "*"
 expect "Ok, two modules loaded.*"
 expect "ghci> "

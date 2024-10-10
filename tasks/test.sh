@@ -16,6 +16,7 @@ if [[ ! $3 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
 fi
 
 base_name=$(basename "$1" | sed 's/\(.*\)\..*/\1/')
+expect_script="$PWD/runGhci.expect"
 outputfile1="${base_name}/Global.hs"
 outputfile2="${base_name}/TaskData.hs"
 outputfile3="${base_name}/Description.hs"
@@ -50,6 +51,6 @@ while IFS= read -r line || [ -n "$line" ]; do
 done < "$1"
 
 export GHC_PACKAGE_PATH=$PWD/$2/pkgdb
-expect runGhci.expect $base_name $3
-cd ${base_name}
+cd $base_name
+expect $expect_script $3
 hlint . --report
