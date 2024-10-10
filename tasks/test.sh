@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 3 ]; then
-  echo "Usage: $0 inputfile pkgdb-directory ghc-version"
+if [ $# -ne 2 ]; then
+  echo "Usage: $0 inputfile pkgdb-directory"
   exit 1
 fi
 
@@ -10,12 +10,8 @@ if [[ ! -f $1 || ! -d $2 ]]; then
   exit 1
 fi
 
-if [[ ! $3 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
-  echo "invalid ghc version!"
-  exit 1
-fi
-
 base_name=$(basename "$1" | sed 's/\(.*\)\..*/\1/')
+pkg_path=$PWD/$2/pkgdb
 expect_script="$PWD/runGhci.expect"
 outputfile1="${base_name}/Global.hs"
 outputfile2="${base_name}/TaskData.hs"
@@ -56,9 +52,13 @@ done < "$1"
 
 echo -e "${CYAN}Interpreting the code files...${NC}"
 
-export GHC_PACKAGE_PATH=$PWD/$2/pkgdb
+export GHC_PACKAGE_PATH=$pkg_path
+ghc_file=$(find $pkg_path -name "ghci*" -print -quit)
+temp="${ghc_file##*/ghci-}"
+ghc_version="${temp%-*.conf.copy}"
+
 cd $base_name
-expect $expect_script $3 |
+expect $expect_script $ghc_version |
   sed '/GHCi, version/d;/ghci> /d;/Ok, [four,two]\+ modules loaded./d' |
     ansi2html > ghc.html
 
