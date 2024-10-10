@@ -15,7 +15,7 @@ import Data.String.Interpolate          (i)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig             (Rendered)
-import Tasks.ComposeFormula.Config      (ComposeFormulaInst, defaultComposeFormulaConfig)
+import Tasks.ComposeFormula.Config      (defaultComposeFormulaConfig)
 import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
 
@@ -48,12 +48,13 @@ checkers = [i|
 module Check where
 
 
-import Control.Monad.IO.Class           (MonadIO (liftIO))
+import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput
     )
 import Data.Ratio
+import Data.Functor                     (($>))
 import Formula.Parsing.Delayed          (delayed)
 import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
 import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
@@ -82,7 +83,7 @@ checkSemantics
   -> FilePath
   -> Solution
   -> Rated m
-checkSemantics inst path try = completeGrade path inst (delayed $ toListString try) *> pure 1.0
+checkSemantics inst path try = completeGrade path inst (delayed $ toListString try) $> 1.0
 
 |]
 
@@ -102,7 +103,7 @@ import qualified LogicTasks.Syntax.ComposeFormula as LT
 
 
 description :: (OutputCapable m, MonadIO m) => FilePath -> ComposeFormulaInst -> LangM m
-description path inst = LT.description (path <> "/") inst
+description path = LT.description (path <> "/")
 
 =============================================
 
