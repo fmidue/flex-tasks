@@ -66,4 +66,3 @@ echo -e "${CYAN}writing Hlint report...${NC}"
 hlint . --report -q
 echo -e "${CYAN}Done! Check the reports in ghc.html and report.html.${NC}"
 
-

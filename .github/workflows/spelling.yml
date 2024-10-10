@@ -61,6 +61,7 @@ jobs:
             cspell:aws/aws.txt
             cspell:haskell/dict/haskell.txt
             cspell:php/dict/php.txt
+            cspell:shell/dict/shell-all-words.txt
             cspell:software-terms/dict/softwareTerms.txt
             cspell:filetypes/filetypes.txt
             cspell:de_DE/src/German_de_DE.dic
