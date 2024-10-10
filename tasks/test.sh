@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 1 ]; then
-  echo "Usage: $0 inputfile"
+if [ $# -ne 3 ]; then
+  echo "Usage: $0 inputfile pkgdb-directory ghc-version"
   exit 1
 fi
 
-if [ ! -f $1 ]; then
-  echo "file does not exist"
+if [[ ! -f $1 || ! -d $2 ]]; then
+  echo "file or pkgdb directory does not exist!"
+  exit 1
+fi
+
+if [[ ! $3 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+  echo "invalid ghc version!"
   exit 1
 fi
 
@@ -44,5 +49,7 @@ while IFS= read -r line || [ -n "$line" ]; do
   echo "${line//$'\r'/}" >> "$current_output"
 done < "$1"
 
+export GHC_PACKAGE_PATH=$PWD/$2/pkgdb
+expect runGhci.expect $base_name $3
 cd ${base_name}
 hlint . --report
