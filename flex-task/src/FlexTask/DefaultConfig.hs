@@ -97,27 +97,20 @@ Apply 'getFormData' to your finished form to obtain the data for the generator.
 module TaskData (getTask) where
 
 
-import Data.Text               (Text)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig    (Rendered)
-import GHC.Generics            (Generic)
 import Data.String.Interpolate (i)
 import Test.QuickCheck.Gen
-
-import qualified Data.Text as T
 
 import Global
 
 
 
 
-genNumbers = vectorOf 3 $ elements ([1..6] :: [Int])
-
-
 getTask :: Gen (String, String, IO ([String],String))
 getTask = do
-    numbers <- genNumbers
+    numbers <- vectorOf 3 $ elements [1..6 :: Int]
     let
       descData = (numbers !! 0, numbers !! 1, numbers !! 2)
       checkData = (product numbers, sum numbers)
@@ -300,15 +293,10 @@ It only takes your parser as an argument.
 module Parse (parseSubmission) where
 
 
-import Data.Text               (Text)
 import FlexTask.Generic.Parse  (parseInput, useParser)
-import GHC.Generics            (Generic)
-import Text.Parsec             (ParseError, parse)
-
-import qualified Data.Text as T
+import Text.Parsec             (ParseError)
 
 import Global
-
 
 
 
