@@ -9,6 +9,15 @@ log_user 1
 expect "*"
 expect "Ok, four modules loaded.*"
 expect "ghci> "
+send "import Test.QuickCheck.Gen\n"
+expect "ghci> "
+send "import Data.Tuple.Extra\n"
+expect "ghci> "
+send "writeFile \"$path/Check.hs\" =<< (snd3 <$> (generate TaskData.getTask))\n"
+expect "ghci> "
+send ":l composeFormula/Global.hs composeFormula/Check.hs\n"
+expect "*"
+expect "Ok, two modules loaded.*"
+expect "ghci> "
 send ":q\n"
-
 
