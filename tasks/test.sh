@@ -31,18 +31,18 @@ while IFS= read -r line || [ -n "$line" ]; do
   # Check for module separator
   if [[ "$line" =~ === ]]; then
     case $current_output in
-      "$outputfile1")
-        current_output="$outputfile2"
-        true >"$outputfile2"
-        ;;
-      "$outputfile2")
-        current_output="$outputfile3"
-        true >"$outputfile3"
-        ;;
-      "$outputfile3")
-        current_output="$outputfile4"
-        true >"$outputfile4"
-        ;;
+    "$outputfile1")
+      current_output="$outputfile2"
+      true >"$outputfile2"
+      ;;
+    "$outputfile2")
+      current_output="$outputfile3"
+      true >"$outputfile3"
+      ;;
+    "$outputfile3")
+      current_output="$outputfile4"
+      true >"$outputfile4"
+      ;;
     esac
     # Skip writing the line with ===
     continue
