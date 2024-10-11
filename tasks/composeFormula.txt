@@ -50,10 +50,6 @@ module Check where
 
 import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput
-    )
-import Data.Ratio
 import Data.Functor                     (($>))
 import Formula.Parsing.Delayed          (delayed)
 import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
@@ -94,7 +90,6 @@ module Description (description) where
 
 import Control.Monad.IO.Class                    (MonadIO)
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
 import Tasks.ComposeFormula.Config               (ComposeFormulaInst(..))
 import Trees.Types                               (BinOp(..), SynTree(..))
 

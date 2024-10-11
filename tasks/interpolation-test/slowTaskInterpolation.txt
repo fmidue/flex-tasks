@@ -45,10 +45,6 @@ module Check (checkSemantics, checkSyntax) where
 
 
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput,
-    )
-import Data.Ratio
 
 import Global
 
@@ -90,7 +86,6 @@ module Description (description) where
 
 
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
 
 
 

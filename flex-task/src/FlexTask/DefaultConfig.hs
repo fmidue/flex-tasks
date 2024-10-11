@@ -178,8 +178,6 @@ module Check (checkSyntax, checkSemantics) where
 
 
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
-import Data.Ratio
 
 import Global
 
@@ -231,7 +229,6 @@ module Description (description) where
 
 
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
 import Data.String.Interpolate                   (i)
 
 import Global

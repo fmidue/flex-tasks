@@ -213,14 +213,11 @@ module Check (checkSemantics, checkSyntax) where
 
 
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (
-    GenericOutput(..)
-    )
 import Data.Foldable (toList)
 import Data.List     (isInfixOf)
 import Data.Maybe    (catMaybes, fromJust)
 import Data.Map      (fromList)
-import Data.Ratio    (Ratio, (%))
+import Data.Ratio    ((%))
 import Data.Tuple    (swap)
 
 import LogicTasks.Formula (isSemanticEqual, ToSAT(..))
@@ -326,9 +323,7 @@ module Description (description) where
 
 
 import Control.OutputCapable.Blocks
-import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
 
-import Global
 
 
 description :: OutputCapable m => FilePath -> ((String,[String]),a) -> LangM m
