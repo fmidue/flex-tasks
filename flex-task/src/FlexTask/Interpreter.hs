@@ -34,6 +34,7 @@ import Language.Haskell.Interpreter (
     interpret,
     loadModules,
     parens,
+    setImports,
     setImportsQ,
     setTopLevelModules
     )
@@ -90,7 +91,7 @@ genFlexInst
       }
     where
       tfInter :: Interpreter (Gen GenOutput)
-      tfInter = setTopLevelModules ["TaskData"] >>
+      tfInter = setTopLevelModules ["TaskData", "Global"] >>
                   interpret "getTask " infer
 
 
@@ -109,9 +110,10 @@ makeDescription taskData global description picPath = do
           ]
     runWithPackageDB $ loadModules filePaths >> descInter
   where
-    descInter =
-      setTopLevelModules ["Description"] >>
-        interpret ("description " ++ show picPath ++ parens taskData) infer
+    descInter = do
+      setTopLevelModules ["Description", "Global"]
+      setImports ["Control.OutputCapable.Blocks.Generic.Type"]
+      interpret ("description " ++ show picPath ++ parens taskData) infer
 
 
 
@@ -193,32 +195,35 @@ checkSolution taskData globalCode parseCode checkCode submission picPath = do
     runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
     runCheck = do
-      setImportsQ
-        [ ("Control.OutputCapable.Blocks.Type", Just "OC")
-        , ("Data.Either", Just "E")
-        , ("Text.Parsec", Just "P")
-        , ("Text.Parsec.Error", Just "PE")
-        ]
-      setTopLevelModules ["Check", "Parse"]
+      setImportsQ $
+        ("Control.OutputCapable.Blocks.Type", Just "OBT"):
+        map (,Nothing)
+          [ "Data.Either"
+          , "Text.Parsec"
+          , "Text.Parsec.Error"
+          , "Control.OutputCapable.Blocks.Generic.Type"
+          , "Data.Ratio"
+          ]
+      setTopLevelModules ["Check", "Parse", "Global"]
       interpret checkSyntaxAbort infer
 
     checkSyntaxAbort = [i|
     let
-      showWithFieldNumber :: String -> P.ParseError -> String
+      showWithFieldNumber :: String -> ParseError -> String
       showWithFieldNumber input e = "Error in input field " ++ fieldNum ++ ":" ++ errors
         where
           fieldNum = show $ length (filter (=='\\a') consumed) `div` 2 + 1
-          errors = PE.showErrorMessages
+          errors = showErrorMessages
             "or"
             "unknown parse error"
             "expecting"
             "unexpected"
             "end of input"
-            $ PE.errorMessages e
-          consumed = take (P.sourceColumn $ P.errorPos e) input
+            $ errorMessages e
+          consumed = take (sourceColumn $ errorPos e) input
 
-      isAbort (OC.Refuse _)          = True
-      isAbort (OC.Assertion False _) = True
+      isAbort (Refuse _)          = True
+      isAbort (Assertion False _) = True
       isAbort _                      = False
     in
       do
@@ -228,13 +233,13 @@ checkSolution taskData globalCode parseCode checkCode submission picPath = do
             (refuse . code . showWithFieldNumber #{input})
             (checkSyntax #{tData} #{path})
             parsed
-        synRes <- OC.getOutputSequence syn
+        synRes <- OBT.getOutputSequence syn
         if any isAbort synRes
           then
             pure (synRes,Nothing)
           else do
-            let sem = checkSemantics #{tData} #{path} (E.fromRight undefined parsed)
-            semRes <- OC.getOutputSequenceWithRating sem
+            let sem = checkSemantics #{tData} #{path} (fromRight undefined parsed)
+            semRes <- OBT.getOutputSequenceWithRating sem
             pure (synRes, Just semRes)
     |]
 
