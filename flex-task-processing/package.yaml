@@ -38,3 +38,5 @@ tests:
     dependencies:
       - flex-task-processing
       - hspec
+      - QuickCheck
+      - quickcheck-instances

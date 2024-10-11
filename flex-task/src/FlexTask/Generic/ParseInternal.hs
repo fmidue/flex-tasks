@@ -34,7 +34,13 @@ import Yesod              (Textarea(..))
 
 import qualified Data.Text    as T
 
-import FlexTask.Processing.Text (argDelimiter, listDelimiter, inputEscape)
+import FlexTask.Processing.Text (
+  argDelimiter,
+  emptyMarker,
+  inputEscape,
+  listDelimiter,
+  missingMarker
+  )
 import FlexTask.Generic.Form
   ( MultipleChoiceSelection
   , SingleChoiceSelection
@@ -145,14 +151,14 @@ instance (Parse a, Parse b, Parse c, Parse d) => Parse (a,b,c,d)
 instance {-# Overlappable #-} Parse a => Parse [a] where
   parseInput = try (escaped parseEmpty) <|> sepBy parseInput (parseText listDelimiter)
     where
-      parseEmpty = string "Missing" >> pure []
+      parseEmpty = parseText missingMarker >> pure []
 
 
 
 instance Parse a => Parse (Maybe a) where
   parseInput = do
-    mMissing <- optionMaybe $ try $ escaped $ string "None"
-    case mMissing of
+    mValue <- optionMaybe $ try $ escaped $ parseText emptyMarker
+    case mValue of
       Nothing -> Just <$> parseInput
       Just _  -> pure Nothing
 

@@ -10,6 +10,8 @@ module FlexTask.Processing.Text
     argDelimiter
   , listDelimiter
   , inputEscape
+  , missingMarker
+  , emptyMarker
     -- * formatting functions
   , formatAnswer
   , formatIfFlexSubmission
@@ -45,6 +47,13 @@ listDelimiter = "\b\b"
 inputEscape :: Text
 inputEscape = "\""
 
+-- | Marker for a missing field
+missingMarker :: Text
+missingMarker = "Missing"
+
+-- | Marker for a blank optional field
+emptyMarker :: Text
+emptyMarker = "None"
 
 
 escape :: Text -> Text
@@ -107,9 +116,9 @@ Remove excessive escape characters in front of Unicode
 caused by conversion between Haskell and JavaScript representation.
 -}
 removeUnicodeEscape :: String -> String
-removeUnicodeEscape (a:b:xs)
-    | a == '\\' && isDigit b   = b : removeUnicodeEscape xs
-    | otherwise                = a : removeUnicodeEscape (b:xs)
+removeUnicodeEscape cs@(a:b:c:d:e:xs)
+    | a == '\\' && all isDigit [b,c,d,e] = b:c:d:e: removeUnicodeEscape xs
+    | otherwise                = a : removeUnicodeEscape (drop 1 cs)
 removeUnicodeEscape xs         = xs
 
 
