@@ -6,7 +6,6 @@ checkers = [i|
 module Check (checkSemantics, checkSyntax) where
 
 
-import Control.Monad                (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput,
@@ -38,8 +37,8 @@ checkSemantics sol _ (a,b) = do
     pure 1.0
   where
     neighbourTups = zip3 sol (drop 1 sol) (drop 2 sol)
-    fromNeighbourTups f = map (\\(a,b,c) -> b) $ filter f $ neighbourTups
-    noNegNeighbours = fromNeighbourTups (\\(a,b,c) -> a >= 0 || c >= 0)
-    noDiv3Neighbours = fromNeighbourTups (\\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
+    fromNeighbourTups f = map (\\(_,b,_) -> b) $ filter f neighbourTups
+    noNegNeighbours = fromNeighbourTups (\\(a,_,c) -> a >= 0 || c >= 0)
+    noDiv3Neighbours = fromNeighbourTups (\\(a,_,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
 
 |]

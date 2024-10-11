@@ -78,7 +78,6 @@ checkers solution = [i|
 module Check (checkSemantics, checkSyntax) where
 
 
-import Control.Monad                (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput
@@ -130,13 +129,8 @@ description _ input = do
 module Parse (parseSubmission) where
 
 
-import Data.String.Interpolate (i)
-import Data.Text               (Text)
 import FlexTask.Generic.Parse  (parseInput, useParser)
-import GHC.Generics            (Generic)
 import Text.Parsec             (ParseError)
-
-import qualified Data.Text as T
 
 import Global
 

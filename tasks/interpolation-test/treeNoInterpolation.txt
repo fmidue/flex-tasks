@@ -6,7 +6,6 @@ checkers = [i|
 module Check (checkSemantics, checkSyntax) where
 
 
-import Control.Monad                (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput

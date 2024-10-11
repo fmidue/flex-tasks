@@ -44,7 +44,6 @@ checkers solution = [i|
 module Check (checkSemantics, checkSyntax) where
 
 
-import Control.Monad                (when, unless)
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (
     GenericOutput,
@@ -79,9 +78,9 @@ checkSemantics _ _ (a,b) = do
 |]
   where
     neighbourTups = zip3 solution (drop 1 solution) (drop 2 solution)
-    fromNeighbourTups f = map (\(a,b,c) -> b) $ filter f $ neighbourTups
-    noNegNeighbours = fromNeighbourTups (\(a,b,c) -> a >= 0 || c >= 0)
-    noDiv3Neighbours = fromNeighbourTups (\(a,b,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
+    fromNeighbourTups f = map (\(_,b,_) -> b) $ filter f neighbourTups
+    noNegNeighbours = fromNeighbourTups (\(a,_,c) -> a >= 0 || c >= 0)
+    noDiv3Neighbours = fromNeighbourTups (\(a,_,c) -> a `mod` 3 /= 0 || c `mod` 3 /= 0)
 
 =============================================
 
@@ -92,8 +91,6 @@ module Description (description) where
 
 import Control.OutputCapable.Blocks
 import Control.OutputCapable.Blocks.Generic.Type (GenericOutput)
-
-import Global
 
 
 
@@ -124,13 +121,8 @@ description _ input = do
 module Parse (parseSubmission) where
 
 
-import Data.String.Interpolate (i)
-import Data.Text               (Text)
 import FlexTask.Generic.Parse  (parseInput, useParser)
-import GHC.Generics            (Generic)
 import Text.Parsec             (ParseError)
-
-import qualified Data.Text as T
 
 import Global
 
