@@ -9,6 +9,7 @@ gparse
 gshow
 hlint
 lindex
+OBT
 oss
 PKGDB
 proplogic
