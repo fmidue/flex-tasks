@@ -64,6 +64,8 @@ test-suite flex-task-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      FlexTask.DefaultConfigSpec
+      FlexTask.TypesSpec
       Paths_flex_task
   hs-source-dirs:
       test

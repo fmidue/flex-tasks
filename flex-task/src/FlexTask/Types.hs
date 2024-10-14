@@ -10,6 +10,7 @@ module FlexTask.Types
   ( CommonModules(..)
   , FlexInst(..)
   , FlexConf(..)
+  , delimiter
 
   , parseFlexConfig
   , showFlexConfig
@@ -67,8 +68,9 @@ data CommonModules = CommonModules {
 
 
 
+-- | Visual module separator for configuration display.
 delimiter :: String
-delimiter = "============================================="
+delimiter = "\n=============================================\n"
 
 
 
@@ -123,6 +125,7 @@ parseFlexConfig = do
         }
     where
       atLeastThree = do
-        void $ string "==="
-        many $ char '='
+        void $ string "\n==="
+        void $ many $ char '='
+        char '\n'
       untilSep = manyTill anyChar $ try atLeastThree
