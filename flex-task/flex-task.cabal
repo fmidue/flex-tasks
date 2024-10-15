@@ -101,6 +101,7 @@ test-suite flex-task-test
     , mtl
     , output-blocks
     , parsec
+    , quickcheck-instances
     , raw-strings-qq
     , shakespeare
     , split
