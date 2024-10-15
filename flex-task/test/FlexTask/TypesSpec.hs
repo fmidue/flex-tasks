@@ -7,6 +7,7 @@ module FlexTask.TypesSpec where
 
 import Data.List                        (intercalate)
 import Test.Hspec                       (Spec, describe, it, shouldBe)
+import Test.Hspec.Parsec                (shouldParse)
 import Test.Hspec.QuickCheck            (prop)
 import Test.QuickCheck                  (forAll, vectorOf)
 import Test.QuickCheck.Arbitrary        (Arbitrary(..))
@@ -30,11 +31,11 @@ spec = do
   describe "parseFlexConfig" $
     it "always successfully parses when encountering 3 delimiters" $
       forAll (vectorOf 4 arbitrary) $ \xs ->
-        parse parseFlexConfig "" (intercalate delimiter xs) `shouldBe` Right (conf xs)
+        parse parseFlexConfig "" (intercalate delimiter xs) `shouldParse` conf xs
 
   describe "both" $ do
     prop "are inverse to each other" $ \fConf ->
-      parse parseFlexConfig "" (showFlexConfig fConf) `shouldBe` Right fConf
+      parse parseFlexConfig "" (showFlexConfig fConf) `shouldParse` fConf
 
     where
       conf [globalModule, taskDataModule, descriptionModule, parseModule] =

@@ -65,3 +65,5 @@ tests:
     dependencies:
       - flex-task
       - hspec
+      - hspec-parsec
+      - quickcheck-instances
