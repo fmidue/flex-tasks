@@ -65,6 +65,8 @@ test-suite flex-task-test
   main-is: Spec.hs
   other-modules:
       FlexTask.DefaultConfigSpec
+      FlexTask.FormUtilSpec
+      FlexTask.TestUtil
       FlexTask.TypesSpec
       Paths_flex_task
   hs-source-dirs:

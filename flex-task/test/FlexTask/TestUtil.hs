@@ -4,7 +4,11 @@ module FlexTask.TestUtil where
 import Control.Exception                (Exception, try)
 import Control.Monad                    (when)
 import Data.Typeable                    (typeOf)
-import Test.Hspec                       (Selector, expectationFailure)
+import Test.Hspec (
+  Selector,
+  expectationFailure,
+  shouldReturn,
+  )
 
 
 
@@ -22,3 +26,7 @@ action `shouldNotThrow` p = do
 
     instanceOf :: Selector a -> a
     instanceOf _ = error "broken Typeable instance"
+
+
+shouldReturnSame :: (Show a, Eq a) => IO a -> IO a -> IO ()
+shouldReturnSame a b = a >>= shouldReturn b
