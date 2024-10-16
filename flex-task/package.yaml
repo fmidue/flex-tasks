@@ -64,6 +64,7 @@ tests:
       - -Werror
     dependencies:
       - flex-task
+      - flex-task-processing
       - hspec
       - hspec-parsec
       - quickcheck-instances

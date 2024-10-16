@@ -131,13 +131,16 @@ instance Parse Double where
     whole <- many1 digit
     dot <- optionMaybe (char '.' <|> char ',')
     frac <- case dot of
-              Nothing -> pure []
-              Just _  -> ('.':) <$> many1 digit
+      Nothing -> pure []
+      Just _  -> ('.':) <$> do
+        num <- many1 digit
+        maybe num (num ++) <$> optionMaybe eParser
     pure $ read $ case sign of
-                    Nothing ->     whole
-                    Just s  -> s : whole
-                  ++ frac
-
+      Nothing ->     whole
+      Just s  -> s : whole
+      ++ frac
+    where
+      eParser = (++) <$> string "e-" <*> many1 digit
 
 
 instance (Parse a, Parse b) => Parse (a,b)

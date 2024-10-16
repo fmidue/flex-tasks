@@ -66,6 +66,8 @@ test-suite flex-task-test
   other-modules:
       FlexTask.DefaultConfigSpec
       FlexTask.FormUtilSpec
+      FlexTask.Generic.FormSpec
+      FlexTask.Generic.ParseSpec
       FlexTask.TestUtil
       FlexTask.TypesSpec
       Paths_flex_task
