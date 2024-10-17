@@ -1,9 +1,10 @@
+---
 name: Haddock to GitHub pages
 
 on:
   workflow_run:
     workflows: ["Haskell CI"]
-    branches: [ 21-haddock-workflow ]
+    branches: [21-haddock-workflow]
     types: completed
 
 jobs:
@@ -15,38 +16,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Cache Stack
-      id: cache-stack-unix
-      uses: actions/cache@v3
-      with:
-        path: ~/.stack
-        key: ubuntu-latest-stack-home-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+      - name: Cache Stack
+        id: cache-stack-unix
+        uses: actions/cache@v3
+        with:
+          path: ~/.stack
+          key: ubuntu-latest-stack-home-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
 
-    - name: Setup stack
-      uses: haskell/actions/setup@v2
-      with:
-        enable-stack: true
-        stack-no-global: true
+      - name: Setup stack
+        uses: haskell/actions/setup@v2
+        with:
+          enable-stack: true
+          stack-no-global: true
 
-    - name: Build Haddock
-      shell: bash
-      run: |
-        shopt -s globstar && \
-        stack exec haddock -- ./src/**/*.hs \
-          $(for m in src/**/Internal/*.hs; do echo -n " --hide  $m" | sed -r -e 's|/|.|g' -e 's|.src.||' -e 's|.hs||'; done) \
-          --html --pretty-html --hyperlinked-source --quickjump \
-          --title="FlexTask" \
-          --prologue=haddock/prologue \
-          --odir docs
+      - name: Build Haddock
+        shell: bash
+        run: |
+          shopt -s globstar && \
+          stack exec haddock -- ./src/**/*.hs \
+            $(for m in src/**/Internal/*.hs; do echo -n " --hide  $m" | sed -r -e 's|/|.|g' -e 's|.src.||' -e 's|.hs||'; done) \
+            --html --pretty-html --hyperlinked-source --quickjump \
+            --title="FlexTask" \
+            --prologue=haddock/prologue \
+            --odir docs
 
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v2
-      with:
-        name: github-pages
-        path: docs
-        retention-days: 1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          name: github-pages
+          path: docs
+          retention-days: 1
 
   deploy:
     needs: build
@@ -61,8 +62,8 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v2
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
