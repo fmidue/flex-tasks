@@ -9,6 +9,8 @@ Also automatic HTML form and parser generation for input data types.
 The repository includes two packages.
 Directory `tasks` includes a collection of sample tasks and a test script.
 
+[Haddock Documentation](https://fmidue.github.io/flex-tasks/)
+
 ### flex-task
 
 Supplies both a way to run tasks, as well as utilities to simplify the creation of said tasks.
