@@ -4,7 +4,7 @@ name: Haddock to GitHub pages
 on:
   workflow_run:
     workflows: ["Haskell CI"]
-    branches: [21-haddock-workflow]
+    branches: [main]
     types: completed
 
 jobs:
@@ -32,7 +32,6 @@ jobs:
           stack-no-global: true
 
       - name: Build Haddock
-        shell: bash
         run: |
           shopt -s globstar && \
           stack exec haddock -- ./src/**/*.hs \
