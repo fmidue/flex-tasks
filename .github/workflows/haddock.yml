@@ -9,7 +9,6 @@ on:
 
 jobs:
   build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
 
@@ -32,20 +31,17 @@ jobs:
           stack-no-global: true
 
       - name: Build Haddock
+        id: haddock
         run: |
-          shopt -s globstar && \
-          stack exec haddock -- ./src/**/*.hs \
-            $(for m in src/**/Internal/*.hs; do echo -n " --hide  $m" | sed -r -e 's|/|.|g' -e 's|.src.||' -e 's|.hs||'; done) \
-            --html --pretty-html --hyperlinked-source --quickjump \
-            --title="FlexTask" \
-            --prologue=haddock/prologue \
-            --odir docs
+          stack haddock --no-haddock-deps \
+            --haddock-arguments "--hyperlinked-source --quickjump --title=FlexTask"
+          echo "doc_path=$(stack path --no-haddock-deps --local-doc-root)" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
           name: github-pages
-          path: docs
+          path: ${{steps.haddock.outputs.doc_path}}
           retention-days: 1
 
   deploy:
