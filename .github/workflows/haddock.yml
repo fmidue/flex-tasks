@@ -2,7 +2,7 @@ name: Haddock to GitHub pages
 
 on:
   workflow_run:
-    workflows: ["Haskell CI (fast)"]
+    workflows: ["Haskell CI"]
     branches: [ 21-haddock-workflow ]
     types: completed
 
