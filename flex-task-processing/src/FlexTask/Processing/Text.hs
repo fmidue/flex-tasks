@@ -84,7 +84,7 @@ toJSUnicode c
 
 
 removeEscape :: Text -> [[Text]]
-removeEscape t = map (\i -> fromMaybe i $ readMaybe $ T.unpack $ T.init $ T.tail i) <$> splitArgs t
+removeEscape t = map (\i -> fromMaybe i $ readMaybe $ T.unpack $ T.drop 1 $ T.dropEnd 1 i) <$> splitArgs t
   where
     splitArgs = map (T.splitOn listDelimiter) . T.splitOn argDelimiter
 
@@ -136,6 +136,6 @@ formatIfFlexSubmission t
     | otherwise = T.unlines numberInputs
     where
       splitArgs = T.splitOn argDelimiter t
-      unescaped = map (read . T.unpack . T.init . T.tail) . T.splitOn listDelimiter <$> splitArgs
+      unescaped = map (read . T.unpack . T.drop 1 . T.dropEnd 1) . T.splitOn listDelimiter <$> splitArgs
       fieldIndices = map (\i -> "Field " <> T.pack (show @Int i) <> ": ") [1..]
       numberInputs = zipWith (<>) fieldIndices $ map (T.intercalate ",") unescaped
