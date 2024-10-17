@@ -16,6 +16,7 @@ GHC
 ghci
 github
 Graphviz
+Hspec
 mform
 MForms
 mopt
