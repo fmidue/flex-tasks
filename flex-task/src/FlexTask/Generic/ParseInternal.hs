@@ -151,11 +151,19 @@ instance (Parse a, Parse b, Parse c, Parse d) => Parse (a,b,c,d)
 
 
 
-instance {-# Overlappable #-} Parse a => Parse [a] where
-  parseInput = try (escaped parseEmpty) <|> sepBy parseInput (parseText listDelimiter)
+parseList :: Parse a => Parser [a]
+parseList = try (escaped parseEmpty) <|> sepBy parseInput (parseText listDelimiter)
     where
       parseEmpty = parseText missingMarker >> pure []
 
+
+instance {-# Overlappable #-} Parse a => Parse [a] where
+  parseInput = parseList
+
+
+-- To avoid clash with TypeError instance in Parse.hs
+instance Parse [String] where
+  parseInput = parseList
 
 
 instance Parse a => Parse (Maybe a) where
