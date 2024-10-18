@@ -22,7 +22,6 @@ import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (replace)
 import Data.Map                     (elems)
-import Data.String.Interpolate      (i)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Data.Typeable                (Typeable)
@@ -35,7 +34,6 @@ import Language.Haskell.Interpreter (
     loadModules,
     parens,
     setImports,
-    setImportsQ,
     setTopLevelModules
     )
 import Language.Haskell.Interpreter.Unsafe (
@@ -49,6 +47,7 @@ import System.Directory (
 import System.Environment          (getEnv)
 import System.FilePath             ((</>), (<.>))
 import Test.QuickCheck.Gen         (Gen)
+import Text.RawString.QQ (rQ)
 
 import FlexTask.Types              (CommonModules(..), FlexConf(..), FlexInst(..))
 import FlexTask.Processing.Text    (removeUnicodeEscape)
@@ -191,62 +190,23 @@ checkSolution taskData globalCode parseCode checkCode submission picPath = do
       [ ("Global", globalCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
+      , ("Helper", helper)
       ]
     runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
     runCheck = do
-      setImportsQ $
-        ("Control.OutputCapable.Blocks.Type", Just "OBT"):
-        map (,Nothing)
-          [ "Data.Either"
-          , "Text.Parsec"
-          , "Text.Parsec.Error"
-          , "Control.OutputCapable.Blocks.Generic.Type"
-          , "Data.Ratio"
-          ]
-      setTopLevelModules ["Check", "Parse", "Global"]
-      interpret checkSyntaxAbort infer
-
-    checkSyntaxAbort = [i|
-    let
-      showWithFieldNumber :: String -> ParseError -> String
-      showWithFieldNumber input e = "Error in input field " ++ fieldNum ++ ":" ++ errors
-        where
-          fieldNum = show $ length (filter (=='\\a') consumed) `div` 2 + 1
-          errors = showErrorMessages
-            "or"
-            "unknown parse error"
-            "expecting"
-            "unexpected"
-            "end of input"
-            $ errorMessages e
-          consumed = take (sourceColumn $ errorPos e) input
-
-      isAbort (Refuse _)          = True
-      isAbort (Assertion False _) = True
-      isAbort _                      = False
-    in
-      do
-        let
-          parsed = parseSubmission #{input}
-          syn = either
-            (refuse . code . showWithFieldNumber #{input})
-            (checkSyntax #{tData} #{path})
-            parsed
-        synRes <- OBT.getOutputSequence syn
-        if any isAbort synRes
-          then
-            pure (synRes,Nothing)
-          else do
-            let sem = checkSemantics #{tData} #{path} (fromRight undefined parsed)
-            semRes <- OBT.getOutputSequenceWithRating sem
-            pure (synRes, Just semRes)
-    |]
+      setImports
+        [ "Control.OutputCapable.Blocks.Generic.Type"
+        , "Data.Ratio"
+        ]
+      setTopLevelModules ["Check", "Parse", "Global", "Helper"]
+      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ tData ++ path) infer
 
     tData = parens taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
     path = show picPath
-
+    helper = [rQ|module Helper (syntaxAndSemantics) where
+      import FlexTask.InterpreterHelper|]
 
 
 

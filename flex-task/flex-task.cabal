@@ -14,6 +14,7 @@ library
       FlexTask.FormUtil
       FlexTask.Generic.Form
       FlexTask.Generic.Parse
+      FlexTask.InterpreterHelper
       FlexTask.Interpreter
       FlexTask.Types
       FlexTask.YesodConfig
@@ -52,7 +53,6 @@ library
     , parsec
     , raw-strings-qq
     , shakespeare
-    , string-interpolate
     , text
     , transformers
     , yesod
@@ -105,7 +105,6 @@ test-suite flex-task-test
     , quickcheck-instances
     , raw-strings-qq
     , shakespeare
-    , string-interpolate
     , text
     , transformers
     , yesod

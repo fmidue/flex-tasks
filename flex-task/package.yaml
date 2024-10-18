@@ -19,7 +19,6 @@ dependencies:
   - raw-strings-qq
   - SHA
   - shakespeare
-  - string-interpolate
   - text
   - transformers
   - yesod
@@ -41,6 +40,7 @@ library:
     - FlexTask.FormUtil
     - FlexTask.Generic.Form
     - FlexTask.Generic.Parse
+    - FlexTask.InterpreterHelper
     - FlexTask.Interpreter
     - FlexTask.Types
     - FlexTask.YesodConfig
