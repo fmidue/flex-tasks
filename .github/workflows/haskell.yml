@@ -53,6 +53,7 @@ jobs:
       - name: Build and test
         run: |
           set -ex
+          export FLEX_PKGDB=$(stack path --local-pkg-db)
           stack --no-terminal test --coverage --bench --no-run-benchmarks --haddock --no-haddock-deps
           set +ex
         env:

@@ -5,7 +5,6 @@ module FlexTask.DefaultConfigSpec where
 
 
 import Control.OutputCapable.Blocks     (ReportT)
-import System.Environment               (setEnv)
 import Test.Hspec (
   Spec,
   anyErrorCall,
@@ -13,7 +12,6 @@ import Test.Hspec (
   context,
   describe,
   it,
-  runIO,
   )
 import Test.Hspec.Parsec                (shouldParse)
 import Test.QuickCheck.Gen              (unGen)
@@ -32,7 +30,12 @@ import FlexTask.Interpreter (
   genFlexInst,
   validDescription,
   )
-import FlexTask.TestUtil                (shouldNotThrow)
+import FlexTask.TestUtil (
+  interpreterError,
+  shouldNotThrow,
+  shouldNotReturnLeft,
+  )
+
 
 
 type TestReport = ReportT (IO ()) IO
@@ -44,7 +47,6 @@ spec = do
     it "is parsed by the config parser" $
       parse parseFlexConfig "" (showFlexConfig defaultConfig)
       `shouldParse` defaultConfig
-    _ <- runIO $ setEnv "FLEX_PKGDB" "none"
     context "generates an instance without throwing an error..." $ do
       beforeAll genInst $ do
         it "and it can be used to build a description" $
@@ -64,7 +66,7 @@ spec = do
               checkModule
               "test"
               ""
-            `shouldNotThrow` anyErrorCall
+            `shouldNotReturnLeft` interpreterError
   where
     genInst = genFlexInst
       defaultConfig

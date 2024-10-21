@@ -32,3 +32,8 @@ In Autotool, you can select the task type `Flex` to input a task configuration. 
 For task development, consider using the provided test script in `tasks`. Please refer to its own readme file.
 
 The generic parsers and input forms can be used as a standalone feature, independently from Autotool.
+
+
+## Running tests
+
+The test suite for flex-task needs a specified external package database. Its path has to be set via the environment variable `FLEX_PKGDB` before running the tests. You can use the default database of the package by setting `FLEX_PKGDB` to `$(stack path --local-pkg-db)`.
