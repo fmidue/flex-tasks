@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.stack
-          key: ${{ matrix.os }}-${{ matrix.plan.build }}-stack-home-${{ hashFiles('stack.yaml') }}-${{ hashFiles('package.yaml') }}
+          key: ${{ matrix.os }}-${{ matrix.plan.build }}-stack-home-${{ hashFiles('stack.yaml') }}-${{ hashFiles('**/package.yaml') }}
 
       - name: Setup stack
         uses: haskell-actions/setup@v2
