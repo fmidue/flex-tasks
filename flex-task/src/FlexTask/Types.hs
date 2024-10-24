@@ -125,7 +125,6 @@ parseFlexConfig = do
         }
     where
       atLeastThree = do
-        void $ string "\n==="
-        void $ many $ char '='
-        char '\n'
+        void $ string "==="
+        many $ char '='
       untilSep = manyTill anyChar $ try atLeastThree
