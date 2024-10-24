@@ -70,7 +70,7 @@ data CommonModules = CommonModules {
 
 -- | Visual module separator for configuration display.
 delimiter :: String
-delimiter = "\n=============================================\n"
+delimiter = "============================================="
 
 
 

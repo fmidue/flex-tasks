@@ -16,4 +16,6 @@ proplogic
 RWS
 usr
 Wno
+xit
+xprop
 YOURFORM
