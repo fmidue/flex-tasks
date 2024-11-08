@@ -116,8 +116,8 @@ Remove excessive escape characters in front of Unicode
 caused by conversion between Haskell and JavaScript representation.
 -}
 removeUnicodeEscape :: String -> String
-removeUnicodeEscape cs@(a:b:c:d:e:xs)
-    | a == '\\' && all isHexDigit [b,c,d,e] = b:c:d:e: removeUnicodeEscape xs
+removeUnicodeEscape cs@(a:b:c:d:xs)
+    | a == '\\' && all isHexDigit [b,c,d] = b:c:d: removeUnicodeEscape xs
     | otherwise                = a : removeUnicodeEscape (drop 1 cs)
 removeUnicodeEscape xs         = xs
 
