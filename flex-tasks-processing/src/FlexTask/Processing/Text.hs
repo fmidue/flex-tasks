@@ -123,7 +123,7 @@ removeUnicodeEscape s@(c:cs)
   where
     (parsed,rest) = case readLitChar s of
       [] -> (c,cs)
-      (x,y):_ -> (x,y)
+      ((x,y):_) -> (x,y)
 
 
 
