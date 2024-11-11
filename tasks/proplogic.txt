@@ -16,7 +16,7 @@ data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
 
 type FormType = (String,[Namen])
 
-type Submission = (Table,PropFormula Char,[Namen])
+type Submission = (Table,String,[Namen])
 
 
 bothLangs :: OutputCapable m => String -> LangM m
@@ -221,6 +221,8 @@ import Data.Map      (fromList)
 import Data.Ratio    ((%))
 
 import LogicTasks.Formula (TruthValue(..), isSemanticEqual, convert)
+import LogicTasks.Parsing (parser)
+import Formula.Parsing.Delayed
 import Trees.Types (PropFormula(..), BinOp(..))
 
 import qualified SAT.MiniSat as Sat
@@ -228,6 +230,9 @@ import qualified Data.Text   as T
 
 import Global
 
+import Control.Monad (void)
+import Text.Parsec (many)
+import Text.Parsec.Char (anyChar)
 
 
 
@@ -249,8 +254,15 @@ isSubFormula a b = noSpaces a `isInfixOf` noSpaces b
 
 
 
+-- (many anyChar) for testing purposes
 checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
-checkSyntax _ _ (Table xs,_,n) = do
+checkSyntax _ _ (table,formula,names) =
+  parseDelayedWithAndThen parser complainAboutMissingParenthesesIfNotFailingOn (void $ many anyChar) (checkSyntax' table names) (delayed formula)
+
+
+
+checkSyntax' :: OutputCapable m => Table -> [Namen] -> PropFormula Char -> LangM m
+checkSyntax' (Table xs) n f = do
     assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
@@ -262,7 +274,12 @@ checkSyntax _ _ (Table xs,_,n) = do
 
 
 checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
-checkSemantics (_,nSol) _ (Table xs,f,n) = do
+checkSemantics (_,nSol) _ (table,formula,names) = withDelayedSucceeding (checkSemantics' nSol table names) parser (delayed formula)
+
+
+
+checkSemantics' :: OutputCapable m => [Namen] -> Table -> [Namen] -> PropFormula Char -> Rated m
+checkSemantics' nSol (Table xs) n f = do
     let correctStart = take 4 columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
