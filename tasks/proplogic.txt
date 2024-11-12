@@ -10,7 +10,7 @@ import Trees.Types (PropFormula)
 instance Eq TruthValue where
   (TruthValue a) == (TruthValue b) = a == b
 
-newtype Table = Table [(Maybe (PropFormula Char), [Maybe TruthValue])] deriving (Eq,Show)
+newtype Table = Table [(Maybe String, [Maybe TruthValue])] deriving (Eq,Show)
 
 data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
 
@@ -215,7 +215,7 @@ module Check (checkSemantics, checkSyntax) where
 
 import Control.OutputCapable.Blocks
 import Data.Foldable (toList)
-import Data.List     (isInfixOf)
+import Data.List     (intercalate, isInfixOf)
 import Data.Maybe    (catMaybes, fromJust)
 import Data.Map      (fromList)
 import Data.Ratio    ((%))
@@ -253,40 +253,56 @@ isSubFormula a b = noSpaces a `isInfixOf` noSpaces b
     noSpaces = filter (/=' ') . show
 
 
+stringTuple :: String -> String -> String
+stringTuple s1 s2 = '(':s1 ++ ',':s2 ++ ")"
+
+
+stringList :: [String] -> String
+stringList xs = '[': intercalate "," xs ++ "]"
+
 
 -- (many anyChar) for testing purposes
 checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
-checkSyntax _ _ (table,formula,names) =
-  parseDelayedWithAndThen parser complainAboutMissingParenthesesIfNotFailingOn (void $ many anyChar) (checkSyntax' table names) (delayed formula)
+checkSyntax _ _ ((Table xs),formula,names) =
+  parseDelayedWithAndThen
+    parser
+    complainAboutMissingParenthesesIfNotFailingOn
+    (void $ many anyChar)
+    (checkSyntax' names)
+    $ delayed $ stringTuple (stringList $ map (fromJust . fst) xs) formula
 
 
 
-checkSyntax' :: OutputCapable m => Table -> [Namen] -> PropFormula Char -> LangM m
-checkSyntax' (Table xs) n f = do
-    assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ bothLangs
+checkSyntax' :: OutputCapable m => [Namen] -> ([PropFormula Char],PropFormula Char) -> LangM m
+checkSyntax' n (xs,f) = do
+    assertion (all (`notElem` map Atomic "ABCD") nonStaticHeaders) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
     pure ()
   where
-    nonStaticHeaders = drop 4 $ map fst xs
+    nonStaticHeaders = drop 4 xs
 
 
 
 checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
-checkSemantics (_,nSol) _ (table,formula,names) = withDelayedSucceeding (checkSemantics' nSol table names) parser (delayed formula)
+checkSemantics (_,nSol) _ ((Table xs),formula,names) =
+  withDelayedSucceeding
+    (checkSemantics' nSol (map snd xs) names)
+    parser
+    $ delayed $ stringTuple (stringList $ map (fromJust . fst) xs) formula
 
 
 
-checkSemantics' :: OutputCapable m => [Namen] -> Table -> [Namen] -> PropFormula Char -> Rated m
-checkSemantics' nSol (Table xs) n f = do
+checkSemantics' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> [Namen] -> ([PropFormula Char],PropFormula Char) -> Rated m
+checkSemantics' nSol columns n (headers,f) = do
     let correctStart = take 4 columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
-    let subFormulas = all (`isSubFormula` f) $ catMaybes nonStaticHeaders
+    let subFormulas = all (`isSubFormula` f) $ nonStaticHeaders
     #{checkType} subFormulas $ bothLangs
       "Tabellenspalten sind Teilformeln der Gesamtformel?"
-    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- drop 4 xs]
+    let correctValues = all correctColumn $ drop 4 $ zip headers columns
     #{checkType} correctValues $ bothLangs
       "Tabellenspalten enthalten korrekte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
@@ -302,7 +318,6 @@ checkSemantics' nSol (Table xs) n f = do
     res <- printSolutionAndAssert IndefiniteArticle maybeAnswer points
     pure res
   where
-    (headers,columns) = unzip xs
     nonStaticHeaders = drop 4 headers
     maybeAnswer = flip (++) (show nSol) <$>
                     #{if showSolution
@@ -378,10 +393,6 @@ instance Parse TruthValue where
   parseInput = escaped FP.parser
 
 
-instance Parse (PropFormula Char) where
-  parseInput = escaped FP.parser
-
-
 instance Parse [Namen] where
   parseInput = parseInstanceMultiChoice
 
@@ -390,7 +401,7 @@ instance Parse [Namen] where
 instance Parse Table where
   parseInput = do
     (headers,values) <- parseInput
-    let allHeaders = map (Just . Atomic) "ABCD" ++ headers
+    let allHeaders = map (Just . (:[])) "ABCD" ++ headers
     pure $ Table $ zip allHeaders $ transpose $ chunksOf 7 values
 
 
