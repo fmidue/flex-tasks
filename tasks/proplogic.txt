@@ -221,7 +221,7 @@ import Data.Map      (fromList)
 import Data.Ratio    ((%))
 
 import LogicTasks.Formula (TruthValue(..), isSemanticEqual, convert)
-import LogicTasks.Parsing (parser)
+import LogicTasks.Parsing (allSymbolParser, parser)
 import Formula.Parsing.Delayed
 import Trees.Types (PropFormula(..), BinOp(..))
 
@@ -229,10 +229,6 @@ import qualified SAT.MiniSat as Sat
 import qualified Data.Text   as T
 
 import Global
-
-import Control.Monad (void)
-import Text.Parsec (many)
-import Text.Parsec.Char (anyChar)
 
 
 
@@ -257,25 +253,28 @@ stringTuple :: String -> String -> String
 stringTuple s1 s2 = '(':s1 ++ ',':s2 ++ ")"
 
 
-stringList :: [String] -> String
-stringList xs = '[': intercalate "," xs ++ "]"
+stringList :: [Maybe String] -> String
+stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
+  where
+    stringMaybe Nothing = "Nothing"
+    stringMaybe (Just s) = s
 
 
--- (many anyChar) for testing purposes
+
 checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
 checkSyntax _ _ ((Table xs),formula,names) =
   parseDelayedWithAndThen
     parser
     complainAboutMissingParenthesesIfNotFailingOn
-    (void $ many anyChar)
+    allSymbolParser
     (checkSyntax' names)
-    $ delayed $ stringTuple (stringList $ map (fromJust . fst) xs) formula
+    $ delayed $ stringTuple (stringList $ map fst xs) formula
 
 
 
-checkSyntax' :: OutputCapable m => [Namen] -> ([PropFormula Char],PropFormula Char) -> LangM m
+checkSyntax' :: OutputCapable m => [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
 checkSyntax' n (xs,f) = do
-    assertion (all (`notElem` map Atomic "ABCD") nonStaticHeaders) $ bothLangs
+    assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
@@ -290,19 +289,19 @@ checkSemantics (_,nSol) _ ((Table xs),formula,names) =
   withDelayedSucceeding
     (checkSemantics' nSol (map snd xs) names)
     parser
-    $ delayed $ stringTuple (stringList $ map (fromJust . fst) xs) formula
+    $ delayed $ stringTuple (stringList $ map fst xs) formula
 
 
 
-checkSemantics' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> [Namen] -> ([PropFormula Char],PropFormula Char) -> Rated m
+checkSemantics' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> Rated m
 checkSemantics' nSol columns n (headers,f) = do
     let correctStart = take 4 columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
-    let subFormulas = all (`isSubFormula` f) $ nonStaticHeaders
+    let subFormulas = all (`isSubFormula` f) $ catMaybes nonStaticHeaders
     #{checkType} subFormulas $ bothLangs
       "Tabellenspalten sind Teilformeln der Gesamtformel?"
-    let correctValues = all correctColumn $ drop 4 $ zip headers columns
+    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- drop 4 $ zip headers columns]
     #{checkType} correctValues $ bothLangs
       "Tabellenspalten enthalten korrekte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
