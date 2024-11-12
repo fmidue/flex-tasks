@@ -3,7 +3,6 @@ module Global where
 
 import Control.OutputCapable.Blocks
 import LogicTasks.Formula (TruthValue(..))
-import Trees.Types (PropFormula)
 
 
 
@@ -262,7 +261,7 @@ stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
 
 
 checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
-checkSyntax _ _ ((Table xs),formula,names) =
+checkSyntax _ _ (Table xs,formula,names) =
   parseDelayedWithAndThen
     parser
     complainAboutMissingParenthesesIfNotFailingOn
@@ -273,23 +272,23 @@ checkSyntax _ _ ((Table xs),formula,names) =
 
 
 checkSyntax' :: OutputCapable m => [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
-checkSyntax' n (xs,f) = do
-    assertion (all (`notElem` map (Just . Atomic) "ABCD") nonStaticHeaders) $ bothLangs
+checkSyntax' n (xs,_) = do
+    assertion (all (`notElem` map (Just . Atomic) "ABCD") $ drop 4 xs) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
     pure ()
-  where
-    nonStaticHeaders = drop 4 xs
 
 
 
 checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
-checkSemantics (_,nSol) _ ((Table xs),formula,names) =
+checkSemantics (_,nSol) _ (Table xs,formula,names) =
   withDelayedSucceeding
-    (checkSemantics' nSol (map snd xs) names)
+    (checkSemantics' nSol columns names)
     parser
-    $ delayed $ stringTuple (stringList $ map fst xs) formula
+    $ delayed $ stringTuple (stringList headers) formula
+  where
+    (headers,columns) = unzip xs
 
 
 
@@ -298,7 +297,7 @@ checkSemantics' nSol columns n (headers,f) = do
     let correctStart = take 4 columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
-    let subFormulas = all (`isSubFormula` f) $ catMaybes nonStaticHeaders
+    let subFormulas = all (`isSubFormula` f) $ catMaybes $ drop 4 headers
     #{checkType} subFormulas $ bothLangs
       "Tabellenspalten sind Teilformeln der Gesamtformel?"
     let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- drop 4 $ zip headers columns]
@@ -317,7 +316,6 @@ checkSemantics' nSol columns n (headers,f) = do
     res <- printSolutionAndAssert IndefiniteArticle maybeAnswer points
     pure res
   where
-    nonStaticHeaders = drop 4 headers
     maybeAnswer = flip (++) (show nSol) <$>
                     #{if showSolution
                        then Just ("Formel:  " ++ show fSol ++ "\nBegleitende: ")
@@ -374,13 +372,8 @@ import FlexTask.Generic.Parse (
   useParser
   )
 import LogicTasks.Formula      (TruthValue)
-import Text.Parsec (
-  (<|>),
-  ParseError,
-  string,
-  )
-import Trees.Types (PropFormula(..))
-import Trees.Parsing ()
+import Text.Parsec             (ParseError)
+import Trees.Parsing           ()
 
 import qualified Formula.Parsing as FP
 
