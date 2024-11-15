@@ -9,6 +9,7 @@ import Data.Text            (Text)
 import Yesod
 
 import FlexTask.FormUtil    (newFlexId, newFlexName, repeatFlexName)
+import FlexTask.Styling     (horizontalRBStyle)
 import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
 
 
@@ -64,9 +65,11 @@ $newline never
     withRadioFieldFlat nothingFun optFun =
       selectFieldHelper outside onOpt inside Nothing
         where
-          outside theId _name _attrs inside' = [whamlet|
+          outside theId _name _attrs inside' =
+            toWidget horizontalRBStyle >> [whamlet|
 $newline never
-<span ##{theId}>^{inside'}
+<div>
+  <span ##{theId}>^{inside'}
 |]
           onOpt theId name isSel = nothingFun theId [whamlet|
 $newline never
