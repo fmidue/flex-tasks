@@ -13,7 +13,7 @@ extra-deps:
     subdirs:
       - output-blocks
   - git: https://github.com/fmidue/logic-tasks.git
-    commit: 1814dddbbc2f55b74f316e453ad5defd3c586fe0
+    commit: 8093fa58141f4125fed9004a60c4363babb0470f
   - git: https://github.com/fmidue/term-tasks
     commit: a8c25271c2fa07930dd21d221646d63181e870ce
   - latex-svg-image-0.2@sha256:b282a74a96724037ec3d24b664118e51170c8152aff12f363ddb715a38ef053a,1830
