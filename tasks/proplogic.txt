@@ -88,7 +88,7 @@ getTask = do
     pure (show ((legend,hints),coming), checkers formula False True, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
-    form n = tableForm ["A","B","C","D"] 16 7 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
+    form n = tableForm ["A","B","C","D"] 16 17 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
 
     getNames :: Gen (Text,Text,Text,Text)
     getNames = do
@@ -150,13 +150,13 @@ tableForm :: [Text] -> Int -> Int -> Rendered
 tableForm staticHeaders rowAmount columnAmount =
   addCss css $ reader $ \extra -> do
     let addAttr a fs@FieldSettings{..} = fs {fsAttrs = a : fsAttrs}
-        tableTextField :: Int -> Text -> MForm Handler (FormResult (Maybe Text),FieldView FlexForm)
+        headerTextField t = mopt textField (addAttr ("tabindex",pack $ show 1) $ addNameAndCssClass t "header") Nothing
         tableTextField tabOrd t = mopt textField (addAttr ("tabindex",pack $ show tabOrd) $ addNameAndCssClass t "tableInput") Nothing
 
         headerList = replicate (columnAmount - length staticHeaders) "headers"
         cellList = replicate rowAmount "cells"
 
-    headersRes <- traverse (tableTextField 1) headerList
+    headersRes <- traverse headerTextField headerList
     columnsRes <- traverse (\i -> traverse (tableTextField i) cellList) [2..columnAmount+1]
     let headers = map snd headersRes
         rows = transpose $ map (map snd) columnsRes
@@ -176,6 +176,10 @@ tableForm staticHeaders rowAmount columnAmount =
          )
   where
     css = [cassius|
+      .header
+        width: 100%
+        text-align: center
+        height: 25px
       .tableInput
         width: 100%
         text-align: center
@@ -188,9 +192,13 @@ tableForm staticHeaders rowAmount columnAmount =
       table tr td:nth-child(-n+4)
         height: 25px
       table tr th:nth-child(n+5)
-        width: 150px
+        width: 30px
+      table tr th:nth-child(n+9)
+        width: 70px
+      table tr th:nth-child(n+14)
+        width: 100px
       table tr th:last-child
-        padding: 10px 10px
+        padding: 10px 0px
       table
         table-layout: fixed
     |]
@@ -408,7 +416,7 @@ instance Parse Table where
   parseInput = do
     (headers,values) <- parseInput
     let allHeaders = map (Just . (:[])) "ABCD" ++ headers
-    pure $ Table $ zip allHeaders $ transpose $ chunksOf 7 values
+    pure $ Table $ zip allHeaders $ transpose $ chunksOf 14 values
 
 
 
