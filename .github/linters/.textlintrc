@@ -1,7 +1,7 @@
 {
   "rules": {
     "terminology": {
-      "exclude": ["HTML"]
+      "defaultTerms": false
     }
   }
 }
