@@ -69,7 +69,8 @@ import Test.QuickCheck.Arbitrary (arbitrary)
 import Test.QuickCheck.Gen
 import Yesod
 
-import Trees.Types (PropFormula(..), BinOp(..))
+import Trees.Types (BinOp(..), SynTree(..))
+import Trees.Print (simplestDisplay)
 
 import Global
 
@@ -108,11 +109,11 @@ getTask = do
 
 
 
-formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (Text,Text,Text,Text) -> Gen (PropFormula Char, String, [String])
+formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (Text,Text,Text,Text) -> Gen (SynTree BinOp Char, String, [String])
 formulaAndHints a b c d (aN,bN,cN,dN) = do
     shuffled <- shuffle (zip [part1,part2,part3,part4,part5] [hint1,hint2,hint3,hint4,hint5])
     let (parts,hints) = unzip shuffled
-    let formula = foldr1 (Assoc And) $ map Brackets parts
+    let formula = foldr1 (Binary And) parts
     pure (formula, namesLegend, hints)
   where
     namesLegend = [i|Sie fragt ihre Freunde #{aN} (A), #{bN} (B), #{cN} (C) und #{dN} (D), |]
@@ -141,16 +142,16 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
     auch :: String
     auch = " auch"
 
-    neg expr x = if expr then Neg (Atomic x) else Atomic x
-    part1 = Assoc Impl
-             (Brackets $ Assoc And (neg b 'B') (neg d 'D'))
+    neg expr x = if expr then Not (Leaf x) else Leaf x
+    part1 = Binary Impl
+             (Binary And (neg b 'B') (neg d 'D'))
              (neg (not c) 'C')
-    part2 = Assoc Impl (neg a 'A') (neg b 'B')
-    part3 = Assoc Impl (neg b 'B') (neg c 'C')
-    part4 = Assoc Impl (neg c 'C') (neg d 'D')
-    part5 = Assoc Impl
+    part2 = Binary Impl (neg a 'A') (neg b 'B')
+    part3 = Binary Impl (neg b 'B') (neg c 'C')
+    part4 = Binary Impl (neg c 'C') (neg d 'D')
+    part5 = Binary Impl
              (neg d 'D')
-             (Brackets $ Assoc Or (neg a 'A') (neg b 'B'))
+             (Binary Or (neg a 'A') (neg b 'B'))
 
 
 
@@ -233,7 +234,7 @@ startingTable = map (Just . TruthValue . toEnum . digitToInt) <$>
 
 
 
-checkers :: PropFormula Char -> Bool -> Bool -> String
+checkers :: SynTree BinOp Char -> Bool -> Bool -> String
 checkers fSol tableRequired showSolution = [i|
 
 {-\# language ApplicativeDo \#-}
@@ -361,7 +362,7 @@ checkSemantics' nSol columns n (headers,f) = do
       "Tabellenspalten enthalten korrekte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
        "Formel enthält alle vorkommenden atomaren Formeln?"
-    let correctFormula = isSemanticEqual #{gshow fSol} f
+    let correctFormula = isSemanticEqual (#{fSol}) (toTree f)
     yesNo correctFormula $ bothLangs
         "Die aussagenlogische Formel ist korrekt?"
     let correctNames = n == nSol
@@ -374,7 +375,7 @@ checkSemantics' nSol columns n (headers,f) = do
   where
     maybeAnswer = flip (++) (show nSol) <$>
                     #{if showSolution
-                       then Just ("Formel:  " ++ show fSol ++ "\nBegleitende: ")
+                       then Just ("Formel:  " ++ simplestDisplay fSol ++ "\nBegleitende: ")
                        else Nothing
                     }
 
