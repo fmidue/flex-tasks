@@ -257,10 +257,11 @@ correctColumn :: (PropFormula Char,[Maybe TruthValue]) -> Bool
 correctColumn (f,bs) = all lookFor allocationsAndValues
   where
     ones = Sat.solve_all $ convert f
-    allocations = map (zip (toList f) . map (truth . fromJust)) #{transpose startingTable}
+    allocations = filter ((`elem` atoms) . fst) <$> map (zip "ABCD" . map (truth . fromJust)) #{transpose startingTable}
     allocationsAndValues = [(truth a,b) | (Just a,b) <- zip bs allocations]
     lookFor (True,a) = fromList a `elem` ones
     lookFor (False,a) = fromList a `notElem` ones
+    atoms = toList f
 
 
 
