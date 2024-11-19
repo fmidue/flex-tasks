@@ -242,6 +242,7 @@ checkers fSol tableRequired showSolution = [i|
 module Check (checkSemantics, checkSyntax) where
 
 
+import Control.Monad (when)
 import Control.OutputCapable.Blocks
 import Data.Foldable (toList)
 import Data.List     (intercalate, isInfixOf)
@@ -252,7 +253,8 @@ import Data.Ratio    ((%))
 import LogicTasks.Formula (TruthValue(..), isSemanticEqual, convert)
 import LogicTasks.Parsing (allSymbolParser, parser)
 import Formula.Parsing.Delayed
-import Trees.Types (PropFormula(..), BinOp(..))
+import Trees.Types (SynTree(..), PropFormula(..), BinOp(..))
+import Trees.Print (simplestDisplay)
 
 import qualified SAT.MiniSat as Sat
 import qualified Data.Text   as T
@@ -290,6 +292,13 @@ stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
     stringMaybe (Just s) = s
 
 
+toTree :: PropFormula Char -> SynTree BinOp Char
+toTree (Atomic c) = Leaf c
+toTree (Neg p) = Not $ toTree p
+toTree (Brackets p) = toTree p
+toTree (Assoc op l r) = Binary op (toTree l) (toTree r)
+
+
 dropStatic :: [a] -> [a]
 dropStatic = drop staticColumns
 
@@ -306,13 +315,26 @@ checkSyntax _ _ (Table xs,formula,names) =
 
 
 checkSyntax' :: OutputCapable m => [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
-checkSyntax' n (xs,_) = do
-    assertion (all (`notElem` map (Just . Atomic) "ABCD") $ dropStatic xs) $ bothLangs
+checkSyntax' n (fs,f) = do
+    paragraph $ do
+      bothLangs $ do
+        "Die eingegebenen Formeln wurden folgendermaßen interpretiert:"
+      when (any (/=Nothing) entered) $ indent $ do
+        bothLangs "Tabellenspalten"
+        code $ unlines $ map (simplestDisplay . toTree) $ catMaybes entered
+        pure ()
+      indent $ do
+        bothLangs "Antwortformel"
+        code $ simplestDisplay $ toTree f
+        pure ()
+      pure ()
+    assertion (all (`notElem` map (Just . Atomic) "ABCD") entered) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
     pure ()
-
+  where
+    entered = dropStatic fs
 
 
 checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
