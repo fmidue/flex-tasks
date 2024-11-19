@@ -18,6 +18,13 @@ type FormType = (String,[Namen])
 type Submission = (Table,String,[Namen])
 
 
+emptyColumns, staticColumns, totalColumns, rows :: Int
+emptyColumns  = 13
+staticColumns = 4
+totalColumns  = staticColumns + emptyColumns
+rows          = 2^staticColumns
+
+
 bothLangs :: OutputCapable m => String -> LangM m
 bothLangs s = translate $ german s >> english s
 
@@ -88,7 +95,8 @@ getTask = do
     pure (show ((legend,hints),coming), checkers formula False True, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
-    form n = tableForm ["A","B","C","D"] 16 17 $$> formify (Nothing :: Maybe FormType) (nonTableFields n)
+    form n = tableForm ["A","B","C","D"] $$>
+             formify (Nothing :: Maybe FormType) (nonTableFields n)
 
     getNames :: Gen (Text,Text,Text,Text)
     getNames = do
@@ -146,18 +154,18 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
 
 
 
-tableForm :: [Text] -> Int -> Int -> Rendered
-tableForm staticHeaders rowAmount columnAmount =
+tableForm :: [Text] -> Rendered
+tableForm staticHeaders =
   addCss css $ reader $ \extra -> do
     let addAttr a fs@FieldSettings{..} = fs {fsAttrs = a : fsAttrs}
         headerTextField t = mopt textField (addAttr ("tabindex",pack $ show 1) $ addNameAndCssClass t "header") Nothing
         tableTextField tabOrd t = mopt textField (addAttr ("tabindex",pack $ show tabOrd) $ addNameAndCssClass t "tableInput") Nothing
 
-        headerList = replicate (columnAmount - length staticHeaders) "headers"
-        cellList = replicate rowAmount "cells"
+        headerList = replicate emptyColumns "headers"
+        cellList = replicate rows "cells"
 
     headersRes <- traverse headerTextField headerList
-    columnsRes <- traverse (\i -> traverse (tableTextField i) cellList) [2..columnAmount+1]
+    columnsRes <- traverse (\i -> traverse (tableTextField i) cellList) [2..totalColumns+1]
     let headers = map snd headersRes
         rows = transpose $ map (map snd) columnsRes
     pure ( ["headers","cells"]
@@ -220,8 +228,8 @@ instance Formify [Namen] where
 
 startingTable :: [[Maybe TruthValue]]
 startingTable = map (Just . TruthValue . toEnum . digitToInt) <$>
-    transpose (pad . (`showBin` "") <$> [0..15 :: Int])
-  where pad s = replicate (4 - length s) '0' ++ s
+    transpose (pad . (`showBin` "") <$> [0..rows -1])
+  where pad s = replicate (staticColumns - length s) '0' ++ s
 
 
 
@@ -282,6 +290,9 @@ stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
     stringMaybe (Just s) = s
 
 
+dropStatic :: [a] -> [a]
+dropStatic = drop staticColumns
+
 
 checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
 checkSyntax _ _ (Table xs,formula,names) =
@@ -296,7 +307,7 @@ checkSyntax _ _ (Table xs,formula,names) =
 
 checkSyntax' :: OutputCapable m => [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
 checkSyntax' n (xs,_) = do
-    assertion (all (`notElem` map (Just . Atomic) "ABCD") $ drop 4 xs) $ bothLangs
+    assertion (all (`notElem` map (Just . Atomic) "ABCD") $ dropStatic xs) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
@@ -317,13 +328,13 @@ checkSemantics (_,nSol) _ (Table xs,formula,names) =
 
 checkSemantics' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> Rated m
 checkSemantics' nSol columns n (headers,f) = do
-    let correctStart = take 4 columns == #{startingTable}
+    let correctStart = take staticColumns columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
-    let subFormulas = all (`isSubFormula` f) $ catMaybes $ drop 4 headers
+    let subFormulas = all (`isSubFormula` f) $ catMaybes $ dropStatic headers
     #{checkType} subFormulas $ bothLangs
       "Tabellenspalten sind Teilformeln der Gesamtformel?"
-    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- drop 4 $ zip headers columns]
+    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- dropStatic $ zip headers columns]
     #{checkType} correctValues $ bothLangs
       "Tabellenspalten enthalten korrekte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
@@ -417,7 +428,7 @@ instance Parse Table where
   parseInput = do
     (headers,values) <- parseInput
     let allHeaders = map (Just . (:[])) "ABCD" ++ headers
-    pure $ Table $ zip allHeaders $ transpose $ chunksOf 14 values
+    pure $ Table $ zip allHeaders $ transpose $ chunksOf totalColumns values
 
 
 
