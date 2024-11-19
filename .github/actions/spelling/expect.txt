@@ -15,6 +15,7 @@ PKGDB
 pfs
 proplogic
 RWS
+tabindex
 usr
 Wno
 xit
