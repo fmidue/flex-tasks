@@ -185,6 +185,9 @@ tableForm staticHeaders =
          )
   where
     css = [cassius|
+      #flexident287
+        width: 600px
+        margin: 10px 10px
       .header
         width: 100%
         text-align: center
@@ -203,9 +206,9 @@ tableForm staticHeaders =
       table tr th:nth-child(n+5)
         width: 30px
       table tr th:nth-child(n+9)
-        width: 70px
+        width: 75px
       table tr th:nth-child(n+14)
-        width: 100px
+        width: 125px
       table tr th:last-child
         padding: 10px 0px
       table
