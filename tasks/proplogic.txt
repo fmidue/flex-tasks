@@ -322,22 +322,26 @@ checkSyntax' n (fs,f) = do
     paragraph $ do
       bothLangs $ do
         "Es wurden Formeln wie folgt gelesen:"
-      when (any (/=Nothing) entered) $ indent $ do
+      when (any (/=Nothing) mColumns) $ indent $ do
         bothLangs "Tabellenspalten"
-        code $ unlines $ map (simplestDisplay . toTree) $ catMaybes entered
+        code $ unlines $ map (simplestDisplay . toTree) entered
         pure ()
       indent $ do
         bothLangs "Antwortformel"
         code $ simplestDisplay $ toTree f
         pure ()
       pure ()
-    assertion (all (`notElem` map (Just . Atomic) "ABCD") entered) $ bothLangs
+    assertion (all (/='E') $ concatMap toList $ f : entered) $ bothLangs
+      "Eva (E) kommt nicht in Formeln vor?"
+    assertion (all (`notElem` map Atomic "ABCD") entered) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
     pure ()
   where
-    entered = dropStatic fs
+    mColumns = dropStatic fs
+    entered = catMaybes mColumns
+
 
 
 checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
