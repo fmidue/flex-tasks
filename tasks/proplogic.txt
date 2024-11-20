@@ -398,6 +398,7 @@ module Description (description) where
 
 
 import Control.OutputCapable.Blocks
+import LogicTasks.Keys                  (keyHeading, basicOpKey, arrowsKey)
 
 import Global
 
@@ -415,9 +416,9 @@ description _ ((legend,hints),_) = do
       "Übersetzen Sie die Kombination der Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das entsprechend benannte Textfeld ein."
     paragraph $ bothLangs
       "Wer geht mit Eva zum Konzert? Leiten Sie Ihr Ergebnis mittels Wahrheitstafel her. Kreuzen Sie dann alle Begleitenden in der Namensliste an."
-    paragraph $ bothLangs
-      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A, B, C, D und die folgenden Operatoren:"
-    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
+    keyHeading
+    basicOpKey True
+    arrowsKey
     paragraph $ bothLangs $
       "Beim Ausfüllen der Wahrheitstafel können Spalten leer gelassen werden. Sollten Sie für die Eingabe einer Formelüberschrift mehr Platz benötigen, " ++
       "können Sie die kleineren Eingabefelder überspringen und eines der größeren nutzen."
