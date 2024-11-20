@@ -414,6 +414,9 @@ description _ ((legend,hints),_) = do
     paragraph $ bothLangs
       "Verwenden Sie für die Angabe der Formel die atomaren Formeln A, B, C, D und die folgenden Operatoren:"
     enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
+    paragraph $ bothLangs $
+      "Beim Ausfüllen der Wahrheitstafel können Spalten leer gelassen werden. Sollten Sie für die Eingabe einer Formelüberschrift mehr Platz benötigen, " ++
+      "können Sie die kleineren Eingabefelder überspringen und eines der größeren nutzen."
     pure ()
 
 
