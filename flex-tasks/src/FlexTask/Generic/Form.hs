@@ -15,7 +15,7 @@ module FlexTask.Generic.Form
   , FieldInfo
   , SingleChoiceSelection
   , MultipleChoiceSelection
-
+  , Hidden(..)
     -- * Type Classes
   , BaseForm(..)
   , Formify(..)
@@ -141,7 +141,9 @@ data FieldInfo
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
+-- | Wrapper type for generating hidden fields.
 newtype Hidden a = Hidden {getHidden :: a} deriving (Eq,Show)
+
 
 {- |
 Generic single choice answer type.
