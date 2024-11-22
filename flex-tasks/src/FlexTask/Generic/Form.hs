@@ -141,6 +141,8 @@ data FieldInfo
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
+newtype Hidden a = Hidden {getHidden :: a} deriving (Eq,Show)
+
 {- |
 Generic single choice answer type.
 Use if you want a 'choose one of multiple' style input
@@ -212,6 +214,14 @@ instance BaseForm Bool where
 instance BaseForm Double where
   baseForm = doubleField
 
+
+instance PathPiece a => PathPiece (Hidden a) where
+  fromPathPiece = fmap Hidden . fromPathPiece
+  toPathPiece = toPathPiece . getHidden
+
+
+instance PathPiece a => BaseForm (Hidden a) where
+  baseForm = hiddenField
 
 
 {- |
