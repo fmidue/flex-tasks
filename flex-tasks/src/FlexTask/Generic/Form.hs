@@ -298,6 +298,10 @@ instance Formify Double where
   formifyImplementation = formifyInstanceBasicField
 
 
+instance PathPiece a => Formify (Hidden a) where
+  formifyImplementation = formifyInstanceBasicField
+
+
 instance (Formify a, Formify b) => Formify (a,b)
 
 instance (Formify a, Formify b, Formify c) => Formify (a,b,c)
