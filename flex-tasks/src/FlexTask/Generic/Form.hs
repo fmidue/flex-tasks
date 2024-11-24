@@ -1,8 +1,9 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# language DefaultSignatures #-}
 {-# language DeriveGeneric #-}
+{-# language LambdaCase #-}
 {-# language OverloadedStrings #-}
 {-# language TypeOperators #-}
-{-# language LambdaCase #-}
 
 {- |
 Generic `Yesod` input form generation and related utility functions.
@@ -129,12 +130,21 @@ list22
 @
 -}
 data FieldInfo
-  = Single Text
-  | List Alignment [Text]
-  | ChoicesDropdown Text [Text]
-  | ChoicesButtons Alignment Text [Text]
-  | InternalListElem Text
-  deriving (Eq,Show)
+  = Single (FieldSettings FlexForm)
+  | List Alignment [FieldSettings FlexForm]
+  | ChoicesDropdown (FieldSettings FlexForm) [Text]
+  | ChoicesButtons Alignment (FieldSettings FlexForm) [Text]
+  | InternalListElem (FieldSettings FlexForm)
+  deriving (Show)
+
+
+-- For tests; Not used in actual code
+instance Show (FieldSettings FlexForm) where
+  show (FieldSettings _ _ fId fName fAttrs) = unlines
+    [ "Id: " ++ show fId
+    , "Name: " ++ show fName
+    , "Attributes: " ++ show fAttrs
+    ]
 
 
 -- | Inner alignment of input field elements.
@@ -386,7 +396,7 @@ formify ma xs
 
 renderNextField
   :: (FieldInfo ->
-       ( Text
+       ( FieldSettings FlexForm
        , Bool
        , FieldSettings FlexForm -> Maybe a -> AForm Handler a
        )
@@ -415,8 +425,8 @@ formifyInstanceBasicField
     -> ([[FieldInfo]], Rendered)
 formifyInstanceBasicField = renderNextField
   (\case
-      Single t -> (t, True, areq baseForm)
-      InternalListElem t -> (t, False, areq baseForm)
+      Single fs -> (fs, True, areq baseForm)
+      InternalListElem fs -> (fs, False, areq baseForm)
       _ -> error "Internal mismatch of FieldInfo and rendering function"
   )
 
@@ -430,8 +440,8 @@ formifyInstanceOptionalField
     -> ([[FieldInfo]], Rendered)
 formifyInstanceOptionalField = renderNextField
   (\case
-      Single t -> (t, True, aopt baseForm)
-      InternalListElem t -> (t, False, aopt baseForm)
+      Single fs -> (fs, True, aopt baseForm)
+      InternalListElem fs -> (fs, False, aopt baseForm)
       _ -> error "Internal mismatch of FieldInfo and rendering function"
   )
 
@@ -460,7 +470,8 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
       Vertical
         | lastInRow -> ( xss, [[Single f]] : [[[InternalListElem lab]]| lab <- fs], null)
         | otherwise -> ( xs:xss
-                       , [[Single f]] : [[InternalListElem lab : [undefined | last fs == lab]] | lab <- fs]
+                       , [[Single f]] :
+                         [[InternalListElem fSet : [undefined | i == length fs]] | (fSet,i) <- zip fs [1..]]
                        , \ds -> null ds || length (last ds) <= 1
                        )
 
@@ -513,18 +524,18 @@ renderNextSingleChoiceField
 renderNextSingleChoiceField pairsWith =
   renderNextField
   (\case
-      ChoicesDropdown t opts -> ( t
-                                , True
-                                , areq $ selectField $ withOptions opts
-                                )
-      ChoicesButtons align t opts -> ( t
-                                     , True
-                                     , areq $
-                                         case align of
-                                           Vertical -> radioField
-                                           Horizontal -> horizontalRadioField
-                                         $ withOptions opts
-                                     )
+      ChoicesDropdown fs opts -> ( fs
+                                 , True
+                                 , areq $ selectField $ withOptions opts
+                                 )
+      ChoicesButtons align fs opts -> ( fs
+                                      , True
+                                      , areq $
+                                          case align of
+                                            Vertical -> radioField
+                                            Horizontal -> horizontalRadioField
+                                          $ withOptions opts
+                                      )
       _ -> error "Incorrect naming scheme for a single choice!"
   )
   where withOptions = optionsPairs . pairsWith
@@ -538,18 +549,18 @@ renderNextMultipleChoiceField
 renderNextMultipleChoiceField pairsWith =
   renderNextField
   (\case
-      ChoicesDropdown t opts -> ( t
-                                , True
-                                , areq $ multiSelectField $ withOptions opts
-                                )
-      ChoicesButtons align t opts -> ( t
-                                     , True
-                                     , areq $
-                                         case align of
-                                           Vertical -> verticalCheckboxesField
-                                           Horizontal -> checkboxesField
-                                         $ withOptions opts
-                                     )
+      ChoicesDropdown fs opts -> ( fs
+                                 , True
+                                 , areq $ multiSelectField $ withOptions opts
+                                 )
+      ChoicesButtons align fs opts -> ( fs
+                                      , True
+                                      , areq $
+                                          case align of
+                                            Vertical -> verticalCheckboxesField
+                                            Horizontal -> checkboxesField
+                                          $ withOptions opts
+                                      )
       _ -> error "Incorrect naming scheme for a multi choice!"
   )
   where withOptions = optionsPairs . pairsWith
@@ -583,8 +594,8 @@ Same as `buttons`, but using an explicit enum type.
 buttonsEnum
   :: (Bounded a, Enum a)
   => Alignment
-  -> Text        -- ^ Field title label
-  -> (a -> Text) -- ^ Function from enum type values to labels.
+  -> FieldSettings FlexForm -- ^ FieldSettings for option input
+  -> (a -> Text)            -- ^ Function from enum type values to labels.
   -> FieldInfo
 buttonsEnum align t f = ChoicesButtons align t $ map f [minBound .. maxBound]
 
@@ -597,8 +608,8 @@ depending on the form type.
 -}
 buttons
   :: Alignment
-  -> Text   -- ^ Field title label
-  -> [Text] -- ^ Option labels
+  -> FieldSettings FlexForm -- ^ FieldSettings for option input
+  -> [Text]                 -- ^ Option labels
   -> FieldInfo
 buttons = ChoicesButtons
 
@@ -609,8 +620,8 @@ Same as `dropdown`, but using an explicit enum type.
 -}
 dropdownEnum
   :: (Bounded a, Enum a)
-  => Text        -- ^ Field title label
-  -> (a -> Text) -- ^ Function from enum type values to labels.
+  => FieldSettings FlexForm -- ^ FieldSettings for select input
+  -> (a -> Text)            -- ^ Function from enum type values to labels.
   -> FieldInfo
 dropdownEnum t f = ChoicesDropdown t $ map f [minBound .. maxBound]
 
@@ -622,8 +633,8 @@ Will turn into either single or multiple selection field
 depending on the form type.
 -}
 dropdown
-  :: Text   -- ^ Field title label
-  -> [Text] -- ^ Option labels
+  :: FieldSettings FlexForm  -- ^ FieldSettings for select input
+  -> [Text]                  -- ^ Option labels
   -> FieldInfo
 dropdown = ChoicesDropdown
 
@@ -635,23 +646,27 @@ Their result will be handled as a list of values.
 -}
 list
   :: Alignment
-  -> [Text] -- ^ Labels of individual fields
+  -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
   -> FieldInfo
 list = List
 
 
 
--- | Same as `list`, but without using any field labels.
+{- |
+Same as `list`, but without using any field labels.
+Attributes and CSS classes for each field cannot be set with this function.
+Instead, all fields share the given list of attributes.
+Use `list` if individual configuration is required.
+-}
 listWithoutLabels
   :: Alignment
-  -> Int -- ^ Amount of fields
+  -> Int           -- ^ Amount of fields
+  -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
   -> FieldInfo
-listWithoutLabels align amount = List align $ replicate amount ""
+listWithoutLabels align amount attrs = List align $ replicate amount $ "" {fsAttrs = attrs}
 
 
 
 -- | Create FieldInfo for a standalone field.
-single
-  :: Text -- ^ Label
-  -> FieldInfo
+single :: FieldSettings FlexForm -> FieldInfo
 single = Single

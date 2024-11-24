@@ -6,6 +6,7 @@ module FlexTask.Generic.FormSpec where
 
 
 import Data.Maybe                       (fromMaybe)
+import Data.String                      (fromString)
 import Data.Text                        (Text)
 import Test.Hspec (
   Spec,
@@ -25,11 +26,12 @@ import Test.QuickCheck (
   vectorOf,
   )
 import Test.QuickCheck.Instances.Text   ()
-import Yesod                            (Textarea)
+import Yesod                            (FieldSettings, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.YesodConfig             (FlexForm)
 
 
 
@@ -152,7 +154,12 @@ listInfo = doubleNest $ do
   align <- arbitrary
   amount <- chooseInt (1,100)
   labels <- vectorOf amount arbitrary
-  elements [list align labels,listWithoutLabels align amount]
+  attributes <- chooseInt (1,20) >>= flip vectorOf arbitrary
+  elements [list align labels,listWithoutLabels align amount attributes]
+
+
+instance Arbitrary (FieldSettings FlexForm) where
+  arbitrary = fromString <$> arbitrary
 
 
 singleInfo :: Gen [[FieldInfo]]
