@@ -338,7 +338,7 @@ checkSyntax' n (fs,f) = do
       all (`elem` toList (#{fSol})) (toList f)
       )
       $ bothLangs
-      "Alle genutzten atomaren Formeln kommen in richtiger Lösung vor?"
+      "Es wurden nur bekannte atomare Formeln genutzt?"
     assertion (all (`notElem` map Atomic "ABCD") entered) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
