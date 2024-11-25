@@ -218,7 +218,7 @@ tableForm staticHeaders =
 
 
 nonTableFields :: (Text,Text,Text,Text) -> [[FieldInfo]]
-nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
+nonTableFields (a,b,c,d) = [[single "Formel F = "], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
   where
     nameMatching = [(A, a), (B, b), (C, c), (D, d)]
 
