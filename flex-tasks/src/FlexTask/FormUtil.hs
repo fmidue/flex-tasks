@@ -6,12 +6,19 @@
 -}
 
 module FlexTask.FormUtil
-  ( ($$>)
+  (
+  -- * Functions for Rendered
+    ($$>)
   , addCss
   , addJs
   , addCssAndJs
   , getFormData
+  -- * Convenience functions for Yesod FieldSettings
+  , addAttribute
+  , addAttributes
+  , addCssClass
   , addNameAndCssClass
+  -- * functions for custom forms
   , newFlexId
   , newFlexName
   , repeatFlexName
@@ -120,6 +127,21 @@ addNameAndCssClass name cssClass = addFieldAttrs
       fsName = Just name,
       fsAttrs = addClass cssClass $ fsAttrs fSettings
       }
+
+
+-- | Add an attribute-value pair to the given FieldSettings
+addAttribute :: (Text,Text) -> FieldSettings app -> FieldSettings app
+addAttribute attribute fs =  fs { fsAttrs = attribute : fsAttrs fs}
+
+
+-- | Add a list of attribute-value pairs to the given FieldSettings
+addAttributes :: [(Text,Text)] -> FieldSettings app -> FieldSettings app
+addAttributes as fs =  fs { fsAttrs = as ++ fsAttrs fs}
+
+
+-- | Add a CSS class to the given FieldSettings
+addCssClass :: Text -> FieldSettings app -> FieldSettings app
+addCssClass c fs = fs { fsAttrs = addClass c $ fsAttrs fs}
 
 
 {- |
