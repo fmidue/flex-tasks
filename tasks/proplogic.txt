@@ -366,10 +366,10 @@ checkSemantics' nSol columns n (headers,f) = do
     let correctStart = take staticColumns columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
-    let subFormulas = all (`isSubFormula` f) $ catMaybes $ dropStatic headers
+    let subFormulas = all (`isSubFormula` f) $ catMaybes $ dropStatic replaceFAll
     #{checkType} subFormulas $ bothLangs
       "Als Tabellenspalten kommen nur Teilformeln der Gesamtformel vor?"
-    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- dropStatic $ zip headers columns]
+    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- dropStatic $ zip replaceFAll columns]
     #{checkType} correctValues $ bothLangs
       "Tabellenspalten enthalten nur korrekt ermittelte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
@@ -390,6 +390,11 @@ checkSemantics' nSol columns n (headers,f) = do
                        then Just ("Formel: " ++ simplestDisplay fSol ++ "\nKorrekte Einträge in Wahrheitstafel.\nBegleitende: ")
                        else Nothing
                     }
+    replaceF (Just (Atomic 'F')) = Just f
+    replaceF a                   = a
+
+    replaceFAll = map replaceF $ headers
+
 
 |]
   where
