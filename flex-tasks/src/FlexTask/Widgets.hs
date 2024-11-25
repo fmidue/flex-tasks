@@ -5,7 +5,6 @@ module FlexTask.Widgets where
 
 
 import Control.Monad.Reader (reader)
-import Data.Text            (Text)
 import Yesod
 
 import FlexTask.FormUtil    (newFlexId, newFlexName, repeatFlexName)
@@ -18,14 +17,13 @@ renderFlatOrBreak
     :: Bool
     -> Bool
     -> (FieldSettings FlexForm -> AForm Handler a)
-    -> Text
+    -> FieldSettings FlexForm
     -> Rendered
 renderFlatOrBreak lBreak newId aformStub label =
     reader $ \fragment -> do
       ident <- newFlexId
       name <- if newId then newFlexName else repeatFlexName
-      let addAttrs = (fieldSettingsLabel label)
-                       {fsName = Just name, fsId = Just ident}
+      let addAttrs = label {fsName = Just name, fsId = Just ident}
       (_, views') <- aFormToForm $ aformStub addAttrs
       let views = views' []
       let widget = [whamlet|
