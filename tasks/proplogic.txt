@@ -248,7 +248,7 @@ module Check (checkSemantics, checkSyntax) where
 import Control.Monad (when)
 import Control.OutputCapable.Blocks
 import Data.Foldable (toList)
-import Data.List     (intercalate, isInfixOf)
+import Data.List     (delete, intercalate, isInfixOf)
 import Data.Maybe    (catMaybes, fromJust)
 import Data.Map      (fromList)
 import Data.Ratio    ((%))
@@ -339,7 +339,7 @@ checkSyntax' n (fs,f) = do
       )
       $ bothLangs
       "Es wurden nur bekannte atomare Formeln genutzt?"
-    assertion (all (`notElem` map Atomic "ABCD") entered) $ bothLangs
+    assertion (all noDuplicate entered) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
@@ -347,6 +347,7 @@ checkSyntax' n (fs,f) = do
   where
     mColumns = dropStatic fs
     entered = catMaybes mColumns
+    noDuplicate formula = formula `notElem` (map Atomic "ABCD" ++ delete formula entered)
 
 
 
