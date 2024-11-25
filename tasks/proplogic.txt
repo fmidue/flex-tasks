@@ -432,7 +432,8 @@ description _ ((legend,hints),_) = do
     basicOpKey True
     arrowsKey
     paragraph $ bothLangs $
-      "Beim Ausfüllen der Wahrheitstafel können Spalten leer gelassen werden. Sollten Sie für die Eingabe einer Formelüberschrift mehr Platz benötigen, " ++
+      "Beim Ausfüllen der Wahrheitstafel können Spalten leer gelassen werden. " ++
+      "Sollten Sie für die Eingabe einer Formelüberschrift mehr Platz benötigen, " ++
       "können Sie die kleineren Eingabefelder überspringen und eines der größeren nutzen."
     pure ()
 
