@@ -367,7 +367,7 @@ checkSemantics' nSol columns n (headers,f) = do
     let correctStart = take staticColumns columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
-    let subFormulas = all (`isSubFormula` f) $ catMaybes $ dropStatic replaceFAll
+    let subFormulas = all (\\e -> e `isSubFormula` f || e `elem` negations) $ catMaybes $ dropStatic replaceFAll
     #{checkType} subFormulas $ bothLangs
       "Als Tabellenspalten kommen nur Teilformeln der Gesamtformel vor?"
     let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- dropStatic $ zip replaceFAll columns]
@@ -395,6 +395,7 @@ checkSemantics' nSol columns n (headers,f) = do
     replaceF a                   = a
 
     replaceFAll = map replaceF $ headers
+    negations = map (Neg . Atomic) ['A'..'D']
 
 
 |]
