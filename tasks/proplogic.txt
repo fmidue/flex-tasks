@@ -60,7 +60,7 @@ import FlexTask.Generic.Form (
   single,
   buttonsEnum
   )
-import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
+import FlexTask.YesodConfig    (Rendered)
 import LogicTasks.Formula      (TruthValue(..))
 import Numeric                 (showBin)
 import Test.QuickCheck.Arbitrary (arbitrary)
@@ -165,9 +165,9 @@ tableForm staticHeaders =
         cellList = replicate rows "cells"
 
     headersRes <- traverse headerTextField headerList
-    columnsRes <- traverse (\i -> traverse (tableTextField i) cellList) [2..totalColumns+1]
-    let headers = map snd headersRes
-        rows = transpose $ map (map snd) columnsRes
+    columnsRes <- traverse (\num -> traverse (tableTextField num) cellList) [2..totalColumns+1]
+    let tableHeaders = map snd headersRes
+        tableRows = transpose $ map (map snd) columnsRes
     pure ( ["headers","cells"]
          , [whamlet|
               #{extra}
@@ -175,9 +175,9 @@ tableForm staticHeaders =
                 <tr>
                   $forall sh <- staticHeaders
                     <th>#{sh}
-                  $forall header <- headers
+                  $forall header <- tableHeaders
                     <th>^{fvInput header}
-                $forall row <- rows
+                $forall row <- tableRows
                   <tr>
                     $forall input <- row
                       <td>^{fvInput input}|]
@@ -336,7 +336,7 @@ checkSyntax' n atomicColumns (fs,f) = do
       "Bitte legen Sie die Tafel so an, wie in der Vorlesung vorgegeben."
     assertion (nub atomicRows == atomicRows) $ bothLangs
       "Alle vollständig eingetragenen Belegungen kommen nur einmal in Tafel vor?"
-    assertion (all (/='E') $ concatMap toList $ f : entered) $ bothLangs
+    assertion (notElem 'E' $ concatMap toList $ f : entered) $ bothLangs
       "Eva (E) kommt nicht in Formeln vor?"
     assertion (
       all (`elem` ('F': toList (#{fSol}))) (concatMap toList entered) &&
@@ -353,7 +353,7 @@ checkSyntax' n atomicColumns (fs,f) = do
     mColumns = dropStatic fs
     entered = catMaybes mColumns
     noDuplicate formula = formula `notElem` (map Atomic "ABCD" ++ delete formula entered)
-    atomicRows = filter (all (/=Nothing)) $ transpose atomicColumns
+    atomicRows = filter (notElem Nothing) $ transpose atomicColumns
 
 
 
@@ -376,7 +376,7 @@ checkSemantics' nSol columns n (headers,f) = do
     let subFormulas = all (\\e -> e `isSubFormula` f || e `elem` negations) $ catMaybes $ dropStatic replaceFAll
     #{checkType} subFormulas $ bothLangs
       "Als Tabellenspalten kommen nur Teilformeln der Gesamtformel vor?"
-    let correctValues = all correctColumn zippedEntries && any (not . null . catMaybes . snd) zippedEntries
+    let correctValues = all correctColumn zippedEntries && not (all (null . catMaybes . snd) zippedEntries)
     #{checkType} correctValues $ bothLangs
       "Tafel ist gefüllt und Tabellenspalten enthalten nur korrekt ermittelte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
@@ -400,7 +400,7 @@ checkSemantics' nSol columns n (headers,f) = do
     replaceF (Just (Atomic 'F')) = Just f
     replaceF a                   = a
 
-    replaceFAll = map replaceF $ headers
+    replaceFAll = map replaceF headers
     zippedEntries = [(sf,b)| (Just sf,b) <- dropStatic $ zip replaceFAll columns]
     negations = map (Neg . Atomic) ['A'..'D']
 
