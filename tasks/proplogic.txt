@@ -312,13 +312,13 @@ checkSyntax _ _ (Table xs,formula,names) =
     parser
     complainAboutMissingParenthesesIfNotFailingOn
     allSymbolParser
-    (checkSyntax' names)
+    (checkSyntax' names $ take staticColumns $ map snd xs)
     $ delayed $ stringTuple (stringList $ map fst xs) formula
 
 
 
-checkSyntax' :: OutputCapable m => [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
-checkSyntax' n (fs,f) = do
+checkSyntax' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
+checkSyntax' n atomicVals (fs,f) = do
     paragraph $ do
       bothLangs $ do
         "Es wurden Formeln wie folgt gelesen:"
@@ -331,6 +331,9 @@ checkSyntax' n (fs,f) = do
         code $ simplestDisplay $ toTree f
         pure ()
       pure ()
+    when (atomicVals == map reverse #{startingTable}) $ refuse $ indent $ bothLangs $
+      "Die Spalten der atomaren Formeln sind invertiert. " ++
+      "Bitte legen Sie die Tafel so an, wie in der Vorlesung vorgegeben."
     assertion (all (/='E') $ concatMap toList $ f : entered) $ bothLangs
       "Eva (E) kommt nicht in Formeln vor?"
     assertion (
