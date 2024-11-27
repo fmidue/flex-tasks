@@ -248,7 +248,7 @@ module Check (checkSemantics, checkSyntax) where
 import Control.Monad (when)
 import Control.OutputCapable.Blocks
 import Data.Foldable (toList)
-import Data.List     (delete, intercalate, isInfixOf)
+import Data.List     (delete, intercalate, isInfixOf, nub, transpose)
 import Data.Maybe    (catMaybes, fromJust)
 import Data.Map      (fromList)
 import Data.Ratio    ((%))
@@ -318,7 +318,7 @@ checkSyntax _ _ (Table xs,formula,names) =
 
 
 checkSyntax' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
-checkSyntax' n atomicVals (fs,f) = do
+checkSyntax' n atomicColumns (fs,f) = do
     paragraph $ do
       bothLangs $ do
         "Es wurden Formeln wie folgt gelesen:"
@@ -331,9 +331,11 @@ checkSyntax' n atomicVals (fs,f) = do
         code $ simplestDisplay $ toTree f
         pure ()
       pure ()
-    when (atomicVals == map reverse #{startingTable}) $ refuse $ indent $ bothLangs $
+    when (atomicColumns == map reverse #{startingTable}) $ refuse $ indent $ bothLangs $
       "Die Spalten der atomaren Formeln sind invertiert. " ++
       "Bitte legen Sie die Tafel so an, wie in der Vorlesung vorgegeben."
+    assertion (nub atomicRows == atomicRows) $ bothLangs
+      "Alle vollständig eingetragenen Belegungen kommen nur einmal in Tafel vor?"
     assertion (all (/='E') $ concatMap toList $ f : entered) $ bothLangs
       "Eva (E) kommt nicht in Formeln vor?"
     assertion (
@@ -351,6 +353,7 @@ checkSyntax' n atomicVals (fs,f) = do
     mColumns = dropStatic fs
     entered = catMaybes mColumns
     noDuplicate formula = formula `notElem` (map Atomic "ABCD" ++ delete formula entered)
+    atomicRows = filter (all (/=Nothing)) $ transpose atomicColumns
 
 
 
