@@ -383,7 +383,7 @@ checkSemantics' nSol columns n (headers,f) = do
        "Die Auflistung der Begleitenden ist korrekt?"
     let correct = filter id [correctStart, correctFormula, correctNames, correctValues]
     let points = fromIntegral (length correct) % 4
-    res <- printSolutionAndAssert IndefiniteArticle maybeAnswer points
+    res <- printSolutionAndAssertMinimum (MinimumThreshold (1 % 4)) IndefiniteArticle maybeAnswer points
     pure res
   where
     maybeAnswer = flip (++) (show nSol) <$>
