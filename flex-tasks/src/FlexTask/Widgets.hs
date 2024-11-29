@@ -35,7 +35,7 @@ renderForm newId aformStub label =
 $newline never
 \#{fragment}
 $forall view <- views
-    <span :fvRequired view:.required :not $ fvRequired view:.optional>
+    <span :fvRequired view:.required :not $ fvRequired view:.optional .flex-form-span>
         <label for=#{fvId view}>#{fvLabel view}
         $maybe tt <- fvTooltip view
             <div .tooltip>#{tt}
@@ -55,7 +55,7 @@ joinRenders = foldr (joinOuter . joinInner) zero
     joinOuter x y = applyToWidget insertDiv x $$> y
     insertDiv w = [whamlet|
       $newline never
-      <div>
+      <div .flex-form-div>
         ^{w}
     |]
 
