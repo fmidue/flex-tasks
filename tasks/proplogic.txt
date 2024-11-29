@@ -349,7 +349,7 @@ checkSyntax' n atomicColumns (fs,f) = do
       pure ()
     when (atomicColumns == map reverse #{startingTable}) $ refuse $ indent $ bothLangs $
       "Die Spalten der atomaren Formeln sind invertiert. " ++
-      "Bitte legen Sie die Tafel so an, wie in der Vorlesung vorgegeben."
+      "Bitte legen Sie die Tafel so an wie in der Vorlesung vorgegeben."
     assertion (nubOrd atomicRows == atomicRows) $ bothLangs
       "Alle vollständig eingetragenen Belegungen kommen nur einmal in Tafel vor?"
     assertion (notElem 'E' $ concatMap toList $ f : entered) $ bothLangs
