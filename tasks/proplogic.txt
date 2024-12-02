@@ -50,6 +50,7 @@ import Data.String.Interpolate (i)
 import FlexTask.FormUtil (
   ($$>),
   addCss,
+  addCssClass,
   addNameAndCssClass,
   getFormData,
   )
@@ -79,6 +80,10 @@ import Global
 
 instance MonadFail Gen where
   fail = error
+
+
+formulaClass :: Text
+formulaClass = "formula"
 
 
 getParticipants :: Gen [Bool]
@@ -186,41 +191,54 @@ tableForm staticHeaders =
          )
   where
     css = [cassius|
-      #flexident287
-        width: 600px
-        margin: 10px 10px
+      .flex-form-span > label
+        display:block
+        margin-bottom: 1em
+        margin-top: 2em
+
+      .#{formulaClass}
+        display:block
+        width: 95%
+        margin-left: auto
+        margin-right: auto
+        margin-bottom: 0.5em
+
       .header
         width: 100%
         text-align: center
-        height: 25px
+        padding-top: 10px
+        padding-bottom: 10px
+
       .tableInput
         width: 100%
         text-align: center
+
       th, td
         border: 1px solid black
         border-collapse: collapse
         text-align: center
+
       table tr th:nth-child(-n+4)
-        width: 20px
+        width: 2.5%
+
       table tr td:nth-child(-n+4)
-        height: 25px
+        height: 2%
+
       table tr th:nth-child(n+5)
-        width: 30px
+        width: 3%
+
       table tr th:nth-child(n+9)
-        width: 75px
+        width: 6.5%
+
       table tr th:nth-child(n+14)
-        width: 125px
-      table tr th:last-child
-        padding: 10px 0px
-      table
-        table-layout: fixed
+        width: 10%
     |]
 
 
 
 
 nonTableFields :: (Text,Text,Text,Text) -> [[FieldInfo]]
-nonTableFields (a,b,c,d) = [[single "Formel F = "], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
+nonTableFields (a,b,c,d) = [[single $ addCssClass formulaClass "Formel F = "], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
   where
     nameMatching = [(A, a), (B, b), (C, c), (D, d)]
 
