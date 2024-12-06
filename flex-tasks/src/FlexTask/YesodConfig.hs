@@ -104,7 +104,7 @@ flexWhamletRules :: Q HamletRules
 flexWhamletRules = do
     ah <- [|asWidgetT . toWidget|]
     let helper qg f = do
-            x <- newName "urender"
+            x <- newName "uRender"
             e <- f $ VarE x
             let e' = LamE [VarP x] e
             g <- qg
@@ -136,10 +136,10 @@ toMForm :: (Monad m, HandlerSite m ~ site, MonadHandler m)
             => AForm m a
             -> MForm m (FormResult a, [FieldView site] -> [FieldView site])
 toMForm (AForm aform) = do
-    ints <- RWS.get
+    ident <- RWS.get
     (env, site, _) <- RWS.ask    -- ignore request languages
     lang <- getSessionLangs  -- use languages stored in session
-    (a, xml, ints', enc) <- lift $ aform (site, lang) env ints
+    (a, xml, ints', enc) <- lift $ aform (site, lang) env ident
     RWS.put ints'
     RWS.tell enc
     return (a, xml)
