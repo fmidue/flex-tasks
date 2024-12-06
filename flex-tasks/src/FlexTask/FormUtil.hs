@@ -30,6 +30,7 @@ module FlexTask.FormUtil
 
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
+import Data.Map                        (Map, fromList)
 import Data.Text                       (Text, pack, unpack)
 import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
@@ -219,27 +220,25 @@ supportedLanguages = ["de","en"]
 
 {- |
 Extract a form from the environment.
-The result is an IO embedded tuple of field IDs and a list of internationalized html forms.
+The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
 -}
-getFormData :: Rendered -> IO ([String],[String])
+getFormData :: Rendered -> IO ([String], Map Lang String)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    (fNames,htmlList) <- unsafeHandler FlexForm {appLogger = logger} writeHtml
-    let fields = unpack <$> fNames
-    let form h = concat $ lines $ renderHtml h
-    pure (fields, map form htmlList)
+    Unsafe.fakeHandlerGetLogger
+      appLogger
+      FlexForm {appLogger = logger}
+      writeHtml
   where
-    unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
-
-    writeHtml :: Handler ([Text],[Html])
+    writeHtml :: Handler ([String], Map Lang String)
     writeHtml = case supportedLanguages of
       (l:ls) -> do
         (names,first) <- withLang l
         rest <- traverse (fmap snd . withLang) ls
-        return (names,first:rest)
+        return (map unpack names, fromList $ first:rest)
       _ -> error "No supported languages found!"
 
-    withLang :: Lang -> Handler ([Text], Html)
+    withLang :: Lang -> Handler ([Text], (Lang, String))
     withLang lang = do
       setLanguage lang
       (names,wid) <- fst <$> runFormGet (runReader widget)
@@ -249,4 +248,4 @@ getFormData widget = do
       html <- withUrlRenderer [hamlet|
         ^{pageHead content}
         ^{pageBody content}|]
-      return (names,html)
+      return (names, (lang, concat $ lines $ renderHtml html))
