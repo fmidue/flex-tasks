@@ -224,10 +224,10 @@ The result is an IO embedded tuple of field IDs and a list of internationalized 
 getFormData :: Rendered -> IO ([String],[String])
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    (fNames,htmls) <- unsafeHandler FlexForm {appLogger = logger} writeHtml
+    (fNames,htmlList) <- unsafeHandler FlexForm {appLogger = logger} writeHtml
     let fields = unpack <$> fNames
     let form h = concat $ lines $ renderHtml h
-    pure (fields, map form htmls)
+    pure (fields, map form htmlList)
   where
     unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
