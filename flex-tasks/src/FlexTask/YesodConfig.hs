@@ -139,7 +139,7 @@ toMForm (AForm aform) = do
     ident <- RWS.get
     (env, site, _) <- RWS.ask    -- ignore request languages
     lang <- getSessionLangs  -- use languages stored in session
-    (a, xml, ints', enc) <- lift $ aform (site, lang) env ident
-    RWS.put ints'
+    (a, xml, ident', enc) <- lift $ aform (site, lang) env ident
+    RWS.put ident'
     RWS.tell enc
     return (a, xml)
