@@ -1,6 +1,9 @@
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 {-# language TypeOperators #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# language RecordWildCards#-}
+{-# language TypeApplications #-}
 
 {- | Functions for creating and composing forms.
 -}
@@ -29,6 +32,7 @@ module FlexTask.FormUtil
 
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
+import Data.Map                        (fromList)
 import Data.Text                       (Text, pack, unpack)
 import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
@@ -215,18 +219,27 @@ var fieldNames = #{rawJS (show names)};|]
 Extract a form from the environment.
 The result is an IO embedded tuple of field IDs and Html code.
 -}
-getFormData :: Rendered -> IO ([String],String)
+getFormData :: Rendered -> IO ([String],[String])
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    (fNames,html) <- unsafeHandler FlexForm {appLogger = logger} writeHtml
-    let fields = unpack <$> fNames
-    let form = concat $ lines $ renderHtml html
-    return (fields,form)
+    let yesodApp = FlexForm {appLogger = logger}
+    (fNames,gHtml) <- languageRender german yesodApp
+    (_,eHtml) <- languageRender english yesodApp
+    pure (fNames,[gHtml,eHtml])
   where
-    unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
+    languageRender lang app = do
+      (fNames,html) <- unsafeHandler lang app writeHtml >>= catchError
+      let fields = unpack <$> fNames
+      let form = concat $ lines $ renderHtml html
+      return (fields,form)
+    unsafeHandler lang = Unsafe.runFakeHandler lang appLogger
+    catchError = either
+      (error . ("runFakeHandler issue: " `mappend`) . show)
+      return
 
     writeHtml :: Handler ([Text],Html)
     writeHtml = do
+
       ((names,wid),_) <- runFormGet $ runReader widget
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
@@ -234,3 +247,6 @@ getFormData widget = do
         ^{pageHead content}
         ^{pageBody content}|]
       return (names,html)
+
+    german = fromList [("_LANG","de")]
+    english = fromList [("_LANG","en")]
