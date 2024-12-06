@@ -17,7 +17,7 @@ module FlexTask.YesodConfig
   -- * Form type
   , Rendered'
   , Rendered
-  -- * adapted Yesod funcitonality
+  -- * adapted Yesod functionality
   -- $yesodFuncs
   , fwhamlet
   , getSessionLangs

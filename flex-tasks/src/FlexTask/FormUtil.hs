@@ -1,9 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 {-# language TypeOperators #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# language RecordWildCards#-}
-{-# language TypeApplications #-}
 
 {- | Functions for creating and composing forms.
 -}
