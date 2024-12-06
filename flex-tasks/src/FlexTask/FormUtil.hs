@@ -19,6 +19,7 @@ module FlexTask.FormUtil
   , addAttributes
   , addCssClass
   , addNameAndCssClass
+  , supportedLanguages
   -- * functions for custom forms
   , newFlexId
   , newFlexName
@@ -29,7 +30,6 @@ module FlexTask.FormUtil
 
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
-import Data.Map                        (fromList)
 import Data.Text                       (Text, pack, unpack)
 import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
@@ -212,38 +212,41 @@ function setDefaults(values){
 var fieldNames = #{rawJS (show names)};|]
 
 
+-- | List of languages to cover in instances of `RenderMessage` for custom translations.
+supportedLanguages :: [Lang]
+supportedLanguages = ["de","en"]
+
+
 {- |
 Extract a form from the environment.
-The result is an IO embedded tuple of field IDs and Html code.
+The result is an IO embedded tuple of field IDs and a list of internationalized html forms.
 -}
 getFormData :: Rendered -> IO ([String],[String])
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    let yesodApp = FlexForm {appLogger = logger}
-    (fNames,gHtml) <- languageRender german yesodApp
-    (_,eHtml) <- languageRender english yesodApp
-    pure (fNames,[gHtml,eHtml])
+    (fNames,htmls) <- unsafeHandler FlexForm {appLogger = logger} writeHtml
+    let fields = unpack <$> fNames
+    let form h = concat $ lines $ renderHtml h
+    pure (fields, map form htmls)
   where
-    languageRender lang app = do
-      (fNames,html) <- unsafeHandler lang app writeHtml >>= catchError
-      let fields = unpack <$> fNames
-      let form = concat $ lines $ renderHtml html
-      return (fields,form)
-    unsafeHandler lang = Unsafe.runFakeHandler lang appLogger
-    catchError = either
-      (error . ("runFakeHandler issue: " `mappend`) . show)
-      return
+    unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
-    writeHtml :: Handler ([Text],Html)
-    writeHtml = do
+    writeHtml :: Handler ([Text],[Html])
+    writeHtml = case supportedLanguages of
+      (l:ls) -> do
+        (names,first) <- withLang l
+        rest <- traverse (fmap snd . withLang) ls
+        return (names,first:rest)
+      _ -> error "No supported languages found!"
 
-      ((names,wid),_) <- runFormGet $ runReader widget
+    withLang :: Lang -> Handler ([Text], Html)
+    withLang lang = do
+      setLanguage lang
+      (names,wid) <- fst <$> runFormGet (runReader widget)
+      clearSession
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
       html <- withUrlRenderer [hamlet|
         ^{pageHead content}
         ^{pageBody content}|]
       return (names,html)
-
-    german = fromList [("_LANG","de")]
-    english = fromList [("_LANG","en")]
