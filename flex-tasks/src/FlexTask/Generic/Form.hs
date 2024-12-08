@@ -135,8 +135,8 @@ list22
 data FieldInfo
   = Single (FieldSettings FlexForm)
   | List Alignment [FieldSettings FlexForm]
-  | ChoicesDropdown (FieldSettings FlexForm) [Text]
-  | ChoicesButtons Alignment (FieldSettings FlexForm) [Text]
+  | ChoicesDropdown (FieldSettings FlexForm) [SomeMessage FlexForm]
+  | ChoicesButtons Alignment (FieldSettings FlexForm) [SomeMessage FlexForm]
   | InternalListElem (FieldSettings FlexForm)
   deriving (Show)
 
@@ -526,7 +526,7 @@ formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
 renderNextSingleChoiceField
     :: Eq a
-    => ([Text] -> [(Text, a)])
+    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe a
     -> [[FieldInfo]]
     -> ([[FieldInfo]], [[Rendered]])
@@ -551,7 +551,7 @@ renderNextSingleChoiceField pairsWith =
 
 renderNextMultipleChoiceField
     :: Eq a
-    => ([Text] -> [(Text, a)])
+    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], [[Rendered]])
@@ -586,7 +586,7 @@ formifyInstanceMultiChoice = renderNextMultipleChoiceField zipWithEnum
 
 
 
-zipWithEnum :: forall a. (Bounded a, Enum a) => [Text] -> [(Text, a)]
+zipWithEnum :: forall a. (Bounded a, Enum a) => [SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)]
 zipWithEnum labels
   | equalLength labels options = zip labels options
   | otherwise = error "Labels list and options list are of different lengths in an Enum choice form."
@@ -603,8 +603,8 @@ Same as `buttons`, but using an explicit enum type.
 buttonsEnum
   :: (Bounded a, Enum a)
   => Alignment
-  -> FieldSettings FlexForm -- ^ FieldSettings for option input
-  -> (a -> Text)            -- ^ Function from enum type values to labels.
+  -> FieldSettings FlexForm      -- ^ FieldSettings for option input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo
 buttonsEnum align t f = ChoicesButtons align t $ map f [minBound .. maxBound]
 
@@ -618,7 +618,7 @@ depending on the form type.
 buttons
   :: Alignment
   -> FieldSettings FlexForm -- ^ FieldSettings for option input
-  -> [Text]                 -- ^ Option labels
+  -> [SomeMessage FlexForm] -- ^ Option labels
   -> FieldInfo
 buttons = ChoicesButtons
 
@@ -629,8 +629,8 @@ Same as `dropdown`, but using an explicit enum type.
 -}
 dropdownEnum
   :: (Bounded a, Enum a)
-  => FieldSettings FlexForm -- ^ FieldSettings for select input
-  -> (a -> Text)            -- ^ Function from enum type values to labels.
+  => FieldSettings FlexForm      -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo
 dropdownEnum t f = ChoicesDropdown t $ map f [minBound .. maxBound]
 
@@ -643,7 +643,7 @@ depending on the form type.
 -}
 dropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
-  -> [Text]                  -- ^ Option labels
+  -> [SomeMessage FlexForm]  -- ^ Option labels
   -> FieldInfo
 dropdown = ChoicesDropdown
 
