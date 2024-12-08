@@ -1,5 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
+{-# language RecordWildCards #-}
 {-# language TypeOperators #-}
 
 {- | Functions for creating and composing forms.
@@ -39,7 +40,7 @@ import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Cassius                    (Css)
 import Text.Julius                     (Javascript, RawJS(..))
 import Yesod
-import Yesod.Core.Types                (RY)
+import Yesod.Core.Types                (HandlerData(..), HandlerFor(..), RY)
 import Yesod.Default.Config2           (makeYesodLogger)
 
 import qualified Control.Monad.Trans.RWS as RWS   (get)
@@ -52,7 +53,6 @@ import FlexTask.YesodConfig (
   Rendered,
   Rendered',
   Widget,
-  mFormState
   )
 
 
@@ -240,13 +240,21 @@ getFormData widget = do
       _ -> error "No supported languages found!"
 
     withLang :: Lang -> Handler ([Text], (Lang, String))
-    withLang lang = do
-      setLanguage lang
-      (names,wid) <- fst <$> runFormGet (mFormState lang <$> runReader widget)
-      clearSession
+    withLang lang = setRequestLang lang $ do
+      (names,wid) <- fst <$> runFormGet (runReader widget)
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
       html <- withUrlRenderer [hamlet|
         ^{pageHead content}
         ^{pageBody content}|]
       return (names, (lang, concat $ lines $ renderHtml html))
+
+
+
+-- Manipulate the request data to use a specific language.
+setRequestLang :: Lang -> HandlerFor FlexForm a -> HandlerFor FlexForm a
+setRequestLang lang HandlerFor{..} = do
+  HandlerFor $ unHandlerFor . alterHandlerData
+  where
+    alterHandlerData hd@HandlerData{..} =
+      hd{handlerRequest = handlerRequest{reqLangs = [lang]}}
