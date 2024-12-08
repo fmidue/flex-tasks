@@ -1,8 +1,10 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-missing-fields #-}
 {-# language DefaultSignatures #-}
 {-# language DeriveGeneric #-}
 {-# language LambdaCase #-}
 {-# language OverloadedStrings #-}
+{-# language StandaloneDeriving #-}
 {-# language TypeOperators #-}
 
 {- |
@@ -48,7 +50,7 @@ module FlexTask.Generic.Form
   ) where
 
 
-import Data.List.Extra      (nubSort, uncons, unsnoc)
+import Data.List.Extra      (intercalate, nubSort, uncons, unsnoc)
 import Data.Maybe           (fromMaybe)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
@@ -61,7 +63,7 @@ import FlexTask.Widgets
   , renderForm
   , verticalCheckboxesField
   )
-import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
+import FlexTask.YesodConfig (FlexForm, Handler, Rendered, FlexForm(..))
 
 
 
@@ -141,13 +143,17 @@ data FieldInfo
   deriving (Show)
 
 
--- For tests; Not used in actual code
-instance Show (FieldSettings FlexForm) where
-  show (FieldSettings _ _ fId fName fAttrs) = unlines
-    [ "Id: " ++ show fId
-    , "Name: " ++ show fName
-    , "Attributes: " ++ show fAttrs
-    ]
+-- For tests; TODO: Move completely into test suite
+deriving instance Show (FieldSettings FlexForm)
+
+instance Show (SomeMessage FlexForm) where
+  show m = '(': intercalate ", " (map unpack
+      [ "German: " <> inLang "de"
+      , "English: " <> inLang "en"
+      ]
+      ) ++ ")"
+    where
+      inLang l = renderMessage FlexForm{} [l] m
 
 
 -- | Inner alignment of input field elements.
