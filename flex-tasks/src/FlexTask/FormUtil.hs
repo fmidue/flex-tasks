@@ -52,6 +52,7 @@ import FlexTask.YesodConfig (
   Rendered,
   Rendered',
   Widget,
+  mFormState
   )
 
 
@@ -241,7 +242,7 @@ getFormData widget = do
     withLang :: Lang -> Handler ([Text], (Lang, String))
     withLang lang = do
       setLanguage lang
-      (names,wid) <- fst <$> runFormGet (runReader widget)
+      (names,wid) <- fst <$> runFormGet (mFormState lang <$> runReader widget)
       clearSession
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS

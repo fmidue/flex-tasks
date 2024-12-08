@@ -19,7 +19,6 @@ dependencies:
   - raw-strings-qq
   - SHA
   - shakespeare
-  - template-haskell
   - text
   - transformers
   - yesod

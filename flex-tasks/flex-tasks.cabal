@@ -54,7 +54,6 @@ library
     , parsec
     , raw-strings-qq
     , shakespeare
-    , template-haskell
     , text
     , transformers
     , yesod
@@ -108,7 +107,6 @@ test-suite flex-tasks-test
     , raw-strings-qq
     , shakespeare
     , string-interpolate
-    , template-haskell
     , text
     , transformers
     , yesod

@@ -19,8 +19,6 @@ import FlexTask.YesodConfig (
   FlexForm,
   Handler,
   Rendered,
-  toMForm,
-  fwhamlet,
   )
 
 
@@ -35,9 +33,9 @@ renderForm newId aformStub label =
       ident <- newFlexId
       name <- if newId then newFlexName else repeatFlexName
       let addAttrs = label {fsName = Just name, fsId = Just ident}
-      (_, views') <- toMForm $ aformStub addAttrs
+      (_, views') <- aFormToForm $ aformStub addAttrs
       let views = views' []
-      let widget = [fwhamlet|
+      let widget = [whamlet|
 $newline never
 \#{fragment}
 $forall view <- views
@@ -59,7 +57,7 @@ joinRenders = foldr (joinOuter . joinInner) zero
     zero = pure (pure ([],pure ()))
     joinInner = foldr ($$>) zero
     joinOuter x y = applyToWidget insertDiv x $$> y
-    insertDiv w = [fwhamlet|
+    insertDiv w = [whamlet|
       $newline never
       <div .flex-form-div>
         ^{w}
@@ -69,14 +67,14 @@ joinRenders = foldr (joinOuter . joinInner) zero
 
 horizontalRadioField :: Eq a => Handler (OptionList a) -> Field Handler a
 horizontalRadioField = withRadioFieldFlat
-      (\theId optionWidget -> [fwhamlet|
+      (\theId optionWidget -> [whamlet|
 $newline never
 <div .radio>
     <label for=#{theId}-none>
       ^{optionWidget}
       _{MsgSelectNone}
 |])
-      (\theId value _isSel text optionWidget -> [fwhamlet|
+      (\theId value _isSel text optionWidget -> [whamlet|
 $newline never
 <label for=#{theId}-#{value}>
   ^{optionWidget}
@@ -87,17 +85,17 @@ $newline never
       selectFieldHelper outside onOpt inside Nothing
         where
           outside theId _name _attrs inside' =
-            toWidget horizontalRBStyle >> [fwhamlet|
+            toWidget horizontalRBStyle >> [whamlet|
 $newline never
 <div>
   <span ##{theId}>^{inside'}
 |]
-          onOpt theId name isSel = nothingFun theId [fwhamlet|
+          onOpt theId name isSel = nothingFun theId [whamlet|
 $newline never
 <input id=#{theId}-none type=radio name=#{name} value=none :isSel:checked>
 |]
           inside theId name attrs value isSel display =
-            optFun theId value isSel display [fwhamlet|
+            optFun theId value isSel display [whamlet|
 <input id=#{theId}-#{(value)} type=radio name=#{name} value=#{(value)} :isSel:checked *{attrs}>
 |]
 
@@ -110,7 +108,7 @@ verticalCheckboxesField optList = (multiSelectField optList)
               os <- olOptions <$> handlerToWidget optList
               let optSelected (Left _) _ = False
                   optSelected (Right values) opt = optionInternalValue opt `elem` values
-              [fwhamlet|
+              [whamlet|
 <span ##{theId}>
   $forall opt <- os
     <div>
