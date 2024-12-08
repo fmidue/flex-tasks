@@ -15,7 +15,11 @@ import FlexTask.FormUtil (
   repeatFlexName,
   )
 import FlexTask.Styling     (horizontalRBStyle)
-import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
+import FlexTask.YesodConfig (
+  FlexForm,
+  Handler,
+  Rendered,
+  )
 
 
 
