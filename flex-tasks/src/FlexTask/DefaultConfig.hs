@@ -103,9 +103,22 @@ import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered)
 import Data.String.Interpolate (i)
 import Test.QuickCheck.Gen
+import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 
 import Global
 
+
+
+
+data Label = Product | Sum
+
+
+
+instance RenderMessage a Label where
+  renderMessage app ("de":_) Product = "Produkt"
+  renderMessage app ("de":_) Sum     = "Summe"
+  renderMessage app _        Product = "Product"
+  renderMessage app _        Sum     = "Sum"
 
 
 
@@ -120,7 +133,9 @@ getTask = do
 
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [[single "Product"], [single "Sum"]]
+fieldNames = [[fromLabel Product], [fromLabel Sum]]
+  where
+    fromLabel = single. fieldSettingsLabel
 
 
 form :: Rendered
