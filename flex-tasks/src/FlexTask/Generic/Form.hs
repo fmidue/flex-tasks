@@ -50,8 +50,11 @@ module FlexTask.Generic.Form
   ) where
 
 
+
+import Control.Monad.Reader (Reader)
 import Data.List.Extra      (intercalate, nubSort, uncons, unsnoc)
 import Data.Maybe           (fromMaybe)
+import Data.Tuple.Extra     (first)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
@@ -63,7 +66,7 @@ import FlexTask.Widgets
   , renderForm
   , verticalCheckboxesField
   )
-import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered)
+import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
 
 
@@ -337,6 +340,10 @@ instance (Formify a, Formify b, Formify c) => Formify (a,b,c)
 
 instance (Formify a, Formify b, Formify c, Formify d) => Formify (a,b,c,d)
 
+instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b,c,d,e)
+
+instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
+
 
 instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
   formifyImplementation = formifyInstanceList
@@ -413,15 +420,22 @@ like `formify`, but yields the individual sub-renders instead of a combined form
 Retains the layout structure given by the `FieldInfo` list argument.
 This can be used in custom forms to incorporate generated inputs.
 -}
-formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> [[Rendered]]
-formifyComponents = checkAndApply id
+formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Reader Html (MForm Handler ([Text],[[Widget]]))
+formifyComponents = checkAndApply (fmap (tupleSequence . mapM sequence) . mapM sequence)
+  where tupleSequence = fmap (joinAndPart . map joinAndPart)
 
 
 {- |
-like `formifyComponents`, but flattens the sub-render list to a single level.
+like `formifyComponents`, but takes a simple list of `FieldInfo` values.
+The sub-renders will also be returned as a flat list without any additional structure.
 -}
-formifyComponentsFlat :: Formify a => Maybe a -> [[FieldInfo]] -> [Rendered]
-formifyComponentsFlat = checkAndApply concat
+formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Reader Html (MForm Handler ([Text],[Widget]))
+formifyComponentsFlat ma = checkAndApply (fmap (tupleSequence . sequence) . sequence . concat) ma . (:[])
+  where tupleSequence = fmap joinAndPart
+
+
+joinAndPart :: [([a],b)] -> ([a],[b])
+joinAndPart = first concat . unzip
 
 
 checkAndApply
