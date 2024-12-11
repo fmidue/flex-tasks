@@ -49,13 +49,18 @@ import System.FilePath             ((</>), (<.>))
 import Test.QuickCheck.Gen         (Gen)
 import Text.RawString.QQ (rQ)
 
-import FlexTask.Types              (CommonModules(..), FlexConf(..), FlexInst(..))
+import FlexTask.Types (
+  CommonModules(..),
+  FlexConf(..),
+  FlexInst(..),
+  HtmlDict,
+  )
 import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
 
-type GenOutput = (String, String, IO ([String],String))
+type GenOutput = (String, String, IO ([String],HtmlDict))
 
 
 {- |
@@ -90,8 +95,10 @@ genFlexInst
       }
     where
       tfInter :: Interpreter (Gen GenOutput)
-      tfInter = setTopLevelModules ["TaskData", "Global"] >>
-                  interpret "getTask " infer
+      tfInter = do
+        setTopLevelModules ["TaskData", "Global"]
+        setImports ["Data.Map", "Data.Text"]
+        interpret "getTask " infer
 
 
 

@@ -31,7 +31,7 @@ module FlexTask.FormUtil
 
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
-import Data.Map                        (Map, fromList)
+import Data.Map                        (fromList)
 import Data.Text                       (Text, pack, unpack)
 import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
@@ -47,6 +47,7 @@ import qualified Control.Monad.Trans.RWS as RWS   (get)
 import qualified Data.Text               as T     (replace)
 import qualified Yesod.Core.Unsafe       as Unsafe
 
+import FlexTask.Types                  (HtmlDict)
 import FlexTask.YesodConfig (
   FlexForm(..),
   Handler,
@@ -223,7 +224,7 @@ supportedLanguages = ["de","en"]
 Extract a form from the environment.
 The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
 -}
-getFormData :: Rendered -> IO ([String], Map Lang String)
+getFormData :: Rendered -> IO ([String], HtmlDict)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     Unsafe.fakeHandlerGetLogger
@@ -231,7 +232,7 @@ getFormData widget = do
       FlexForm {appLogger = logger}
       writeHtml
   where
-    writeHtml :: Handler ([String], Map Lang String)
+    writeHtml :: Handler ([String], HtmlDict)
     writeHtml = case supportedLanguages of
       (l:ls) -> do
         (names,first) <- withLang l

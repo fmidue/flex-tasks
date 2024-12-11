@@ -99,6 +99,7 @@ module TaskData (getTask) where
 
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered)
 import Data.String.Interpolate (i)
 import Test.QuickCheck.Gen
@@ -108,7 +109,7 @@ import Global
 
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (String, String, IO ([String],HtmlDict))
 getTask = do
     numbers <- vectorOf 3 $ elements [1..6 :: Int]
     let
