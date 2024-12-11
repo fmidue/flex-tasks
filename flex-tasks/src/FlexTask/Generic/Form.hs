@@ -63,7 +63,7 @@ import FlexTask.Widgets
   , renderForm
   , verticalCheckboxesField
   )
-import FlexTask.YesodConfig (FlexForm, Handler, Rendered, FlexForm(..))
+import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered)
 
 
 
