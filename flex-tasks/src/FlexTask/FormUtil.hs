@@ -32,7 +32,7 @@ module FlexTask.FormUtil
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
 import Data.Map                        (fromList)
-import Data.Text                       (Text, pack, unpack)
+import Data.Text                       (Text, pack)
 import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
 import System.Log.FastLogger           (defaultBufSize, newStdoutLoggerSet)
@@ -224,7 +224,7 @@ supportedLanguages = ["de","en"]
 Extract a form from the environment.
 The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
 -}
-getFormData :: Rendered -> IO ([String], HtmlDict)
+getFormData :: Rendered -> IO ([Text], HtmlDict)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     Unsafe.fakeHandlerGetLogger
@@ -232,12 +232,12 @@ getFormData widget = do
       FlexForm {appLogger = logger}
       writeHtml
   where
-    writeHtml :: Handler ([String], HtmlDict)
+    writeHtml :: Handler ([Text], HtmlDict)
     writeHtml = case supportedLanguages of
       (l:ls) -> do
         (names,first) <- withLang l
         rest <- traverse (fmap snd . withLang) ls
-        return (map unpack names, fromList $ first:rest)
+        return (names, fromList $ first:rest)
       _ -> error "No supported languages found!"
 
     withLang :: Lang -> Handler ([Text], (Lang, String))

@@ -51,11 +51,11 @@ This includes (in order):
 
 - Flexible data available to both the task description and the checks/feedback. (String)
 - The entire "Check" module, containing a syntax and a semantics check. (String, use QuasiQuoting)
-- An HTML input form represented by the names of all contained input fields and HTML code,
-  wrapped in IO. (IO ([String],String))
+- An HTML input form represented by the names of all contained input fields
+  and a map of languages to translated HTML code, wrapped in IO. (IO ([Text],HtmlDict))
 
 Provide a function
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 implementing a generator for these elements.
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
@@ -122,7 +122,7 @@ instance RenderMessage a Label where
 
 
 
-getTask :: Gen (String, String, IO ([String],HtmlDict))
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 getTask = do
     numbers <- vectorOf 3 $ elements [1..6 :: Int]
     let
