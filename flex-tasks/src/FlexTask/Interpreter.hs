@@ -22,6 +22,7 @@ import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (replace)
 import Data.Map                     (elems)
+import Data.Text                    (Text)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Data.Typeable                (Typeable)
@@ -60,7 +61,7 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
-type GenOutput = (String, String, IO ([String],HtmlDict))
+type GenOutput = (String, String, IO ([Text],HtmlDict))
 
 
 {- |

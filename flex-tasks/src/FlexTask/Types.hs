@@ -21,6 +21,7 @@ module FlexTask.Types
 import Control.Monad                     (void)
 import Data.List                         (intercalate)
 import Data.Map                          (Map)
+import Data.Text                         (Text)
 import GHC.Generics                      (Generic)
 import Text.Parsec (
     anyChar,
@@ -44,10 +45,10 @@ Concrete Task instance.
 Contained Haskell code is runtime interpreted to produce needed components of a task.
 -}
 data FlexInst = FlexInst {
-    form            :: ([String],HtmlDict), -- ^ Field IDs of input elements and form as Html code.
-    taskData        ::  String,             -- ^ Flexible task data used by task description and checker functions.
-    commonModules   ::  CommonModules,      -- ^ Modules shared between config and instance.
-    checkModule     ::  String              -- ^ Module containing the Checker functions.
+    form            :: ([Text],HtmlDict), -- ^ Field IDs of input elements and Html code.
+    taskData        ::  String,           -- ^ Flexible task data used by task description and checker functions.
+    commonModules   ::  CommonModules,    -- ^ Modules shared between config and instance.
+    checkModule     ::  String            -- ^ Module containing the Checker functions.
   } deriving (Generic)
 
 
