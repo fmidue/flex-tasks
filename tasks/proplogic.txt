@@ -63,6 +63,7 @@ import FlexTask.Generic.Form (
   buttonsEnum
   )
 import FlexTask.YesodConfig    (Rendered)
+import LogicTasks.Forms        (tableForm)
 import LogicTasks.Formula      (TruthValue(..))
 import Numeric                 (showBin)
 import Test.QuickCheck.Arbitrary (arbitrary)
@@ -100,8 +101,9 @@ getTask = do
     pure (show ((legend,hints),coming), checkers formula, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
-    form n = tableForm ["A","B","C","D"] $$>
-             formify (Nothing :: Maybe FormType) (nonTableFields n)
+    form n = addCss formulaCss $
+      tableForm emptyColumns rows ["A","B","C","D"] $$>
+      formify (Nothing :: Maybe FormType) (nonTableFields n)
 
     getNames :: Gen (Text,Text,Text,Text)
     getNames = do
@@ -110,6 +112,20 @@ getTask = do
       c <- elements ["Claudia","Carla"]
       d <- elements ["David","Daniel"]
       return (a,b,c,d)
+
+    formulaCss = [cassius|
+      .flex-form-span > label
+        display:block
+        margin-bottom: 1em
+        margin-top: 2em
+
+      .#{formulaClass}
+        display:block
+        width: 95%
+        margin-left: auto
+        margin-right: auto
+        margin-bottom: 0.5em
+    |]
 
 
 
@@ -157,82 +173,6 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
     part5 = Binary Impl
              (neg d 'D')
              (Binary Or (neg a 'A') (neg b 'B'))
-
-
-
-tableForm :: [Text] -> Rendered
-tableForm staticHeaders =
-  addCss css $ reader $ \extra -> do
-    let addAttr a fs@FieldSettings{..} = fs {fsAttrs = a : fsAttrs}
-        headerTextField t = mopt textField (addAttr ("tabindex",pack $ show 1) $ addNameAndCssClass t "header") Nothing
-        tableTextField tabOrd t = mopt textField (addAttr ("tabindex",pack $ show tabOrd) $ addNameAndCssClass t "tableInput") Nothing
-
-        headerList = replicate emptyColumns "headers"
-        cellList = replicate rows "cells"
-
-    headersRes <- traverse headerTextField headerList
-    columnsRes <- traverse (\num -> traverse (tableTextField num) cellList) [2..totalColumns+1]
-    let tableHeaders = map snd headersRes
-        tableRows = transpose $ map (map snd) columnsRes
-    pure ( ["headers","cells"]
-         , [whamlet|
-              #{extra}
-              <table>
-                <tr>
-                  $forall sh <- staticHeaders
-                    <th>#{sh}
-                  $forall header <- tableHeaders
-                    <th>^{fvInput header}
-                $forall row <- tableRows
-                  <tr>
-                    $forall input <- row
-                      <td>^{fvInput input}|]
-         )
-  where
-    css = [cassius|
-      .flex-form-span > label
-        display:block
-        margin-bottom: 1em
-        margin-top: 2em
-
-      .#{formulaClass}
-        display:block
-        width: 95%
-        margin-left: auto
-        margin-right: auto
-        margin-bottom: 0.5em
-
-      .header
-        width: 100%
-        text-align: center
-        padding-top: 10px
-        padding-bottom: 10px
-
-      .tableInput
-        width: 100%
-        text-align: center
-
-      th, td
-        border: 1px solid black
-        border-collapse: collapse
-        text-align: center
-
-      table tr th:nth-child(-n+4)
-        width: 2.5%
-
-      table tr td:nth-child(-n+4)
-        height: 2%
-
-      table tr th:nth-child(n+5)
-        width: 3%
-
-      table tr th:nth-child(n+9)
-        width: 6.5%
-
-      table tr th:nth-child(n+14)
-        width: 10%
-    |]
-
 
 
 
@@ -289,6 +229,7 @@ import Trees.Types (
   SynTree(..),
   PropFormula(..),
   BinOp(..),
+  toSynTree
   )
 import Trees.Print                      (simplestDisplay)
 
@@ -328,13 +269,6 @@ stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
     stringMaybe (Just s) = s
 
 
-toTree :: PropFormula Char -> SynTree BinOp Char
-toTree (Atomic c) = Leaf c
-toTree (Neg p) = Not $ toTree p
-toTree (Brackets p) = toTree p
-toTree (Assoc op l r) = Binary op (toTree l) (toTree r)
-
-
 dropStatic :: [a] -> [a]
 dropStatic = drop staticColumns
 
@@ -357,11 +291,11 @@ checkSyntax' n atomicColumns (fs,f) = do
         "Es wurden Formeln wie folgt gelesen:"
       when (any (/=Nothing) mColumns) $ indent $ do
         bothLangs "Tabellenspalten"
-        code $ unlines $ map (simplestDisplay . toTree) entered
+        code $ unlines $ map (simplestDisplay . toSynTree) entered
         pure ()
       indent $ do
         bothLangs "Antwortformel"
-        code $ simplestDisplay $ toTree f
+        code $ simplestDisplay $ toSynTree f
         pure ()
       pure ()
     when (atomicColumns == map reverse #{startingTable}) $ refuse $ indent $ bothLangs $
@@ -414,7 +348,7 @@ checkSemantics' nSol columns n (headers,f) = do
       "Tafel ist gefüllt und Tabellenspalten enthalten nur korrekt ermittelte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
        "Gesamtformel enthält alle vorkommenden atomaren Formeln?"
-    let correctFormula = isSemanticEqual (#{fSol}) (toTree f)
+    let correctFormula = isSemanticEqual (#{fSol}) (toSynTree f)
     yesNo correctFormula $ bothLangs
         "Gesamtformel ist korrekt?"
     let correctNames = n == nSol
