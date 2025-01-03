@@ -412,7 +412,7 @@ description _ ((legend,hints),_) = do
     paragraph $ bothLangs $
       "Wer geht mit Eva zum Konzert? Leiten Sie Ihr Ergebnis mittels Wahrheitstafel her. " ++
       "Kreuzen Sie dann alle Begleitenden in der Namensliste an. " ++
-      "Dabei steht eine Belegung von 'wahr' dafür, dass diese Person mitkommt."
+      "Dabei steht eine Zuordnung von 'wahr' dafür, dass diese Person mitkommt."
     paragraph $ bothLangs
       "Verwenden Sie für die Angabe der Formel die atomaren Formeln A, B, C, D und die folgenden Operatoren:"
     enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
