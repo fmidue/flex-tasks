@@ -472,6 +472,8 @@ description _ ((legend,hints),_) = do
     paragraph $ bothLangs
       "Übersetzen Sie die Kombination der Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das entsprechend benannte Textfeld ein."
     paragraph $ bothLangs
+      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A, B, C, D."
+    paragraph $ bothLangs
       "Wer geht mit Eva zum Konzert? Leiten Sie Ihr Ergebnis mittels Wahrheitstafel her. Kreuzen Sie dann alle Begleitenden in der Namensliste an."
     keyHeading
     basicOpKey True
