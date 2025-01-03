@@ -1,14 +1,10 @@
-{-# language StandaloneDeriving #-}
+
 module Global where
 
 
 import Control.OutputCapable.Blocks
-import LogicTasks.Formula (TruthValue(..))
+import LogicTasks.Formula (TruthValue)
 
-
-
-deriving instance Eq TruthValue
-deriving instance Ord TruthValue
 
 
 newtype Table = Table [(Maybe String, [Maybe TruthValue])] deriving (Eq,Show)
