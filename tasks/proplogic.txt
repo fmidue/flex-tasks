@@ -22,6 +22,8 @@ emptyColumns  = 13
 staticColumns = 4
 totalColumns  = staticColumns + emptyColumns
 rows          = 2^staticColumns
+
+tableRequired, showSolution :: Bool
 tableRequired = False
 showSolution  = True
 
@@ -40,17 +42,15 @@ bothLangs s = translate $ german s >> english s
 module TaskData (getTask) where
 
 
-import Control.Monad.Reader    (reader)
 import Data.Char               (digitToInt)
 import Data.List               (transpose)
 import Data.Maybe              (fromJust)
-import Data.Text               (Text, pack)
+import Data.Text               (Text)
 import Data.String.Interpolate (i)
 import FlexTask.FormUtil (
   ($$>),
   addCss,
   addCssClass,
-  addNameAndCssClass,
   getFormData,
   )
 import FlexTask.Generic.Form (
