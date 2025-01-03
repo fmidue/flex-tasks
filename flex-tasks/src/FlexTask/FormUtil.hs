@@ -61,7 +61,11 @@ Compose two forms sequentially.
 The output form contains all of the fields from both input forms.
 -}
 infixr 0 $$>
-($$>) :: Monad m => Rendered' m -> Rendered' m -> Rendered' m
+($$>)
+  :: (Monad w, Monad m)
+  => Rendered' m (w a)
+  -> Rendered' m (w b)
+  -> Rendered' m (w b)
 f1 $$> f2 = do
     res1 <- f1
     res2 <- f2
@@ -71,15 +75,15 @@ f1 $$> f2 = do
       pure (nubOrd $ names1 ++ names2, wid1 >> wid2)
 
 
-applyToWidget :: Functor m => (Widget -> Widget) -> Rendered' m -> Rendered' m
+applyToWidget :: Functor m => (w -> w') -> Rendered' m w -> Rendered' m w'
 applyToWidget f form = fmap (second f) <$> form
 
 
 addContent
   :: (ToWidget FlexForm (render -> a), Functor m)
   => (render -> a)
-  -> Rendered' m
-  -> Rendered' m
+  -> Rendered' m Widget
+  -> Rendered' m Widget
 addContent content = applyToWidget (<* toWidget content)
 
 
@@ -89,9 +93,9 @@ Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters or hosted files.
 -}
 addCss
   :: (render ~ RY FlexForm, Functor m)
-  => (render -> Css) -- ^ CSS template
-  -> Rendered' m     -- ^ Form to add to
-  -> Rendered' m
+  => (render -> Css)      -- ^ CSS template
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addCss = addContent
 
 
@@ -102,8 +106,8 @@ Use with `Yesod` Julius Shakespeare quasi quoters or hosted files.
 addJs
   :: (render ~ RY FlexForm, Functor m)
   => (render -> Javascript) -- ^ Javascript template
-  -> Rendered' m            -- ^ Form to add to
-  -> Rendered' m
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addJs = addContent
 
 
@@ -114,8 +118,8 @@ addCssAndJs
   :: (render ~ RY FlexForm, Functor m)
   => (render -> Css)        -- ^ CSS template
   -> (render -> Javascript) -- ^ Javascript template
-  -> Rendered' m            -- ^ Form to add to
-  -> Rendered' m
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addCssAndJs css js = applyToWidget ((<* toWidget css) . (<* toWidget js))
 
 
@@ -216,7 +220,7 @@ var fieldNames = #{rawJS (show names)};|]
 Extract a form from the environment.
 The result is an IO embedded tuple of field IDs and Html code.
 -}
-getFormData :: Rendered -> IO ([String],String)
+getFormData :: Rendered Widget -> IO ([String],String)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     (fNames,html) <- unsafeHandler FlexForm {appLogger = logger} writeHtml

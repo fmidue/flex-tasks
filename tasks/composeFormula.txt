@@ -12,7 +12,7 @@ module TaskData where
 import Data.String.Interpolate          (i)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (Rendered)
+import FlexTask.YesodConfig             (Rendered, Widget)
 import Tasks.ComposeFormula.Config      (ComposeFormulaConfig(..), TreeDisplayMode (TreeDisplay))
 import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
@@ -65,7 +65,7 @@ task03 = ComposeFormulaConfig
 fields :: [[FieldInfo]]
 fields = [[single "Erste Formel:", single "Zweite Formel:"]]
 
-form :: Rendered
+form :: Rendered Widget
 form = formify (Nothing :: Maybe Solution) fields
 
 checkers :: String

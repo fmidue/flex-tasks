@@ -48,7 +48,6 @@ module FlexTask.Generic.Form
   ) where
 
 
-import Control.Monad.Reader (Reader)
 import Data.List.Extra      (nubSort, uncons, unsnoc)
 import Data.Tuple.Extra     (first)
 import Data.Maybe           (fromMaybe)
@@ -257,19 +256,19 @@ class Formify a where
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
       -> [[FieldInfo]] -- ^ Structure and type of form.
-      -> ([[FieldInfo]], [[Rendered]]) -- ^ remaining form structure and completed sub-renders.
+      -> ([[FieldInfo]], [[Rendered Widget]]) -- ^ remaining form structure and completed sub-renders.
 
   default formifyImplementation
       :: (Generic a, GFormify (Rep a))
       => Maybe a
       -> [[FieldInfo]]
-      -> ([[FieldInfo]], [[Rendered]])
+      -> ([[FieldInfo]], [[Rendered Widget]])
   formifyImplementation mDefault = gformify $ from <$> mDefault
 
 
 
 class GFormify f where
-  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], [[Rendered]])
+  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], [[Rendered Widget]])
 
 
 
@@ -404,7 +403,7 @@ formify
   :: (Formify a)
   => Maybe a -- ^ Optional default value for form.
   -> [[FieldInfo]] -- ^ Structure of form.
-  -> Rendered -- ^ Rendered form.
+  -> Rendered Widget -- ^ Rendered form.
 formify = checkAndApply joinRenders
 
 
@@ -413,7 +412,7 @@ like `formify`, but yields the individual sub-renders instead of a combined form
 Retains the layout structure given by the `FieldInfo` list argument.
 This can be used in custom forms to incorporate generated inputs.
 -}
-formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Reader Html (MForm Handler ([Text],[[Widget]]))
+formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered [[Widget]]
 formifyComponents = checkAndApply (fmap (tupleSequence . mapM sequence) . mapM sequence)
   where tupleSequence = fmap (joinAndPart . map joinAndPart)
 
@@ -422,7 +421,7 @@ formifyComponents = checkAndApply (fmap (tupleSequence . mapM sequence) . mapM s
 like `formifyComponents`, but takes a simple list of `FieldInfo` values.
 The sub-renders will also be returned as a flat list without any additional structure.
 -}
-formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Reader Html (MForm Handler ([Text],[Widget]))
+formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Rendered [Widget]
 formifyComponentsFlat ma = checkAndApply (fmap (tupleSequence . sequence) . sequence . concat) ma . (:[])
   where tupleSequence = fmap joinAndPart
 
@@ -433,7 +432,7 @@ joinAndPart = first concat . unzip
 
 checkAndApply
   :: Formify a
-  => ([[Rendered]] -> b)
+  => ([[Rendered Widget]] -> b)
   -> Maybe a
   -> [[FieldInfo]]
   -> b
@@ -455,7 +454,7 @@ renderNextField
      )
   -> Maybe a
   -> [[FieldInfo]]
-  -> ([[FieldInfo]], [[Rendered]])
+  -> ([[FieldInfo]], [[Rendered Widget]])
 renderNextField _ _ [] = error "Incorrect amount of field names"
 renderNextField h ma ((x : xs) : xss) =
   let
@@ -472,7 +471,7 @@ formifyInstanceBasicField
     :: BaseForm a
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceBasicField = renderNextField
   (\case
       Single fs -> (fs, True, areq baseForm)
@@ -487,7 +486,7 @@ formifyInstanceOptionalField
     :: BaseForm a
     => Maybe (Maybe a)
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceOptionalField = renderNextField
   (\case
       Single fs -> (fs, True, aopt baseForm)
@@ -500,7 +499,7 @@ formifyInstanceList
     :: (Formify a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceList _ [] = error "ran out of field names"
 formifyInstanceList _ ((List _ [] : _) : _) = error "List of fields without names!"
 formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
@@ -537,7 +536,7 @@ formifyInstanceSingleChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
 renderNextSingleChoiceField
@@ -545,7 +544,7 @@ renderNextSingleChoiceField
     => ([Text] -> [(Text, a)])
     -> Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 renderNextSingleChoiceField pairsWith =
   renderNextField
   (\case
@@ -570,7 +569,7 @@ renderNextMultipleChoiceField
     => ([Text] -> [(Text, a)])
     -> Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 renderNextMultipleChoiceField pairsWith =
   renderNextField
   (\case
@@ -597,7 +596,7 @@ formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceMultiChoice = renderNextMultipleChoiceField zipWithEnum
 
 
