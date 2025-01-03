@@ -20,11 +20,14 @@ type FormType = (String,[Namen])
 type Submission = (Table,String,[Namen])
 
 
+-- Configuration
 emptyColumns, staticColumns, totalColumns, rows :: Int
 emptyColumns  = 13
 staticColumns = 4
 totalColumns  = staticColumns + emptyColumns
 rows          = 2^staticColumns
+tableRequired = False
+showSolution  = True
 
 
 bothLangs :: OutputCapable m => String -> LangM m
@@ -98,7 +101,7 @@ getTask = do
     let
       zipped = [(a, A), (b, B), (c, C), (d, D)]
       coming = [ n | (True,n) <- zipped ]
-    pure (show ((legend,hints),coming), checkers formula False True, getFormData (form names))
+    pure (show ((legend,hints),coming), checkers formula, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
     form n = tableForm ["A","B","C","D"] $$>
@@ -256,8 +259,8 @@ startingTable = map (Just . TruthValue . toEnum . digitToInt) <$>
 
 
 
-checkers :: SynTree BinOp Char -> Bool -> Bool -> String
-checkers fSol tableRequired showSolution = [i|
+checkers :: SynTree BinOp Char -> String
+checkers fSol = [i|
 
 {-\# language ApplicativeDo \#-}
 {-\# language OverloadedStrings \#-}
