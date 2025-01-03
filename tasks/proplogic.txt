@@ -1,3 +1,4 @@
+{-# language StandaloneDeriving #-}
 module Global where
 
 
@@ -6,8 +7,9 @@ import LogicTasks.Formula (TruthValue(..))
 
 
 
-instance Eq TruthValue where
-  (TruthValue a) == (TruthValue b) = a == b
+deriving instance Eq TruthValue
+deriving instance Ord TruthValue
+
 
 newtype Table = Table [(Maybe String, [Maybe TruthValue])] deriving (Eq,Show)
 
@@ -18,11 +20,14 @@ type FormType = (String,[Namen])
 type Submission = (Table,String,[Namen])
 
 
+-- Configuration
 emptyColumns, staticColumns, totalColumns, rows :: Int
 emptyColumns  = 13
 staticColumns = 4
 totalColumns  = staticColumns + emptyColumns
 rows          = 2^staticColumns
+tableRequired = False
+showSolution  = True
 
 
 bothLangs :: OutputCapable m => String -> LangM m
@@ -48,6 +53,7 @@ import Data.String.Interpolate (i)
 import FlexTask.FormUtil (
   ($$>),
   addCss,
+  addCssClass,
   addNameAndCssClass,
   getFormData,
   )
@@ -60,7 +66,7 @@ import FlexTask.Generic.Form (
   single,
   buttonsEnum
   )
-import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
+import FlexTask.YesodConfig    (Rendered)
 import LogicTasks.Formula      (TruthValue(..))
 import Numeric                 (showBin)
 import Test.QuickCheck.Arbitrary (arbitrary)
@@ -79,6 +85,10 @@ instance MonadFail Gen where
   fail = error
 
 
+formulaClass :: Text
+formulaClass = "formula"
+
+
 getParticipants :: Gen [Bool]
 getParticipants = vectorOf 4 arbitrary `suchThat` \bs -> or bs && not (and bs)
 
@@ -91,7 +101,7 @@ getTask = do
     let
       zipped = [(a, A), (b, B), (c, C), (d, D)]
       coming = [ n | (True,n) <- zipped ]
-    pure (show ((legend,hints),coming), checkers formula False True, getFormData (form names))
+    pure (show ((legend,hints),coming), checkers formula, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
     form n = tableForm ["A","B","C","D"] $$>
@@ -165,9 +175,9 @@ tableForm staticHeaders =
         cellList = replicate rows "cells"
 
     headersRes <- traverse headerTextField headerList
-    columnsRes <- traverse (\i -> traverse (tableTextField i) cellList) [2..totalColumns+1]
-    let headers = map snd headersRes
-        rows = transpose $ map (map snd) columnsRes
+    columnsRes <- traverse (\num -> traverse (tableTextField num) cellList) [2..totalColumns+1]
+    let tableHeaders = map snd headersRes
+        tableRows = transpose $ map (map snd) columnsRes
     pure ( ["headers","cells"]
          , [whamlet|
               #{extra}
@@ -175,50 +185,63 @@ tableForm staticHeaders =
                 <tr>
                   $forall sh <- staticHeaders
                     <th>#{sh}
-                  $forall header <- headers
+                  $forall header <- tableHeaders
                     <th>^{fvInput header}
-                $forall row <- rows
+                $forall row <- tableRows
                   <tr>
                     $forall input <- row
                       <td>^{fvInput input}|]
          )
   where
     css = [cassius|
-      #flexident287
-        width: 600px
-        margin: 10px 10px
+      .flex-form-span > label
+        display:block
+        margin-bottom: 1em
+        margin-top: 2em
+
+      .#{formulaClass}
+        display:block
+        width: 95%
+        margin-left: auto
+        margin-right: auto
+        margin-bottom: 0.5em
+
       .header
         width: 100%
         text-align: center
-        height: 25px
+        padding-top: 10px
+        padding-bottom: 10px
+
       .tableInput
         width: 100%
         text-align: center
+
       th, td
         border: 1px solid black
         border-collapse: collapse
         text-align: center
+
       table tr th:nth-child(-n+4)
-        width: 20px
+        width: 2.5%
+
       table tr td:nth-child(-n+4)
-        height: 25px
+        height: 2%
+
       table tr th:nth-child(n+5)
-        width: 30px
+        width: 3%
+
       table tr th:nth-child(n+9)
-        width: 75px
+        width: 6.5%
+
       table tr th:nth-child(n+14)
-        width: 125px
-      table tr th:last-child
-        padding: 10px 0px
-      table
-        table-layout: fixed
+        width: 10%
     |]
 
 
 
 
 nonTableFields :: (Text,Text,Text,Text) -> [[FieldInfo]]
-nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
+nonTableFields (a,b,c,d) = [[single $ addCssClass formulaClass "Formel F = "], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
   where
     nameMatching = [(A, a), (B, b), (C, c), (D, d)]
 
@@ -236,8 +259,8 @@ startingTable = map (Just . TruthValue . toEnum . digitToInt) <$>
 
 
 
-checkers :: SynTree BinOp Char -> Bool -> Bool -> String
-checkers fSol tableRequired showSolution = [i|
+checkers :: SynTree BinOp Char -> String
+checkers fSol = [i|
 
 {-\# language ApplicativeDo \#-}
 {-\# language OverloadedStrings \#-}
@@ -245,22 +268,36 @@ checkers fSol tableRequired showSolution = [i|
 module Check (checkSemantics, checkSyntax) where
 
 
-import Control.Monad (when)
+import Control.Monad                    (when)
 import Control.OutputCapable.Blocks
-import Data.Foldable (toList)
-import Data.List     (intercalate, isInfixOf)
-import Data.Maybe    (catMaybes, fromJust)
-import Data.Map      (fromList)
-import Data.Ratio    ((%))
+import Data.Containers.ListUtils        (nubOrd)
+import Data.Foldable                    (toList)
+import Data.List (
+  delete,
+  intercalate,
+  isInfixOf,
+  transpose,
+  )
+import Data.Maybe                       (catMaybes, fromJust)
+import Data.Map                         (fromList)
+import Data.Ratio                       ((%))
 
-import LogicTasks.Formula (TruthValue(..), isSemanticEqual, convert)
-import LogicTasks.Parsing (allSymbolParser, parser)
+import LogicTasks.Formula (
+  TruthValue(..),
+  isSemanticEqual,
+  convert,
+  )
+import LogicTasks.Parsing               (allSymbolParser, parser)
 import Formula.Parsing.Delayed
-import Trees.Types (SynTree(..), PropFormula(..), BinOp(..))
-import Trees.Print (simplestDisplay)
+import Trees.Types (
+  SynTree(..),
+  PropFormula(..),
+  BinOp(..),
+  )
+import Trees.Print                      (simplestDisplay)
 
-import qualified SAT.MiniSat as Sat
-import qualified Data.Text   as T
+import qualified SAT.MiniSat            as Sat
+import qualified Data.Text              as T
 
 import Global
 
@@ -312,32 +349,49 @@ checkSyntax _ _ (Table xs,formula,names) =
     parser
     complainAboutMissingParenthesesIfNotFailingOn
     allSymbolParser
-    (checkSyntax' names)
+    (checkSyntax' names $ take staticColumns $ map snd xs)
     $ delayed $ stringTuple (stringList $ map fst xs) formula
 
 
 
-checkSyntax' :: OutputCapable m => [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
-checkSyntax' n (fs,f) = do
+checkSyntax' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
+checkSyntax' n atomicColumns (fs,f) = do
     paragraph $ do
       bothLangs $ do
         "Es wurden Formeln wie folgt gelesen:"
-      when (any (/=Nothing) entered) $ indent $ do
+      when (any (/=Nothing) mColumns) $ indent $ do
         bothLangs "Tabellenspalten"
-        code $ unlines $ map (simplestDisplay . toTree) $ catMaybes entered
+        code $ unlines $ map (simplestDisplay . toTree) entered
         pure ()
       indent $ do
         bothLangs "Antwortformel"
         code $ simplestDisplay $ toTree f
         pure ()
       pure ()
-    assertion (all (`notElem` map (Just . Atomic) "ABCD") entered) $ bothLangs
+    when (atomicColumns == map reverse #{startingTable}) $ refuse $ indent $ bothLangs $
+      "Die Spalten der atomaren Formeln sind invertiert. " ++
+      "Bitte legen Sie die Tafel so an wie in der Vorlesung vorgegeben."
+    assertion (nubOrd atomicRows == atomicRows) $ bothLangs
+      "Alle vollständig eingetragenen Belegungen kommen nur einmal in Tafel vor?"
+    assertion (notElem 'E' $ concatMap toList $ f : entered) $ bothLangs
+      "Eva (E) kommt nicht in Formeln vor?"
+    assertion (
+      all (`elem` ('F': toList (#{fSol}))) (concatMap toList entered) &&
+      all (`elem` toList (#{fSol})) (toList f)
+      )
+      $ bothLangs
+      "Es wurden nur bekannte atomare Formeln genutzt?"
+    assertion (all noDuplicate entered) $ bothLangs
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
     pure ()
   where
-    entered = dropStatic fs
+    mColumns = dropStatic fs
+    entered = catMaybes mColumns
+    noDuplicate formula = formula `notElem` (map Atomic "ABCD" ++ delete formula entered)
+    atomicRows = filter (notElem Nothing) $ transpose atomicColumns
+
 
 
 checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
@@ -356,12 +410,12 @@ checkSemantics' nSol columns n (headers,f) = do
     let correctStart = take staticColumns columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
-    let subFormulas = all (`isSubFormula` f) $ catMaybes $ dropStatic headers
+    let subFormulas = all (\\e -> e `isSubFormula` f || e `elem` negations) $ catMaybes $ dropStatic replaceFAll
     #{checkType} subFormulas $ bothLangs
       "Als Tabellenspalten kommen nur Teilformeln der Gesamtformel vor?"
-    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- dropStatic $ zip headers columns]
+    let correctValues = all correctColumn zippedEntries && not (all (null . catMaybes . snd) zippedEntries)
     #{checkType} correctValues $ bothLangs
-      "Tabellenspalten enthalten nur korrekt ermittelte Wahrheitswerte?"
+      "Tafel ist gefüllt und Tabellenspalten enthalten nur korrekt ermittelte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
        "Gesamtformel enthält alle vorkommenden atomaren Formeln?"
     let correctFormula = isSemanticEqual (#{fSol}) (toTree f)
@@ -372,7 +426,7 @@ checkSemantics' nSol columns n (headers,f) = do
        "Die Auflistung der Begleitenden ist korrekt?"
     let correct = filter id [correctStart, correctFormula, correctNames, correctValues]
     let points = fromIntegral (length correct) % 4
-    res <- printSolutionAndAssert IndefiniteArticle maybeAnswer points
+    res <- printSolutionAndAssertMinimum (MinimumThreshold (1 % 4)) IndefiniteArticle maybeAnswer points
     pure res
   where
     maybeAnswer = flip (++) (show nSol) <$>
@@ -380,6 +434,13 @@ checkSemantics' nSol columns n (headers,f) = do
                        then Just ("Formel: " ++ simplestDisplay fSol ++ "\nKorrekte Einträge in Wahrheitstafel.\nBegleitende: ")
                        else Nothing
                     }
+    replaceF (Just (Atomic 'F')) = Just f
+    replaceF a                   = a
+
+    replaceFAll = map replaceF headers
+    zippedEntries = [(sf,b)| (Just sf,b) <- dropStatic $ zip replaceFAll columns]
+    negations = map (Neg . Atomic) ['A'..'D']
+
 
 |]
   where
@@ -394,6 +455,7 @@ module Description (description) where
 
 
 import Control.OutputCapable.Blocks
+import LogicTasks.Keys                  (keyHeading, basicOpKey, arrowsKey)
 
 import Global
 
@@ -411,9 +473,13 @@ description _ ((legend,hints),_) = do
       "Übersetzen Sie die Kombination der Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das entsprechend benannte Textfeld ein."
     paragraph $ bothLangs
       "Wer geht mit Eva zum Konzert? Leiten Sie Ihr Ergebnis mittels Wahrheitstafel her. Kreuzen Sie dann alle Begleitenden in der Namensliste an."
-    paragraph $ bothLangs
-      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A, B, C, D und die folgenden Operatoren:"
-    enumerateM code $ zip ["Negation","Und","Oder","Implikation","Biimplikation"] $ map code ["¬","∧","∨","=>","<=>"]
+    keyHeading
+    basicOpKey True
+    arrowsKey
+    paragraph $ bothLangs $
+      "Beim Ausfüllen der Wahrheitstafel können Spalten leer gelassen werden. " ++
+      "Sollten Sie für die Eingabe einer Formelüberschrift mehr Platz benötigen, " ++
+      "können Sie die kleineren Eingabefelder überspringen und eines der größeren nutzen."
     pure ()
 
 
