@@ -60,7 +60,11 @@ Compose two forms sequentially.
 The output form contains all of the fields from both input forms.
 -}
 infixr 0 $$>
-($$>) :: (Monad w, Monad m) => Rendered' m (w a) -> Rendered' m (w b) -> Rendered' m (w b)
+($$>)
+  :: (Monad w, Monad m)
+  => Rendered' m (w a)
+  -> Rendered' m (w b)
+  -> Rendered' m (w b)
 f1 $$> f2 = do
     res1 <- f1
     res2 <- f2
