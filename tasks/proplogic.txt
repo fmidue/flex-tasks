@@ -102,7 +102,7 @@ getTask = do
   where
     form :: (Text,Text,Text,Text) -> Rendered
     form n = addCss formulaCss $
-      tableForm emptyColumns rows ["A","B","C","D"] $$>
+      tableForm emptyColumns rows ["A","B","C","D"] [] $$>
       formify (Nothing :: Maybe FormType) (nonTableFields n)
 
     getNames :: Gen (Text,Text,Text,Text)
