@@ -35,7 +35,7 @@ library
       ScopedTypeVariables
       NamedFieldPuns
       FlexibleContexts
-  ghc-options: -Wall -Widentities -Werror -Wno-x-partial
+  ghc-options: -Wall -Widentities -Werror
   build-depends:
       QuickCheck
     , SHA

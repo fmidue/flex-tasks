@@ -12,6 +12,7 @@ module FlexTask.FormUtil
   , addCss
   , addJs
   , addCssAndJs
+  , applyToWidget
   , getFormData
   -- * Convenience functions for Yesod FieldSettings
   , addAttribute
@@ -27,6 +28,7 @@ module FlexTask.FormUtil
 
 
 import Control.Monad.Reader            (runReader)
+import Data.Containers.ListUtils       (nubOrd)
 import Data.Text                       (Text, pack, unpack)
 import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
@@ -65,7 +67,7 @@ f1 $$> f2 = do
     pure $ do
       (names1,wid1) <- res1
       (names2,wid2) <- res2
-      pure (names1++names2, wid1 >> wid2)
+      pure (nubOrd $ names1 ++ names2, wid1 >> wid2)
 
 
 applyToWidget :: Functor m => (Widget -> Widget) -> Rendered' m -> Rendered' m

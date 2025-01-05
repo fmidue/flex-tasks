@@ -7,19 +7,24 @@ module FlexTask.Widgets where
 import Control.Monad.Reader (reader)
 import Yesod
 
-import FlexTask.FormUtil    (newFlexId, newFlexName, repeatFlexName)
+import FlexTask.FormUtil (
+  ($$>),
+  applyToWidget,
+  newFlexId,
+  newFlexName,
+  repeatFlexName,
+  )
 import FlexTask.Styling     (horizontalRBStyle)
 import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
 
 
 
-renderFlatOrBreak
+renderForm
     :: Bool
-    -> Bool
     -> (FieldSettings FlexForm -> AForm Handler a)
     -> FieldSettings FlexForm
     -> Rendered
-renderFlatOrBreak lBreak newId aformStub label =
+renderForm newId aformStub label =
     reader $ \fragment -> do
       ident <- newFlexId
       name <- if newId then newFlexName else repeatFlexName
@@ -30,17 +35,29 @@ renderFlatOrBreak lBreak newId aformStub label =
 $newline never
 \#{fragment}
 $forall view <- views
-    <span :fvRequired view:.required :not $ fvRequired view:.optional>
+    <span :fvRequired view:.required :not $ fvRequired view:.optional .flex-form-span>
         <label for=#{fvId view}>#{fvLabel view}
         $maybe tt <- fvTooltip view
             <div .tooltip>#{tt}
         ^{fvInput view}
         $maybe err <- fvErrors view
             <div .errors>#{err}
-$if lBreak
-  <div>
 |]
       return ([name],widget)
+
+
+
+joinRenders :: [[Rendered]] -> Rendered
+joinRenders = foldr (joinOuter . joinInner) zero
+  where
+    zero = pure (pure ([],pure ()))
+    joinInner = foldr ($$>) zero
+    joinOuter x y = applyToWidget insertDiv x $$> y
+    insertDiv w = [whamlet|
+      $newline never
+      <div .flex-form-div>
+        ^{w}
+    |]
 
 
 

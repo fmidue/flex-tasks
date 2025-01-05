@@ -16,6 +16,8 @@ pfs
 proplogic
 RWS
 tabindex
+uncons
+unsnoc
 usr
 Wno
 xit

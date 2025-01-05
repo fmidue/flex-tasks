@@ -21,6 +21,8 @@ module FlexTask.Generic.Form
   , BaseForm(..)
   , Formify(..)
   , formify
+  , formifyComponents
+  , formifyComponentsFlat
     -- * Anonymous Enum Type Builders and Accessors.
   , getAnswer
   , getAnswers
@@ -46,19 +48,22 @@ module FlexTask.Generic.Form
   ) where
 
 
-import Data.List.Extra      (nubSort)
+import Control.Monad.Reader (Reader)
+import Data.List.Extra      (nubSort, uncons, unsnoc)
+import Data.Tuple.Extra     (first)
+import Data.Maybe           (fromMaybe)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
 import Yesod
 
-import FlexTask.FormUtil    (($$>))
 import FlexTask.Widgets
   ( horizontalRadioField
-  , renderFlatOrBreak
+  , joinRenders
+  , renderForm
   , verticalCheckboxesField
   )
-import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
+import FlexTask.YesodConfig (FlexForm, Handler, Rendered, Widget)
 
 
 
@@ -108,7 +113,7 @@ __then the next form will only be rendered besides the last form component of th
 Input
 
 @
-[[listWithoutLabels Vertical 2],[listWithoutLabels Vertical 2]]
+[[listWithoutLabels Vertical 2 []],[listWithoutLabels Vertical 2 []]]
 @
 
 will __not__ result in
@@ -243,34 +248,44 @@ __Exception: Types with multiple constructors.__
 Use utility functions for those or provide your own instance.
 -}
 class Formify a where
+  {- |
+  Direct use of this function is not recommended
+  due to possible undetected invalidity of the result.
+  It should only be used when writing manual instances of `Formify`.
+  Use `formify` or its variants instead.
+  -}
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
       -> [[FieldInfo]] -- ^ Structure and type of form.
-      -> ([[FieldInfo]], Rendered) -- ^ remaining structure and rendered form.
+      -> ([[FieldInfo]], [[Rendered]]) -- ^ remaining form structure and completed sub-renders.
 
   default formifyImplementation
       :: (Generic a, GFormify (Rep a))
       => Maybe a
       -> [[FieldInfo]]
-      -> ([[FieldInfo]], Rendered)
+      -> ([[FieldInfo]], [[Rendered]])
   formifyImplementation mDefault = gformify $ from <$> mDefault
 
 
 
 class GFormify f where
-  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], Rendered)
+  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], [[Rendered]])
 
 
 
 instance (GFormify a, GFormify b) => GFormify (a :*: b) where
-  gformify mDefault xs = (rightRest, leftRender $$> rightRender)
+  gformify mDefault xs = (rightRest, renders)
     where
       (left,right) = case mDefault of
         Nothing        -> (Nothing,Nothing)
         Just (a :*: b) -> (Just a, Just b)
       (leftRest, leftRender) = gformify left xs
-      (rightRest, rightRender) = gformify right leftRest
-
+      (rightRest, rightRender) = gformify right rightFieldInfo
+      (rightFieldInfo,renders) = case leftRest of
+        ([]:xss) -> (xss, leftRender ++ rightRender)
+        rest   -> (rest, ls ++ [lastRenderLeft ++ firstRenderRight] ++ rs)
+      (ls,lastRenderLeft) = fromMaybe (leftRender,[]) $ unsnoc leftRender
+      (firstRenderRight,rs) = fromMaybe ([],rightRender) $ uncons rightRender
 
 
 
@@ -318,6 +333,10 @@ instance (Formify a, Formify b, Formify c) => Formify (a,b,c)
 
 instance (Formify a, Formify b, Formify c, Formify d) => Formify (a,b,c,d)
 
+instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b,c,d,e)
+
+instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
+
 
 instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
   formifyImplementation = formifyInstanceList
@@ -342,13 +361,12 @@ instance Formify MultipleChoiceSelection where
 
 
 {- |
-Alternative to `formifyImplementation`
-that only produces the rendered form.
-Will fail if remaining form structure is not empty,
-indicating the form is finished or faulty.
-
 This is the main way to build generic forms.
 Use in conjunction with `FieldInfo` builders to generate a form.
+
+Will fail if remaining `FieldInfo` structure is not empty,
+indicating the form is faulty.
+
 
 __Examples__
 
@@ -359,12 +377,13 @@ formify (Nothing \@Int) [[single \"Age\"]]
 Renders an input field with /type=number/ attribute, no default value and label /Age/.
 
 @
-formify (Just [\"Hallo\", \"Hello\", \"Hola\", \"Ciao\"]) [[listWithoutLabels Vertical]]
+formify (Just [\"Hallo\", \"Hello\", \"Hola\", \"Ciao\"]) [[listWithoutLabels Vertical 4 [(\"class\",\"helloInput\")]]]
 @
 
 Renders a series of four input fields, each for the type String
 and organized vertically beneath each other.
-They are prefilled with the values given above and have no labels attached to them.
+They are prefilled with the values given above,
+are assigned the Css class \"helloInput\" and have no labels attached to them.
 
 @
 formify
@@ -386,12 +405,45 @@ formify
   => Maybe a -- ^ Optional default value for form.
   -> [[FieldInfo]] -- ^ Structure of form.
   -> Rendered -- ^ Rendered form.
-formify ma xs
-      | null names = form
-      | otherwise  = error "mismatched amount of field names and actual fields!"
-    where
-      (names, form) = formifyImplementation ma xs
+formify = checkAndApply joinRenders
 
+
+{- |
+like `formify`, but yields the individual sub-renders instead of a combined form.
+Retains the layout structure given by the `FieldInfo` list argument.
+This can be used in custom forms to incorporate generated inputs.
+-}
+formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Reader Html (MForm Handler ([Text],[[Widget]]))
+formifyComponents = checkAndApply (fmap (tupleSequence . mapM sequence) . mapM sequence)
+  where tupleSequence = fmap (joinAndPart . map joinAndPart)
+
+
+{- |
+like `formifyComponents`, but takes a simple list of `FieldInfo` values.
+The sub-renders will also be returned as a flat list without any additional structure.
+-}
+formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Reader Html (MForm Handler ([Text],[Widget]))
+formifyComponentsFlat ma = checkAndApply (fmap (tupleSequence . sequence) . sequence . concat) ma . (:[])
+  where tupleSequence = fmap joinAndPart
+
+
+joinAndPart :: [([a],b)] -> ([a],[b])
+joinAndPart = first concat . unzip
+
+
+checkAndApply
+  :: Formify a
+  => ([[Rendered]] -> b)
+  -> Maybe a
+  -> [[FieldInfo]]
+  -> b
+checkAndApply toOutput ma xs = case rest of
+    ([]:ns)
+      | null ns   -> toOutput renders
+      | otherwise -> error "Mismatched amount of field names and actual fields!"
+    _             -> error "Impossible: Formify failed to assemble the form."
+  where
+    (rest, renders) = formifyImplementation ma xs
 
 
 renderNextField
@@ -403,15 +455,13 @@ renderNextField
      )
   -> Maybe a
   -> [[FieldInfo]]
-  -> ([[FieldInfo]], Rendered)
+  -> ([[FieldInfo]], [[Rendered]])
 renderNextField _ _ [] = error "Incorrect amount of field names"
 renderNextField h ma ((x : xs) : xss) =
   let
     (lab, newId, g) = h x
   in
-    if null xs
-    then (xss, renderFlatOrBreak True newId (`g` ma) lab)
-    else (xs:xss, renderFlatOrBreak False newId (`g` ma) lab)
+    (xs:xss, [[renderForm newId (`g` ma) lab]])
 renderNextField _ _ _ = error "Incorrect naming scheme for a field or single/multi choice!"
 
 {- |
@@ -422,7 +472,7 @@ formifyInstanceBasicField
     :: BaseForm a
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered)
+    -> ([[FieldInfo]], [[Rendered]])
 formifyInstanceBasicField = renderNextField
   (\case
       Single fs -> (fs, True, areq baseForm)
@@ -437,7 +487,7 @@ formifyInstanceOptionalField
     :: BaseForm a
     => Maybe (Maybe a)
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered)
+    -> ([[FieldInfo]], [[Rendered]])
 formifyInstanceOptionalField = renderNextField
   (\case
       Single fs -> (fs, True, aopt baseForm)
@@ -450,56 +500,31 @@ formifyInstanceList
     :: (Formify a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered)
+    -> ([[FieldInfo]], [[Rendered]])
 formifyInstanceList _ [] = error "ran out of field names"
 formifyInstanceList _ ((List _ [] : _) : _) = error "List of fields without names!"
 formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
-    (rest, snd <$> foldr joinThem zero theList)
+    ( xs:xss
+    , case align of
+        Horizontal -> [concat $ firstRender ++ followingRenders]
+        Vertical   -> firstRender ++ followingRenders
+    )
   where
-    lastInRow = null xs
-    amount = length fs +1
+    defaults = case mas of
+      Nothing -> repeat Nothing
+      Just ds
+        | length ds /= length fs +1
+          -> error "Not enough values in the default list!"
+        | otherwise
+          -> sequence mas
 
-    (rest,theList,stopCondition) = case align of
-      Horizontal
-        | lastInRow -> ( xss, [[Single f : [InternalListElem lab | lab <- fs]]], null)
-        | otherwise -> ( xs:xss
-                       , [[Single f : [InternalListElem lab | lab <- fs ++ [undefined]]]]
-                       , any $ (<= 1) . length
-                       )
+    headError [] = error "Defaults should never be empty here!"
+    headError (x:_) = x
 
-      Vertical
-        | lastInRow -> ( xss, [[Single f]] : [[[InternalListElem lab]]| lab <- fs], null)
-        | otherwise -> ( xs:xss
-                       , [[Single f]] :
-                         [[InternalListElem fSet : [undefined | i == length fs]] | (fSet,i) <- zip fs [1..]]
-                       , \ds -> null ds || length (last ds) <= 1
-                       )
+    firstRender = snd $ formifyImplementation (headError defaults) [[single f]]
+    renderRest def fSettings = formifyImplementation def [[InternalListElem fSettings]]
+    followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
 
-    sequencedDefaults = case mas of
-      Nothing -> replicate amount Nothing
-      Just ds -> if length ds /= amount
-                   then error "Not enough values in the default list!"
-                   else sequence mas
-
-    defOrder = case align of
-      Horizontal -> sequencedDefaults
-      Vertical   -> reverse sequencedDefaults
-
-    zero = pure (defOrder, pure ([],pure ()))
-
-    joinThem m mList = do
-      (defs,inner) <- mList
-      let (remain,render) = formifyImplementation (head defs) m
-      new <- render
-      old <- if stopCondition remain
-               then pure inner
-               else snd <$> joinThem remain (pure (tail defs, inner))
-      pure ( tail defs
-           , do
-               (t,w) <- new
-               (_,accumW) <- old
-               pure (t,w >> accumW)
-           )
 formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
 
 
@@ -512,7 +537,7 @@ formifyInstanceSingleChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered)
+    -> ([[FieldInfo]], [[Rendered]])
 formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
 renderNextSingleChoiceField
@@ -520,7 +545,7 @@ renderNextSingleChoiceField
     => ([Text] -> [(Text, a)])
     -> Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered)
+    -> ([[FieldInfo]], [[Rendered]])
 renderNextSingleChoiceField pairsWith =
   renderNextField
   (\case
@@ -545,7 +570,7 @@ renderNextMultipleChoiceField
     => ([Text] -> [(Text, a)])
     -> Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered)
+    -> ([[FieldInfo]], [[Rendered]])
 renderNextMultipleChoiceField pairsWith =
   renderNextField
   (\case
@@ -572,7 +597,7 @@ formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered)
+    -> ([[FieldInfo]], [[Rendered]])
 formifyInstanceMultiChoice = renderNextMultipleChoiceField zipWithEnum
 
 

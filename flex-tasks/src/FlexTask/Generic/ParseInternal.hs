@@ -149,6 +149,10 @@ instance (Parse a, Parse b, Parse c) => Parse (a,b,c)
 
 instance (Parse a, Parse b, Parse c, Parse d) => Parse (a,b,c,d)
 
+instance (Parse a, Parse b, Parse c, Parse d, Parse e) => Parse (a,b,c,d,e)
+
+instance (Parse a, Parse b, Parse c, Parse d, Parse e, Parse f) => Parse (a,b,c,d,e,f)
+
 
 
 parseList :: Parse a => Parser [a]

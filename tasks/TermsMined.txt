@@ -81,6 +81,7 @@ sigList = [
       ("makeOptions", ["Int", "Bool", "Text", "Text"], "PushOptions")
       ],
 -}
+{- too long
   toSignature [
       ("trackEnd", [], "Message"),
       ("key", ["Message"], "Key"),
@@ -89,7 +90,7 @@ sigList = [
       ("controlChange", ["Channel", "Int", "Int"], "Message"),
       ("timeSignature", ["Int", "Int", "Int", "Int"], "Message")
       ],
-
+-}
   toSignature [
       ("rTwo", [], "Rank"),
       ("diamonds", [], "Suit"),
