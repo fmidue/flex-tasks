@@ -399,17 +399,16 @@ description _ ((legend,hints),_) = do
         "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
       )
     itemizeM $ map bothLangs hints
-    paragraph $ bothLangs
-      "Übersetzen Sie die Kombination der Aussagen in eine aussagenlogische Formel. Geben Sie diese Formel in das entsprechend benannte Textfeld ein."
-    paragraph $ bothLangs
-      "Verwenden Sie für die Angabe der Formel die atomaren Formeln A, B, C, D."
     paragraph $ bothLangs $
-      "Wer geht mit Eva zum Konzert? Leiten Sie Ihr Ergebnis mittels Wahrheitstafel her. " ++
-      "Kreuzen Sie dann alle Begleitenden in der Namensliste an. " ++
-      "Dabei steht eine Zuordnung von 'wahr' dafür, dass diese Person mitkommt."
+      "Übersetzen Sie die Kombination der Antworten in eine aussagenlogische Formel. " ++
+      "Geben Sie diese Formel in das entsprechend benannte Textfeld ein. " ++
+      "Verwenden Sie dabei die atomaren Formeln A, B, C, D mit der Interpretation, dass eine Zuordnung von 'wahr' dafür steht, dass die entsprechende Person mitkommt."
     keyHeading
     basicOpKey True
     arrowsKey
+    paragraph $ bothLangs $
+      "Wer geht mit Eva zum Konzert? Leiten Sie Ihr Ergebnis mittels Wahrheitstafel her. " ++
+      "Kreuzen Sie dann alle Begleitenden in der Namensliste an." ++
     paragraph $ bothLangs $
       "Beim Ausfüllen der Wahrheitstafel können Spalten leer gelassen werden. " ++
       "Sollten Sie für die Eingabe einer Formelüberschrift mehr Platz benötigen, " ++
