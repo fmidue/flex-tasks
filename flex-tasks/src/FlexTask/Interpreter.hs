@@ -200,7 +200,7 @@ checkSolution taskData globalCode parseCode checkCode submission picPath = do
         , "Data.Ratio"
         ]
       setTopLevelModules ["Check", "Parse", "Global", "Helper"]
-      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ tData ++ path) infer
+      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
 
     tData = parens taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
