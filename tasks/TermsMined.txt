@@ -224,20 +224,20 @@ import Global
 
 checkSyntax
   :: OutputCapable m
-  => SigInstance
-  -> FilePath
+  => FilePath
+  -> SigInstance
   -> Solution
   -> LangM m
-checkSyntax inst _ = partialGrade inst
+checkSyntax _ = partialGrade
 
 
 checkSemantics
   :: (Alternative m, OutputCapable m)
-  => SigInstance
-  -> FilePath
+  => FilePath
+  -> SigInstance
   -> Solution
   -> Rated m
-checkSemantics inst _ = completeGrade inst
+checkSemantics _ = completeGrade
 
 |]
 

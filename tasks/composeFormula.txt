@@ -90,19 +90,19 @@ toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 
 checkSyntax
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
-  -> FilePath
+  => FilePath
+  -> ComposeFormulaInst
   -> Solution
   -> LangM m
-checkSyntax inst _ try = partialGrade inst $ delayed $ toListString try
+checkSyntax _ inst = partialGrade inst . delayed . toListString
 
 checkSemantics
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
-  -> FilePath
+  => FilePath
+  -> ComposeFormulaInst
   -> Solution
   -> Rated m
-checkSemantics inst path try = completeGrade path inst (delayed $ toListString try) $> 1.0
+checkSemantics path inst try = completeGrade path inst (delayed $ toListString try) $> 1.0
 
 |]
 

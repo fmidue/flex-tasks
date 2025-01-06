@@ -19,25 +19,25 @@ type Report = ReportT Output IO
 
 syntaxAndSemantics
   :: (String -> Either ParseError b)
-  -> (a -> FilePath -> b -> LangM Report)
-  -> (a -> FilePath -> b -> Rated Report)
+  -> (FilePath -> a -> b -> LangM Report)
+  -> (FilePath -> a -> b -> Rated Report)
   -> String
-  -> a
   -> FilePath
+  -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
-syntaxAndSemantics parser syntax semantics input tData path  = do
+syntaxAndSemantics parser syntax semantics input path tData  = do
   let
     parsed = parser input
     syn = either
       (refuse . code . showWithFieldNumber input)
-      (syntax tData path)
+      (syntax path tData)
       parsed
   synRes <- getOutputSequence syn
   if any isAbort synRes
     then
       pure (synRes,Nothing)
     else do
-      let sem = semantics tData path (fromRight undefined parsed)
+      let sem = semantics path tData (fromRight undefined parsed)
       semRes <- getOutputSequenceWithRating sem
       pure (synRes, Just semRes)
 
