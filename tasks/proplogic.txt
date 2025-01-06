@@ -306,7 +306,7 @@ dropStatic :: [a] -> [a]
 dropStatic = drop staticColumns
 
 
-checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
 checkSyntax _ _ (Table xs,formula,names) =
   parseDelayedWithAndThen
     parser
@@ -340,8 +340,8 @@ checkSyntax' n (fs,f) = do
     entered = dropStatic fs
 
 
-checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
-checkSemantics (_,nSol) _ (Table xs,formula,names) =
+checkSemantics :: OutputCapable m => FilePath -> (a,[Namen]) -> Submission -> Rated m
+checkSemantics _ (_,nSol) (Table xs,formula,names) =
   withDelayedSucceeding
     (checkSemantics' nSol columns names)
     parser

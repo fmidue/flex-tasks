@@ -49,7 +49,7 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => a -> FilePath -> Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> a -> Solution -> LangM m
 checkSyntax _ _ (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
@@ -60,7 +60,7 @@ checkSyntax _ _ (a,b)= do
     sol = #{solution}
 
 
-checkSemantics :: OutputCapable m => a -> FilePath -> Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> a -> Solution -> Rated m
 checkSemantics _ _ (a,b) = do
     assertion (all (`elem` #{noNegNeighbours}) [a,b]) $
       translate $ do

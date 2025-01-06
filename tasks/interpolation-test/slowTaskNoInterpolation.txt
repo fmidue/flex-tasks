@@ -11,8 +11,8 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => [Int] -> FilePath -> Solution -> LangM m
-checkSyntax sol _ (a,b)= do
+checkSyntax :: OutputCapable m => FilePath -> [Int] -> Solution -> LangM m
+checkSyntax _ sol (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
         german "Das Tupel kommt im Kreuzprodukt vor?"
@@ -20,8 +20,8 @@ checkSyntax sol _ (a,b)= do
     pure ()
 
 
-checkSemantics :: OutputCapable m => [Int] -> FilePath -> Solution -> Rated m
-checkSemantics sol _ (a,b) = do
+checkSemantics :: OutputCapable m => FilePath -> [Int] -> Solution -> Rated m
+checkSemantics _ sol (a,b) = do
     assertion (all (`elem` noNegNeighbours) [a,b]) $
       translate $ do
         german "Mindestens ein Nachbar ist positiv?"
