@@ -7,7 +7,8 @@ FlexTask configuration and task instance types.
 -}
 
 module FlexTask.Types
-  ( CommonModules(..)
+  ( HtmlDict
+  , CommonModules(..)
   , FlexInst(..)
   , FlexConf(..)
   , delimiter
@@ -19,6 +20,8 @@ module FlexTask.Types
 
 import Control.Monad                     (void)
 import Data.List                         (intercalate)
+import Data.Map                          (Map)
+import Data.Text                         (Text)
 import GHC.Generics                      (Generic)
 import Text.Parsec (
     anyChar,
@@ -29,8 +32,12 @@ import Text.Parsec (
     try
     )
 import Text.Parsec.String                (Parser)
+import Yesod                             (Lang)
 
 
+
+-- | A map of language code and internationalized HTML value pairs.
+type HtmlDict = Map Lang String
 
 
 {- |
@@ -38,7 +45,7 @@ Concrete Task instance.
 Contained Haskell code is runtime interpreted to produce needed components of a task.
 -}
 data FlexInst = FlexInst {
-    form            :: ([String],String), -- ^ Field IDs of input elements and form as Html code.
+    form            :: ([Text],HtmlDict), -- ^ Field IDs of input elements and Html code.
     taskData        ::  String,           -- ^ Flexible task data used by task description and checker functions.
     commonModules   ::  CommonModules,    -- ^ Modules shared between config and instance.
     checkModule     ::  String            -- ^ Module containing the Checker functions.

@@ -1,5 +1,5 @@
+{-# language InstanceSigs #-}
 {-# language TypeFamilies #-}
-{-# LANGUAGE InstanceSigs #-}
 
 {-|
 Default Yesod configuration for form generating environment.
