@@ -41,6 +41,7 @@ defaultConfig sig = Certain {
 module TaskData where
 
 import Data.String.Interpolate          (i)
+import Data.Functor                     ((<&>))
 import Data.Generics.Text               (gshow)
 import Data.Text                        (pack)
 import FlexTask.FormUtil                (getFormData)
@@ -50,7 +51,6 @@ import TermTasks.Direct                 (genInst)
 import TermTasks.Records (
   Certain,
   SigInstance(..),
-  Base(..),
   )
 import TermTasks.DataType               (Signature, toSignature)
 import Test.QuickCheck.Gen              (Gen, elements)
@@ -76,7 +76,7 @@ form amount = formify
 
 
 genConfig :: Gen Certain
-genConfig = elements sigList >>= pure . defaultConfig
+genConfig = elements sigList <&> defaultConfig
 
 
 sigList :: [Signature]
