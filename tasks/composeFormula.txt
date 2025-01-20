@@ -1,6 +1,22 @@
+{-# language StandaloneDeriving #-}
+{-# language DeriveDataTypeable #-}
+
 module Global where
 
+
+import Data.Data (Data)
+import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
+import Trees.Types (BinOp(..), SynTree(..))
+import Control.OutputCapable.Blocks (Language(..))
+
+
+deriving instance Data ComposeFormulaInst
+deriving instance Data (SynTree BinOp Char)
+deriving instance Data Language
+
+
 type Solution = (String,String)
+type TaskData = ComposeFormulaInst
 
 =============================================
 
@@ -26,10 +42,10 @@ import Trees.Types (BinOp(..))
 
 import Global
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (TaskData, String, IO ([String],String))
 getTask = do
     inst <- generateComposeFormulaInst task03
-    pure (show inst, checkers, getFormData form)
+    pure (inst, checkers, getFormData form)
 
 listToFM :: Ord k => [(k, a)] -> Map k a
 listToFM = Map.fromList
@@ -80,8 +96,6 @@ import Control.OutputCapable.Blocks
 import Data.Functor                     (($>))
 import Formula.Parsing.Delayed          (delayed)
 import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
-import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
-import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
 
 import Global
 
@@ -90,7 +104,7 @@ toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 
 checkSyntax
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
+  => TaskData
   -> FilePath
   -> Solution
   -> LangM m
@@ -98,7 +112,7 @@ checkSyntax inst _ try = partialGrade inst $ delayed $ toListString try
 
 checkSemantics
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
+  => TaskData
   -> FilePath
   -> Solution
   -> Rated m
@@ -116,11 +130,12 @@ module Description (description) where
 import Control.Monad.IO.Class                    (MonadIO)
 import Control.OutputCapable.Blocks
 import Tasks.ComposeFormula.Config               (ComposeFormulaInst(..))
-import Trees.Types                               (BinOp(..), SynTree(..))
 
 import qualified LogicTasks.Syntax.ComposeFormula as LT
 
-description :: (OutputCapable m, MonadIO m) => FilePath -> ComposeFormulaInst -> LangM m
+import Global
+
+description :: (OutputCapable m, MonadIO m) => FilePath -> TaskData -> LangM m
 description path inst@ComposeFormulaInst{..} = do
   LT.description False (path <> "/") inst
   paragraph $ do
