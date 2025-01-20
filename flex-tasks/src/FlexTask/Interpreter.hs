@@ -90,8 +90,10 @@ genFlexInst
       }
     where
       tfInter :: Interpreter (Gen GenOutput)
-      tfInter = setTopLevelModules ["TaskData", "Global"] >>
-                  interpret "getTask " infer
+      tfInter = do
+        setTopLevelModules ["TaskData", "Global"]
+        setImports ["Data.Generics.Text","Data.Tuple.Extra"]
+        interpret "first3 gshow <$> getTask " infer
 
 
 
