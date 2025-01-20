@@ -1,6 +1,36 @@
 module Global where
 
+
+import TermTasks.DataType (
+  Error(..),
+  Term(..),
+  Type(..),
+  Symbol(..),
+  Signature(..),
+  )
+import TermTasks.Records (
+  Certain(..),
+  SigInstance(..),
+  Base(..),
+  )
+
+
 type Solution = [Int]
+
+
+defaultConfig :: Signature -> Certain
+defaultConfig sig = Certain {
+  signatures = sig,
+  root = Nothing,
+  baseConf = Base {
+    termSizeRange = ( 6, 10 ),
+    wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
+    properTerms = 5,
+    extraFeedback = True,
+    printSolution = True
+  }
+}
+
 
 =============================================
 
@@ -18,13 +48,14 @@ import FlexTask.Generic.Form
 import FlexTask.YesodConfig             (Rendered)
 import TermTasks.Direct                 (genInst)
 import TermTasks.Records (
-  Certain(..),
+  Certain,
   SigInstance(..),
   Base(..),
   )
-import TermTasks.DataType               (Error(..), Signature, toSignature)
+import TermTasks.DataType               (Signature, toSignature)
 import Test.QuickCheck.Gen              (Gen, elements)
 
+import Global
 
 
 instance MonadFail Gen where
@@ -45,32 +76,12 @@ form amount = formify
 
 
 genConfig :: Gen Certain
-genConfig = do
-  sig <- elements sigList
-  pure $ Certain {
-    signatures = sig,
-    root = Nothing,
-    baseConf = Base {
-      termSizeRange = ( 6, 10 ),
-      wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
-      properTerms = 5,
-      extraFeedback = True,
-      printSolution = True
-    }
-  }
+genConfig = elements sigList >>= pure . defaultConfig
 
 
 sigList :: [Signature]
 sigList = [
 
-  toSignature [
-      ("zeroPos", [], "Position"),
-      ("retPos", ["Position"], "Position"),
-      ("showPos", ["Position"], "String"),
-      ("positionRow", ["Position"], "Int"),
-      ("makePosition", ["Int", "Int"], "Position"),
-      ("incPos", ["Int", "Position"], "Position")
-      ],
 {- too long
   toSignature [
       ("defaultPushOptions", [], "PushOptions"),
@@ -80,8 +91,7 @@ sigList = [
       ("flushInterval", ["PushOptions"], "Int"),
       ("makeOptions", ["Int", "Bool", "Text", "Text"], "PushOptions")
       ],
--}
-{- too long
+
   toSignature [
       ("trackEnd", [], "Message"),
       ("key", ["Message"], "Key"),
@@ -90,7 +100,34 @@ sigList = [
       ("controlChange", ["Channel", "Int", "Int"], "Message"),
       ("timeSignature", ["Int", "Int", "Int", "Int"], "Message")
       ],
+
+  toSignature [
+      ("defaultAmazonS3Port", [], "Int"),
+      ("defaultAmazonS3Host", [], "String"),
+      ("makeAWSConnection", ["String", "Int", "String", "String"], "AWSConnection"),
+      ("awsPort", ["AWSConnection"], "Int"),
+      ("amazonS3Connection", ["String", "String"], "AWSConnection"),
+      ("awsAccessKey", ["AWSConnection"], "String")
+      ],
+
+  toSignature [
+      ("emptyPermissions", [], "Permissions"),
+      ("exeExtension", [], "String"),
+      ("readable", ["Permissions"], "Bool"),
+      ("setOwnerReadable", ["Bool", "Permissions"], "Permissions"),
+      ("setOwnerSearchable", ["Bool", "Permissions"], "Permissions"),
+      ("executable", ["Permissions"], "Bool")
+      ],
 -}
+  toSignature [
+      ("zeroPos", [], "Position"),
+      ("retPos", ["Position"], "Position"),
+      ("showPos", ["Position"], "String"),
+      ("positionRow", ["Position"], "Int"),
+      ("makePosition", ["Int", "Int"], "Position"),
+      ("incPos", ["Int", "Position"], "Position")
+      ],
+
   toSignature [
       ("rTwo", [], "Rank"),
       ("diamonds", [], "Suit"),
@@ -117,16 +154,7 @@ sigList = [
       ("yPos", ["Pos"], "Int"),
       ("gridValue", ["Pos"], "String")
       ],
-{- too long
-  toSignature [
-      ("defaultAmazonS3Port", [], "Int"),
-      ("defaultAmazonS3Host", [], "String"),
-      ("makeAWSConnection", ["String", "Int", "String", "String"], "AWSConnection"),
-      ("awsPort", ["AWSConnection"], "Int"),
-      ("amazonS3Connection", ["String", "String"], "AWSConnection"),
-      ("awsAccessKey", ["AWSConnection"], "String")
-      ],
--}
+
   toSignature [
       ("defaultPFS", [], "ParticleFieldState"),
       ("position", ["ParticleFieldState"], "Position"),
@@ -180,16 +208,7 @@ sigList = [
       ("makeTime", ["Int", "Int", "Pico"], "TimeOfDay"),
       ("sinceMidnight", ["TimeOfDay"], "DiffTime")
       ],
-{- too long
-  toSignature [
-      ("emptyPermissions", [], "Permissions"),
-      ("exeExtension", [], "String"),
-      ("readable", ["Permissions"], "Bool"),
-      ("setOwnerReadable", ["Bool", "Permissions"], "Permissions"),
-      ("setOwnerSearchable", ["Bool", "Permissions"], "Permissions"),
-      ("executable", ["Permissions"], "Bool")
-      ],
--}
+
   toSignature [
       ("defaultSocketConfig", [], "SocketConfig"),
       ("defaultSocketPage", [], "Page"),
@@ -209,14 +228,8 @@ module Check where
 
 import Control.Applicative              (Alternative)
 import Control.OutputCapable.Blocks
-import TermTasks.DataType (
-  Signature(..),
-  Symbol(..),
-  Term(..),
-  Type(..),
-  )
 import TermTasks.Direct                 (completeGrade, partialGrade)
-import TermTasks.Records                (SigInstance(..))
+import TermTasks.Records                (SigInstance)
 
 import Global
 
@@ -246,13 +259,7 @@ checkSemantics inst _ = completeGrade inst
 module Description (description) where
 
 import Control.OutputCapable.Blocks
-import TermTasks.DataType (
-  Term(..),
-  Type(..),
-  Symbol(..),
-  Signature(..),
-  )
-import TermTasks.Records                (SigInstance(..))
+import TermTasks.Records                (SigInstance)
 
 import qualified TermTasks.Direct as TD
 
