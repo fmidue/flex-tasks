@@ -2,89 +2,62 @@ module Global where
 
 
 import TermTasks.Records (
-  SigInstance,
+  Certain(..),
+  SigInstance(..),
+  Base(..),
   )
 
 import TermTasks.DataType (
+  Error(..),
   Signature(..),
   Symbol(..),
   Term(..),
   Type(..),
+  toSignature,
   )
 
 
 type Solution = [Int]
 type TaskData = SigInstance
 
-=============================================
 
-{-# language OverloadedStrings #-}
-{-# language QuasiQuotes #-}
-{-# language RecordWildCards #-}
+-- The config to use for this task. Signatures are randomly picked out of a pool of options.
+defaultConfig :: Signature -> Certain
+defaultConfig sig = Certain {
+  signatures = sig,
+  root = Nothing,
+  baseConf = Base {
+    termSizeRange = ( 6, 10 ),
+    wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
+    properTerms = 5,
+    extraFeedback = True,
+    printSolution = True
+  }
+}
 
-module TaskData where
-
-import Data.String.Interpolate          (i)
-import Data.Text                        (pack)
-import FlexTask.FormUtil                (getFormData)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (Rendered)
-import TermTasks.Direct                 (genInst)
-import TermTasks.Records (
-  Certain(..),
-  SigInstance(..),
-  Base(..),
-  )
-import TermTasks.DataType               (Error(..), Signature, toSignature)
-import Test.QuickCheck.Gen              (Gen, elements)
-
-import Global
-
-
-instance MonadFail Gen where
-  fail = error
-
-
-getTask :: Gen (TaskData, String, IO ([String],String))
-getTask = do
-    config <- genConfig
-    inst@SigInstance{..} <- genInst config
-    pure (inst, checkers, getFormData $ form $ length terms)
-
-
-form :: Int -> Rendered
-form amount = formify
-  (Nothing :: Maybe MultipleChoiceSelection)
-  [[buttons Vertical "Korrekte Terme/Correct terms" $ map (pack . (++ ".") . show) [1..amount]]]
-
-
-genConfig :: Gen Certain
-genConfig = do
-  sig <- elements sigList
-  pure $ Certain {
-    signatures = sig,
-    root = Nothing,
-    baseConf = Base {
-      termSizeRange = ( 6, 10 ),
-      wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
-      properTerms = 5,
-      extraFeedback = True,
-      printSolution = True
-    }
+-- For documentation and type checking. Not used in the task
+defaultTaskData :: TaskData
+defaultTaskData = SigInstance {
+  symbols = [ Symbol "f" [Type "a", Type "b"] (Type "c")
+            , Symbol "g" [] (Type "a")
+            , Symbol "h" [Type "a"] (Type "b")
+            ],
+  terms = [ Term "f" [ Term "g" []
+                     , Term "h" [Term "g" []]
+                     ]
+          , Term "g" [Term "h" []]
+          , Term "f" [Term "h" []]
+          ],
+  correct = [1],
+  moreFeedback = False,
+  showSolution = False
   }
 
 
+-- Possible signatures to roll for the task
 sigList :: [Signature]
 sigList = [
 
-  toSignature [
-      ("zeroPos", [], "Position"),
-      ("retPos", ["Position"], "Position"),
-      ("showPos", ["Position"], "String"),
-      ("positionRow", ["Position"], "Int"),
-      ("makePosition", ["Int", "Int"], "Position"),
-      ("incPos", ["Int", "Position"], "Position")
-      ],
 {- too long
   toSignature [
       ("defaultPushOptions", [], "PushOptions"),
@@ -94,8 +67,7 @@ sigList = [
       ("flushInterval", ["PushOptions"], "Int"),
       ("makeOptions", ["Int", "Bool", "Text", "Text"], "PushOptions")
       ],
--}
-{- too long
+
   toSignature [
       ("trackEnd", [], "Message"),
       ("key", ["Message"], "Key"),
@@ -104,7 +76,34 @@ sigList = [
       ("controlChange", ["Channel", "Int", "Int"], "Message"),
       ("timeSignature", ["Int", "Int", "Int", "Int"], "Message")
       ],
+
+  toSignature [
+      ("defaultAmazonS3Port", [], "Int"),
+      ("defaultAmazonS3Host", [], "String"),
+      ("makeAWSConnection", ["String", "Int", "String", "String"], "AWSConnection"),
+      ("awsPort", ["AWSConnection"], "Int"),
+      ("amazonS3Connection", ["String", "String"], "AWSConnection"),
+      ("awsAccessKey", ["AWSConnection"], "String")
+      ],
+
+  toSignature [
+      ("emptyPermissions", [], "Permissions"),
+      ("exeExtension", [], "String"),
+      ("readable", ["Permissions"], "Bool"),
+      ("setOwnerReadable", ["Bool", "Permissions"], "Permissions"),
+      ("setOwnerSearchable", ["Bool", "Permissions"], "Permissions"),
+      ("executable", ["Permissions"], "Bool")
+      ],
 -}
+  toSignature [
+      ("zeroPos", [], "Position"),
+      ("retPos", ["Position"], "Position"),
+      ("showPos", ["Position"], "String"),
+      ("positionRow", ["Position"], "Int"),
+      ("makePosition", ["Int", "Int"], "Position"),
+      ("incPos", ["Int", "Position"], "Position")
+      ],
+
   toSignature [
       ("rTwo", [], "Rank"),
       ("diamonds", [], "Suit"),
@@ -131,16 +130,7 @@ sigList = [
       ("yPos", ["Pos"], "Int"),
       ("gridValue", ["Pos"], "String")
       ],
-{- too long
-  toSignature [
-      ("defaultAmazonS3Port", [], "Int"),
-      ("defaultAmazonS3Host", [], "String"),
-      ("makeAWSConnection", ["String", "Int", "String", "String"], "AWSConnection"),
-      ("awsPort", ["AWSConnection"], "Int"),
-      ("amazonS3Connection", ["String", "String"], "AWSConnection"),
-      ("awsAccessKey", ["AWSConnection"], "String")
-      ],
--}
+
   toSignature [
       ("defaultPFS", [], "ParticleFieldState"),
       ("position", ["ParticleFieldState"], "Position"),
@@ -194,16 +184,7 @@ sigList = [
       ("makeTime", ["Int", "Int", "Pico"], "TimeOfDay"),
       ("sinceMidnight", ["TimeOfDay"], "DiffTime")
       ],
-{- too long
-  toSignature [
-      ("emptyPermissions", [], "Permissions"),
-      ("exeExtension", [], "String"),
-      ("readable", ["Permissions"], "Bool"),
-      ("setOwnerReadable", ["Bool", "Permissions"], "Permissions"),
-      ("setOwnerSearchable", ["Bool", "Permissions"], "Permissions"),
-      ("executable", ["Permissions"], "Bool")
-      ],
--}
+
   toSignature [
       ("defaultSocketConfig", [], "SocketConfig"),
       ("defaultSocketPage", [], "Page"),
@@ -213,6 +194,50 @@ sigList = [
       ("makeConfig", ["Text", "Int", "Text"], "SocketConfig")
       ]
   ]
+
+=============================================
+
+{-# language OverloadedStrings #-}
+{-# language QuasiQuotes #-}
+{-# language RecordWildCards #-}
+
+module TaskData where
+
+import Data.Functor                     ((<&>))
+import Data.String.Interpolate          (i)
+import Data.Text                        (pack)
+import FlexTask.FormUtil                (getFormData)
+import FlexTask.Generic.Form
+import FlexTask.YesodConfig             (Rendered)
+import TermTasks.Direct                 (genInst)
+import TermTasks.Records (
+  Certain,
+  SigInstance(..),
+  )
+import Test.QuickCheck.Gen              (Gen, elements)
+
+import Global
+
+
+instance MonadFail Gen where
+  fail = error
+
+
+getTask :: Gen (TaskData, String, IO ([String],String))
+getTask = do
+    config <- genConfig
+    inst@SigInstance{..} <- genInst config
+    pure (inst, checkers, getFormData $ form $ length terms)
+
+
+form :: Int -> Rendered
+form amount = formify
+  (Nothing :: Maybe MultipleChoiceSelection)
+  [[buttons Vertical "Korrekte Terme/Correct terms" $ map (pack . (++ ".") . show) [1..amount]]]
+
+
+genConfig :: Gen Certain
+genConfig = elements sigList <&> defaultConfig
 
 
 checkers :: String
@@ -253,7 +278,7 @@ checkSemantics inst _ = completeGrade inst
 module Description (description) where
 
 import Control.OutputCapable.Blocks
-import qualified TermTasks.Direct as TD
+import qualified TermTasks.Direct       as TD
 
 import Global
 
@@ -266,8 +291,8 @@ description _ = TD.description False
 
 module Parse (parseSubmission) where
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+import FlexTask.Generic.Parse           (parseInput, useParser)
+import Text.Parsec                      (ParseError)
 
 import Global
 
