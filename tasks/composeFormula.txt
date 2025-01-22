@@ -5,9 +5,16 @@ module Global where
 
 
 import Data.Data (Data)
-import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
-import Trees.Types (BinOp(..), SynTree(..))
-import Control.OutputCapable.Blocks (Language(..))
+import Data.Map                         (Map)
+import Tasks.ComposeFormula.Config (
+  ComposeFormulaConfig(..),
+  ComposeFormulaInst(..),
+  TreeDisplayMode (TreeDisplay),
+  )
+import Tasks.SynTree.Config             (SynTreeConfig(..))
+import Trees.Types                      (BinOp(..), SynTree(..))
+import Control.OutputCapable.Blocks     (Language(..))
+import qualified Data.Map               as Map (fromList)
 
 
 deriving instance Data ComposeFormulaInst
@@ -18,37 +25,6 @@ deriving instance Data Language
 type Solution = (String,String)
 type TaskData = ComposeFormulaInst
 
-=============================================
-
-{-# language OverloadedStrings #-}
-{-# Language QuasiQuotes #-}
-
-module TaskData where
-
-import Data.String.Interpolate          (i)
-import FlexTask.FormUtil                (getFormData)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (Rendered)
-import Tasks.ComposeFormula.Config      (ComposeFormulaConfig(..), TreeDisplayMode (TreeDisplay))
-import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
-import Test.QuickCheck.Gen              (Gen)
-import qualified Data.Map as Map        (fromList)
-import Data.Map                         (Map)
-
-import Tasks.SynTree.Config (
-  SynTreeConfig(..)
-  )
-import Trees.Types (BinOp(..))
-
-import Global
-
-getTask :: Gen (TaskData, String, IO ([String],String))
-getTask = do
-    inst <- generateComposeFormulaInst task03
-    pure (inst, checkers, getFormData form)
-
-listToFM :: Ord k => [(k, a)] -> Map k a
-listToFM = Map.fromList
 
 -- 2024: Weight 0.33
 task03 :: ComposeFormulaConfig
@@ -77,6 +53,45 @@ task03 = ComposeFormulaConfig
   , printSolution = True
   , offerUnicodeInput = True
   }
+
+-- For documentation and type checking. Not used in task.
+defaultTaskData :: TaskData
+defaultTaskData = ComposeFormulaInst
+  { operator = And
+  , leftTree = Leaf 'A'
+  , rightTree = Leaf 'B'
+  , leftTreeImage = Just "example.svg"
+  , rightTreeImage = Nothing
+  , addExtraHintsOnAssociativity = True
+  , addText = Nothing
+  , showSolution = False
+  , unicodeAllowed = True
+  }
+
+listToFM :: Ord k => [(k, a)] -> Map k a
+listToFM = Map.fromList
+
+=============================================
+
+{-# language OverloadedStrings #-}
+{-# Language QuasiQuotes #-}
+
+module TaskData where
+
+import Data.String.Interpolate          (i)
+import FlexTask.FormUtil                (getFormData)
+import FlexTask.Generic.Form
+import FlexTask.YesodConfig             (Rendered)
+import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
+import Test.QuickCheck.Gen              (Gen)
+
+import Global
+
+
+getTask :: Gen (TaskData, String, IO ([String],String))
+getTask = do
+    inst <- generateComposeFormulaInst task03
+    pure (inst, checkers, getFormData form)
 
 fields :: [[FieldInfo]]
 fields = [[single "Erste Formel:", single "Zweite Formel:"]]
@@ -127,9 +142,9 @@ checkSemantics inst path try = completeGrade path inst (delayed $ toListString t
 
 module Description (description) where
 
-import Control.Monad.IO.Class                    (MonadIO)
+import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
-import Tasks.ComposeFormula.Config               (ComposeFormulaInst(..))
+import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 
 import qualified LogicTasks.Syntax.ComposeFormula as LT
 
@@ -159,8 +174,8 @@ description path inst@ComposeFormulaInst{..} = do
 
 module Parse (parseSubmission) where
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+import FlexTask.Generic.Parse           (parseInput, useParser)
+import Text.Parsec                      (ParseError)
 
 import Global
 
