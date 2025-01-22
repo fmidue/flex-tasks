@@ -30,6 +30,12 @@ rows          = 2^staticColumns
 bothLangs :: OutputCapable m => String -> LangM m
 bothLangs s = translate $ german s >> english s
 
+
+-- For Documentation and type checking. Not used in task.
+defaultTaskData :: TaskData
+defaultTaskData = (("Match names with Characters",["hint1","hint2"]), [A,B])
+
+
 =============================================
 
 {-# language FlexibleContexts #-}
