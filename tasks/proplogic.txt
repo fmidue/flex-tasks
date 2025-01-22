@@ -1,7 +1,10 @@
+{-# language DeriveDataTypeable #-}
+
 module Global where
 
 
 import Control.OutputCapable.Blocks
+import Data.Data (Data)
 import LogicTasks.Formula (TruthValue(..))
 
 
@@ -11,12 +14,11 @@ instance Eq TruthValue where
 
 newtype Table = Table [(Maybe String, [Maybe TruthValue])] deriving (Eq,Show)
 
-data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
+data Namen = A | B | C | D deriving (Data,Eq,Enum,Bounded,Show)
 
 type FormType = (String,[Namen])
-
 type Submission = (Table,String,[Namen])
-
+type TaskData = ((String, [String]),[Namen])
 
 emptyColumns, staticColumns, totalColumns, rows :: Int
 emptyColumns  = 13
@@ -83,7 +85,7 @@ getParticipants :: Gen [Bool]
 getParticipants = vectorOf 4 arbitrary `suchThat` \bs -> or bs && not (and bs)
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (TaskData, String, IO ([String],String))
 getTask = do
     [a,b,c,d] <- getParticipants
     names <- getNames
@@ -91,7 +93,7 @@ getTask = do
     let
       zipped = [(a, A), (b, B), (c, C), (d, D)]
       coming = [ n | (True,n) <- zipped ]
-    pure (show ((legend,hints),coming), checkers formula False True, getFormData (form names))
+    pure (((legend,hints),coming), checkers formula False True, getFormData (form names))
   where
     form :: (Text,Text,Text,Text) -> Rendered
     form n = tableForm ["A","B","C","D"] $$>
@@ -306,7 +308,7 @@ dropStatic :: [a] -> [a]
 dropStatic = drop staticColumns
 
 
-checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
+checkSyntax :: OutputCapable m => TaskData -> FilePath -> Submission -> LangM m
 checkSyntax _ _ (Table xs,formula,names) =
   parseDelayedWithAndThen
     parser
@@ -340,7 +342,7 @@ checkSyntax' n (fs,f) = do
     entered = dropStatic fs
 
 
-checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
+checkSemantics :: OutputCapable m => TaskData -> FilePath -> Submission -> Rated m
 checkSemantics (_,nSol) _ (Table xs,formula,names) =
   withDelayedSucceeding
     (checkSemantics' nSol columns names)
@@ -399,7 +401,7 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> ((String,[String]),a) -> LangM m
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ ((legend,hints),_) = do
     paragraph $ bothLangs
       ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++

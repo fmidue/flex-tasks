@@ -1,6 +1,20 @@
 module Global where
 
+
+import TermTasks.Records (
+  SigInstance,
+  )
+
+import TermTasks.DataType (
+  Signature(..),
+  Symbol(..),
+  Term(..),
+  Type(..),
+  )
+
+
 type Solution = [Int]
+type TaskData = SigInstance
 
 =============================================
 
@@ -11,7 +25,6 @@ type Solution = [Int]
 module TaskData where
 
 import Data.String.Interpolate          (i)
-import Data.Generics.Text               (gshow)
 import Data.Text                        (pack)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
@@ -25,17 +38,18 @@ import TermTasks.Records (
 import TermTasks.DataType               (Error(..), Signature, toSignature)
 import Test.QuickCheck.Gen              (Gen, elements)
 
+import Global
 
 
 instance MonadFail Gen where
   fail = error
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (TaskData, String, IO ([String],String))
 getTask = do
     config <- genConfig
     inst@SigInstance{..} <- genInst config
-    pure (gshow inst, checkers, getFormData $ form $ length terms)
+    pure (inst, checkers, getFormData $ form $ length terms)
 
 
 form :: Int -> Rendered
@@ -209,14 +223,7 @@ module Check where
 
 import Control.Applicative              (Alternative)
 import Control.OutputCapable.Blocks
-import TermTasks.DataType (
-  Signature(..),
-  Symbol(..),
-  Term(..),
-  Type(..),
-  )
 import TermTasks.Direct                 (completeGrade, partialGrade)
-import TermTasks.Records                (SigInstance(..))
 
 import Global
 
@@ -224,7 +231,7 @@ import Global
 
 checkSyntax
   :: OutputCapable m
-  => SigInstance
+  => TaskData
   -> FilePath
   -> Solution
   -> LangM m
@@ -233,7 +240,7 @@ checkSyntax inst _ = partialGrade inst
 
 checkSemantics
   :: (Alternative m, OutputCapable m)
-  => SigInstance
+  => TaskData
   -> FilePath
   -> Solution
   -> Rated m
@@ -246,19 +253,13 @@ checkSemantics inst _ = completeGrade inst
 module Description (description) where
 
 import Control.OutputCapable.Blocks
-import TermTasks.DataType (
-  Term(..),
-  Type(..),
-  Symbol(..),
-  Signature(..),
-  )
-import TermTasks.Records                (SigInstance(..))
-
 import qualified TermTasks.Direct as TD
 
+import Global
 
 
-description :: OutputCapable m => FilePath -> SigInstance -> LangM m
+
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ = TD.description False
 
 =============================================
