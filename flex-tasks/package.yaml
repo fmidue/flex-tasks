@@ -67,3 +67,4 @@ tests:
       - hspec-parsec
       - quickcheck-instances
       - string-interpolate
+      - syb
