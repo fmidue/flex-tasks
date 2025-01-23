@@ -314,7 +314,7 @@ dropStatic :: [a] -> [a]
 dropStatic = drop staticColumns
 
 
-checkSyntax :: OutputCapable m => TaskData -> FilePath -> Submission -> LangM m
+checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
 checkSyntax _ _ (Table xs,formula,names) =
   parseDelayedWithAndThen
     parser

@@ -1,10 +1,7 @@
-{-# language StandaloneDeriving #-}
-{-# language DeriveDataTypeable #-}
 
 module Global where
 
 
-import Data.Data (Data)
 import Data.Map                         (Map)
 import Tasks.ComposeFormula.Config (
   ComposeFormulaConfig(..),
@@ -13,13 +10,7 @@ import Tasks.ComposeFormula.Config (
   )
 import Tasks.SynTree.Config             (SynTreeConfig(..))
 import Trees.Types                      (BinOp(..), SynTree(..))
-import Control.OutputCapable.Blocks     (Language(..))
 import qualified Data.Map               as Map (fromList)
-
-
-deriving instance Data ComposeFormulaInst
-deriving instance Data (SynTree BinOp Char)
-deriving instance Data Language
 
 
 type Solution = (String,String)
