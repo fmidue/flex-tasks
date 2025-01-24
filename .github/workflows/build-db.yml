@@ -3,7 +3,7 @@ name: Build PKGDB
 
 on:
   push:
-    branches: [main]
+    branches: [config-test-workflow]
   pull_request:
     branches: [main]
 
