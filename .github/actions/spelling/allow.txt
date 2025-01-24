@@ -24,6 +24,7 @@ mopt
 pkgdb
 standalone
 typeclasses
+thd3
 uncached
 unlines
 Wahrheitswerte
