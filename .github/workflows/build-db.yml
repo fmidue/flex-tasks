@@ -19,9 +19,7 @@ jobs:
         run: |
           set -ex
           sudo apt-get update
-          sudo apt-get -y install zsh curl git
-          curl -fsSL https://get.docker.com -o get-docker.sh
-          sudo sh get-docker.sh
+          sudo apt-get -y install zsh
           git clone https://github.com/fmidue/haskell-template-setup.git
           cd haskell-template-setup
           echo $PWD
