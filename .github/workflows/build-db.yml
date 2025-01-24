@@ -18,12 +18,10 @@ jobs:
       - name: pull repo
         run: |
           set -ex
-          apt-get update
-          apt-get -y install zsh
-          apt-get -y install curl
-          apt-get -y install git
+          sudo apt-get update
+          sudo apt-get -y install zsh curl git
           curl -fsSL https://get.docker.com -o get-docker.sh
-          sh get-docker.sh
+          sudo sh get-docker.sh
           git clone https://github.com/fmidue/haskell-template-setup.git
           cd haskell-template-setup
           echo $PWD
