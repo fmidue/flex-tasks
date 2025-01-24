@@ -1,0 +1,31 @@
+---
+name: Build PKGDB
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  build_db:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: pull repo
+        run: |
+          set -ex
+          apt-get update
+          apt-get -y install zsh
+          apt-get -y install curl
+          apt-get -y install git
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sh get-docker.sh
+          git clone https://github.com/fmidue/haskell-template-setup.git
+          cd haskell-template-setup
+          echo $PWD
+          ./create.sh
+          set +ex
