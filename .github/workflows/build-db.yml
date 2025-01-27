@@ -15,13 +15,58 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: pull repo
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: fmidue/haskell-template-setup
+          path: haskell-template-setup
+      
+      - name: Setup DB
+        id: setup
         run: |
           set -ex
           sudo apt-get update
-          sudo apt-get -y install zsh
-          git clone https://github.com/fmidue/haskell-template-setup.git
+          sudo apt-get -y install zsh hlint expect colorized-logs
+          sudo mv -f ./pkgdb-config/stack.yaml ./haskell-template-setup
+          sudo mv -f ./pkgdb-config/package.yaml ./haskell-template-setup
           cd haskell-template-setup
-          echo $PWD
+          sed -i "s@/autotool/default@$(realpath $PWD/../tasks/root)@" env
           ./create.sh
+          sudo mv root ../tasks
           set +ex
+          cd ../tasks
+          ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
+          temp="${ghc_file##*/ghci-}"
+          ghc_version="${temp%-*.conf*}"
+          echo "version=$ghc_version" >> $GITHUB_OUTPUT
+          
+      - name: Install GHC
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{steps.setup.outputs.version}}
+      
+      - name: run_test
+        run: |
+          set -ex
+          cd tasks
+          find . -name '*.txt' -exec ./test.sh {} root \;
+          ls ./
+          set +ex
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        id: upload-artifact
+        with:
+          name: ghc
+          path: tasks/proplogic/ghc.html
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Add comment with link to artifact
+        uses: peter-evans/commit-comment@v3
+        with:
+          body: |
+            A new version of the thesis has been compiled.
+
+            [Download Report](${{ steps.upload-artifact.outputs.artifact-url }})
+
