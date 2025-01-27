@@ -44,13 +44,12 @@ jobs:
         uses: haskell-actions/setup@v2
         with:
           ghc-version: ${{steps.setup.outputs.version}}
-      
-      - name: run_test
+
+      - name: Run Test Script
         run: |
           set -ex
           cd tasks
           find . -name '*.txt' -exec ./test.sh {} root \;
-          ls ./
           set +ex
 
       - name: Upload artifact
@@ -61,4 +60,11 @@ jobs:
           path: tasks/*/*.html
           if-no-files-found: error
           overwrite: true
+     
+      - name: Link Comment
+        uses: peter-evans/commit-comment@v3
+        with:
+          body: |
+            Changes in task folder. You may review the test results:
 
+            [Download Reports](${{ steps.upload-artifact.outputs.artifact-url }})
