@@ -20,25 +20,35 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Cache DB
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.tasks }}/root
+          key: ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}-${{ hashFiles(format('{0}/package.yaml', env.config)) }}
+          restore-keys: |
+            ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}-${{ hashFiles(format('{0}/package.yaml', env.config)) }}
+            ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}
+      
       - uses: actions/checkout@v4
         with:
           repository: fmidue/haskell-template-setup
           path: haskell-template-setup
-      
+    
       - name: Setup DB
         id: setup
         run: |
           set -ex
           sudo apt-get update
           sudo apt-get -y install zsh hlint expect colorized-logs
-          sudo mv -f ./$config/stack.yaml ./haskell-template-setup
-          sudo mv -f ./$config/package.yaml ./haskell-template-setup
+          sudo mv -f ./${{ env.config }}/stack.yaml ./haskell-template-setup
+          sudo mv -f ./${{ env.config }}/package.yaml ./haskell-template-setup
           cd haskell-template-setup
-          sed -i "s@/autotool/default@$(realpath $PWD/../$tasks/root)@" env
+          sed -i "s@/autotool/default@$(realpath $PWD/../${{ env.tasks }}/root)@" env
           ./create.sh
-          sudo mv root ../$tasks
+          sudo mv root ../${{ env.tasks }}
           set +ex
-          cd ../$tasks
+          cd ../${{ env.tasks }}
           ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
           temp="${ghc_file##*/ghci-}"
           ghc_version="${temp%-*.conf*}"
@@ -52,7 +62,7 @@ jobs:
       - name: Run Test Script
         run: |
           set -ex
-          cd $tasks
+          cd ${{ env.tasks }}
           find . -name '*.txt' -exec ./test.sh {} root \;
           set +ex
 
@@ -61,10 +71,10 @@ jobs:
         id: upload-artifact
         with:
           name: reports
-          path: $tasks/*/*.html
+          path: ${{ env.tasks }}/*/*.html
           if-no-files-found: error
           overwrite: true
-     
+
       - name: Link Comment
         uses: peter-evans/commit-comment@v3
         with:
