@@ -35,9 +35,9 @@ newtype FlexForm = FlexForm {
 type Handler = HandlerFor FlexForm
 type Widget = WidgetFor FlexForm ()
 -- | General type of composable forms inside the environment
-type Rendered' m = m (MForm Handler ([Text],Widget))
+type Rendered' m w = m (MForm Handler ([Text],w))
 -- | More specific version of Rendered using Html
-type Rendered = Rendered' (Reader Html)
+type Rendered w = Rendered' (Reader Html) w
 
 
 instance Eq (Route FlexForm) where

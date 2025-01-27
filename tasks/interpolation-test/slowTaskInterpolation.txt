@@ -13,7 +13,7 @@ module TaskData (getTask) where
 import Data.String.Interpolate (i)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered)
+import FlexTask.YesodConfig    (Rendered, Widget)
 import Test.QuickCheck.Gen
 
 import Global
@@ -32,7 +32,7 @@ fields :: [[FieldInfo]]
 fields = [[single "Number one"], [single "Number two"]]
 
 
-form :: Rendered
+form :: Rendered Widget
 form = formify (Nothing :: Maybe Solution) fields
 
 
