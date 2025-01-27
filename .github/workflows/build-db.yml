@@ -9,6 +9,10 @@ on:
 
 permissions: read-all
 
+env:
+  tasks: tasks
+  config: pkgdb-config
+
 jobs:
   build_db:
     runs-on: ubuntu-latest
@@ -27,14 +31,14 @@ jobs:
           set -ex
           sudo apt-get update
           sudo apt-get -y install zsh hlint expect colorized-logs
-          sudo mv -f ./pkgdb-config/stack.yaml ./haskell-template-setup
-          sudo mv -f ./pkgdb-config/package.yaml ./haskell-template-setup
+          sudo mv -f ./$config/stack.yaml ./haskell-template-setup
+          sudo mv -f ./$config/package.yaml ./haskell-template-setup
           cd haskell-template-setup
-          sed -i "s@/autotool/default@$(realpath $PWD/../tasks/root)@" env
+          sed -i "s@/autotool/default@$(realpath $PWD/../$tasks/root)@" env
           ./create.sh
-          sudo mv root ../tasks
+          sudo mv root ../$tasks
           set +ex
-          cd ../tasks
+          cd ../$tasks
           ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
           temp="${ghc_file##*/ghci-}"
           ghc_version="${temp%-*.conf*}"
@@ -48,7 +52,7 @@ jobs:
       - name: Run Test Script
         run: |
           set -ex
-          cd tasks
+          cd $tasks
           find . -name '*.txt' -exec ./test.sh {} root \;
           set +ex
 
@@ -57,7 +61,7 @@ jobs:
         id: upload-artifact
         with:
           name: reports
-          path: tasks/*/*.html
+          path: $tasks/*/*.html
           if-no-files-found: error
           overwrite: true
      
