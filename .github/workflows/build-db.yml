@@ -4,6 +4,7 @@ name: Build PKGDB
 env:
   tasks: tasks
   config: pkgdb-config
+  test_script: tasks/test.sh
 
 on:
   push:
@@ -32,7 +33,7 @@ jobs:
           key: ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}-${{ hashFiles(format('{0}/package.yaml', env.config)) }}
           restore-keys: |
             ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}
-      
+
       - uses: actions/checkout@v4
         with:
           repository: fmidue/haskell-template-setup
@@ -67,7 +68,7 @@ jobs:
         run: |
           set -ex
           cd ${{ env.tasks }}
-          find . -name '*.txt' -exec ./test.sh {} root \;
+          find . -name '*.txt' -exec ../${{ env.test_script }} {} root \;
           set +ex
 
       - name: Upload artifact
