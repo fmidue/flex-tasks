@@ -57,16 +57,8 @@ jobs:
         uses: actions/upload-artifact@v4
         id: upload-artifact
         with:
-          name: ghc
-          path: tasks/proplogic/ghc.html
+          name: reports
+          path: tasks/*/*.html
           if-no-files-found: error
           overwrite: true
-
-      - name: Add comment with link to artifact
-        uses: peter-evans/commit-comment@v3
-        with:
-          body: |
-            A new version of the thesis has been compiled.
-
-            [Download Report](${{ steps.upload-artifact.outputs.artifact-url }})
 
