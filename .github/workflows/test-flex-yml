@@ -1,5 +1,5 @@
 ---
-name: Build PKGDB
+name: Compile and Lint Flex-Tasks
 
 env:
   tasks: tasks
