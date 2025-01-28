@@ -4,7 +4,7 @@ name: Compile and Lint Flex-Tasks
 env:
   tasks: tasks
   config: pkgdb-config
-  test_script: tasks/test.sh
+  script: tasks
 
 on:
   push:
@@ -21,7 +21,7 @@ on:
 permissions: read-all
 
 jobs:
-  build_db:
+  test_flex:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -62,11 +62,16 @@ jobs:
           ghc_version="${temp%-*.conf*}"
           echo "version=$ghc_version" >> $GITHUB_OUTPUT
 
+      - name: Install GHC
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{steps.setup.outputs.version}}
+
       - name: Run Test Script
         run: |
           set -ex
           cd ${{ env.tasks }}
-          find . -name '*.txt' -exec ../${{ env.test_script }} {} root \;
+          find . -name '*.txt' -exec ../${{ env.script }}/test.sh {} root \;
           set +ex
 
       - name: Upload artifact
