@@ -1,0 +1,25 @@
+#!/usr/bin/env expect
+
+# GHC version to use
+set ver [lindex $argv 0];
+set timeout 2
+
+log_user 0
+spawn ghci-$ver Global TaskData Description Parse -Wall -Wno-orphans
+log_user 1
+expect_before timeout { exit 1 }
+
+expect "GHCi, version*Ok, four modules loaded.\r"
+expect "ghci> "
+send "import Test.QuickCheck.Gen\r"
+expect "ghci> "
+send "import Data.Tuple.Extra\r"
+expect "ghci> "
+send "writeFile \"Check.hs\" =<< (snd3 <$> (generate TaskData.getTask))\r"
+expect "ghci> "
+send ":l Check.hs\r"
+expect "\[1 of*Ok, two modules loaded.\r\n"
+expect "ghci> "
+send ":q\r"
+expect "Leaving GHCi.\r\n"
+

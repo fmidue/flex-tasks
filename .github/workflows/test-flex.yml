@@ -4,7 +4,7 @@ name: Compile and Lint Flex-Tasks
 env:
   tasks: tasks
   config: pkgdb-config
-  script: tasks
+  script: .github/actions
 
 on:
   push:
