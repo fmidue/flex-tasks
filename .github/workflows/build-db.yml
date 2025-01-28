@@ -58,20 +58,6 @@ jobs:
           temp="${ghc_file##*/ghci-}"
           ghc_version="${temp%-*.conf*}"
           echo "version=$ghc_version" >> $GITHUB_OUTPUT
-          echo "ghc_path=$(ghcup whereis ghc $ghc_version)" >> $GITHUB_OUTPUT
-
-      - name: Cache GHC Version
-        id: restore-cache-ghc
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.setup.outputs.ghc_path }}
-          key: ${{ steps.setup.outputs.version }}
-
-      - name: Install GHC
-        uses: haskell-actions/setup@v2
-        if: steps.restore-cache-ghc.outputs.cache-hit != 'true'
-        with:
-          ghc-version: ${{steps.setup.outputs.version}}
 
       - name: Run Test Script
         run: |
