@@ -12,11 +12,17 @@ on:
     paths:
       - "$tasks/*.txt"
       - "$config/*.yaml"
+      - ".github/workflows/test-flex.yml"
+      - "$script/test.sh"
+      - "$script/runGhci.expect"
   pull_request:
     branches: [main]
     paths:
       - "$tasks/*.txt"
       - "$config/*.yaml"
+      - ".github/workflows/test-flex.yml"
+      - "$script/test.sh"
+      - "$script/runGhci.expect"
 
 permissions: read-all
 
@@ -87,6 +93,6 @@ jobs:
         uses: peter-evans/commit-comment@v3
         with:
           body: |
-            Changes in task folder. You may review the test results:
+            Changes in task folder or test-flex workflow. You may review the test results:
 
             [Download Reports](${{ steps.upload-artifact.outputs.artifact-url }})
