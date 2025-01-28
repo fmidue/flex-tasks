@@ -15,14 +15,6 @@ on:
       - ".github/workflows/test-flex.yml"
       - "$script/test.sh"
       - "$script/runGhci.expect"
-  pull_request:
-    branches: [main]
-    paths:
-      - "$tasks/*.txt"
-      - "$config/*.yaml"
-      - ".github/workflows/test-flex.yml"
-      - "$script/test.sh"
-      - "$script/runGhci.expect"
 
 permissions: read-all
 
