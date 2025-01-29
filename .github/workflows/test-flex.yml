@@ -47,7 +47,6 @@ jobs:
           path: haskell-template-setup
 
       - name: Setup DB
-        id: setup
         if: steps.restore-cache-db.outputs.cache-hit != 'true'
         run: |
           set -ex
@@ -60,6 +59,7 @@ jobs:
           set +ex
 
       - name: Determine GHC-Version
+        id: ghc-version
         run: |
           set -ex
           cd ${{ env.tasks }}
@@ -72,7 +72,7 @@ jobs:
       - name: Install GHC
         uses: haskell-actions/setup@v2
         with:
-          ghc-version: ${{steps.setup.outputs.version}}
+          ghc-version: ${{steps.ghc-version.outputs.version}}
 
       - name: Run Test Script
         run: |
