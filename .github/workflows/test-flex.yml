@@ -10,11 +10,12 @@ on:
   push:
     branches: ['*']
     paths:
-      - "$tasks/*.txt"
-      - "$config/*.yaml"
+      - "tasks/*.txt"
+      - "pkgdb-config/*.yaml"
       - ".github/workflows/test-flex.yml"
-      - "$script/test.sh"
-      - "$script/runGhci.expect"
+      - "tasks/test.sh"
+      - "tasks/runGhci.expect"
+      - "tasks/.hlint.yaml"
 
 permissions: read-all
 
