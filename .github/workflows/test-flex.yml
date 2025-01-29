@@ -27,9 +27,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
-      with:
-        packages: zsh hlint expect colorized-logs
-        version: 1.0
+        with:
+          packages: zsh hlint expect colorized-logs
+          version: 1.0
 
       - name: Cache DB
         id: restore-cache-db
