@@ -58,11 +58,16 @@ jobs:
           ./create.sh
           sudo mv root ../${{ env.tasks }}
           set +ex
-          cd ../${{ env.tasks }}
+
+      - name: Determine GHC-Version
+        run: |
+          set -ex
+          cd ${{ env.tasks }}
           ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
           temp="${ghc_file##*/ghci-}"
           ghc_version="${temp%-*.conf*}"
           echo "version=$ghc_version" >> $GITHUB_OUTPUT
+          set +ex
 
       - name: Install GHC
         uses: haskell-actions/setup@v2
