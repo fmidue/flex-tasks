@@ -12,7 +12,8 @@ fi
 
 base_name=$(basename "$1" | sed 's/\(.*\)\..*/\1/')
 pkg_path=$PWD/$2/pkgdb
-expect_script="$PWD/runGhci.expect"
+script_path="$(realpath $(dirname $0))"
+expect_script="${script_path}/runGhci.expect"
 output_file1="${base_name}/Global.hs"
 output_file2="${base_name}/TaskData.hs"
 output_file3="${base_name}/Description.hs"
@@ -63,5 +64,5 @@ expect "$expect_script" "$ghc_version" |
   ansi2html >ghc.html
 
 echo -e "${CYAN}writing Hlint report...${NC}"
-hlint . --report -q
+hlint . --report -q --hint="${script_path}/.hlint.yaml"
 echo -e "${CYAN}Done! Check the reports in ghc.html and report.html.${NC}"
