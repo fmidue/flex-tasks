@@ -26,6 +26,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: zsh hlint expect colorized-logs
+        version: 1.0
+
       - name: Cache DB
         id: restore-cache-db
         uses: actions/cache@v3
@@ -36,6 +41,7 @@ jobs:
             ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}
 
       - uses: actions/checkout@v4
+        if: steps.restore-cache-db.outputs.cache-hit != 'true'
         with:
           repository: fmidue/haskell-template-setup
           path: haskell-template-setup
@@ -45,8 +51,6 @@ jobs:
         if: steps.restore-cache-db.outputs.cache-hit != 'true'
         run: |
           set -ex
-          sudo apt-get update
-          sudo apt-get -y install zsh hlint expect colorized-logs
           sudo mv -f ./${{ env.config }}/stack.yaml ./haskell-template-setup
           sudo mv -f ./${{ env.config }}/package.yaml ./haskell-template-setup
           cd haskell-template-setup
