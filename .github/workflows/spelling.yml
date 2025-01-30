@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: check-spelling
         id: spelling
-        uses: check-spelling/check-spelling@v0.0.22
+        uses: check-spelling/check-spelling@prerelease
         with:
           suppress_push_for_open_pull_request: 1
           checkout: true
@@ -85,7 +85,7 @@ jobs:
     if: (success() || failure()) && needs.spelling.outputs.followup
     steps:
       - name: comment
-        uses: check-spelling/check-spelling@v0.0.22
+        uses: check-spelling/check-spelling@prerelease
         with:
           checkout: true
           spell_check_this: check-spelling/spell-check-this@prerelease
@@ -108,7 +108,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: apply spelling updates
-        uses: check-spelling/check-spelling@v0.0.22
+        uses: check-spelling/check-spelling@prerelease
         with:
           experimental_apply_changes_via_bot: 1
           checkout: true
