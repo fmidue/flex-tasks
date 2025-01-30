@@ -17,7 +17,7 @@ import TermTasks.DataType (
   )
 
 
-type Solution = [Int]
+type Submission = [Int]
 type TaskData = SigInstance
 
 
@@ -258,7 +258,7 @@ checkSyntax
   :: OutputCapable m
   => TaskData
   -> FilePath
-  -> Solution
+  -> Submission
   -> LangM m
 checkSyntax inst _ = partialGrade inst
 
@@ -267,7 +267,7 @@ checkSemantics
   :: (Alternative m, OutputCapable m)
   => TaskData
   -> FilePath
-  -> Solution
+  -> Submission
   -> Rated m
 checkSemantics inst _ = completeGrade inst
 
@@ -298,5 +298,5 @@ import Global
 
 
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission :: String -> Either ParseError Submission
 parseSubmission = useParser parseInput

@@ -13,7 +13,7 @@ import Trees.Types                      (BinOp(..), SynTree(..))
 import qualified Data.Map               as Map (fromList)
 
 
-type Solution = (String,String)
+type Submission = (String,String)
 type TaskData = ComposeFormulaInst
 
 
@@ -88,7 +88,7 @@ fields :: [[FieldInfo]]
 fields = [[single "Erste Formel:", single "Zweite Formel:"]]
 
 form :: Rendered
-form = formify (Nothing :: Maybe Solution) fields
+form = formify (Nothing :: Maybe Submission) fields
 
 checkers :: String
 checkers = [i|
@@ -112,7 +112,7 @@ checkSyntax
   :: (MonadIO m, OutputCapable m)
   => TaskData
   -> FilePath
-  -> Solution
+  -> Submission
   -> LangM m
 checkSyntax inst _ try = partialGrade inst $ delayed $ toListString try
 
@@ -120,7 +120,7 @@ checkSemantics
   :: (MonadIO m, OutputCapable m)
   => TaskData
   -> FilePath
-  -> Solution
+  -> Submission
   -> Rated m
 checkSemantics inst path try = completeGrade path inst (delayed $ toListString try) $> 1.0
 
@@ -170,5 +170,5 @@ import Text.Parsec                      (ParseError)
 
 import Global
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission :: String -> Either ParseError Submission
 parseSubmission = useParser parseInput
