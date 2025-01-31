@@ -21,9 +21,6 @@ import Control.OutputCapable.Blocks (
   refuse,
   code,
   )
-import Control.OutputCapable.Blocks.Generic (
-  ($>>=),
-  )
 import Data.Bifunctor     (bimap)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
