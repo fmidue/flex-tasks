@@ -20,6 +20,9 @@ import Control.OutputCapable.Blocks (
   refuse,
   code,
   )
+import Control.OutputCapable.Blocks.Generic (
+  ($>>=),
+  )
 import Data.Bifunctor     (bimap)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
@@ -246,6 +249,11 @@ parseText t = string $ T.unpack t
 
 useParser :: OutputCapable m => Parser a -> String -> Either (LangM m) (LangM' m a)
 useParser p input = bimap (refuse . code . showWithFieldNumber input) pure (parse p "" input)
+
+
+
+useParserAnd :: (Monad m, OutputCapable m, Parse a) => Parser a -> (a -> LangM' m b) -> String -> Either (LangM m) (LangM' m b)
+useParserAnd p f = fmap ($>>= f) . useParser p
 
 
 
