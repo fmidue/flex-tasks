@@ -290,6 +290,7 @@ It only takes your parser as an argument.
 module Parse (parseSubmission) where
 
 
+import Control.OutputCapable.Blocks     (LangM, LangM')
 import FlexTask.Generic.Parse  (parseInput, useParser)
 import Text.Parsec             (ParseError)
 
@@ -297,7 +298,7 @@ import Global
 
 
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission :: OutputCapable m => String -> Either (LangM m) (LangM' m a)
 parseSubmission = useParser parseInput
 
 |]

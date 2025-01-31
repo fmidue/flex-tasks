@@ -13,6 +13,14 @@ module FlexTask.Generic.ParseInternal
 
 
 import Control.Monad      (void)
+import Control.OutputCapable.Blocks (
+  LangM,
+  LangM',
+  OutputCapable,
+  refuse,
+  code,
+  )
+import Data.Bifunctor     (bimap)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -26,9 +34,15 @@ import Text.Parsec
   , optionMaybe
   , parse
   , sepBy
+  , sourceColumn
   , try
   )
 import Text.Parsec.Char   (anyChar, char, digit, string)
+import Text.Parsec.Error (
+  errorMessages,
+  errorPos,
+  showErrorMessages,
+  )
 import Text.Parsec.String (Parser)
 import Yesod              (Textarea(..))
 
@@ -230,5 +244,20 @@ parseText t = string $ T.unpack t
 
 
 
-useParser :: Parser a -> String -> Either ParseError a
-useParser p = parse p ""
+useParser :: OutputCapable m => Parser a -> String -> Either (LangM m) (LangM' m a)
+useParser p input = bimap (refuse . code . showWithFieldNumber input) pure (parse p "" input)
+
+
+
+showWithFieldNumber :: String -> ParseError -> String
+showWithFieldNumber input e = "Error in input field " ++ fieldNum ++ ":" ++ errors
+  where
+    fieldNum = show $ length (filter (=='\a') consumed) `div` 2 + 1
+    errors = showErrorMessages
+      "or"
+      "unknown parse error"
+      "expecting"
+      "unexpected"
+      "end of input"
+      $ errorMessages e
+    consumed = take (sourceColumn $ errorPos e) input
