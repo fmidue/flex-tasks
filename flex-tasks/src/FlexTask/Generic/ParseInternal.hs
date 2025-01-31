@@ -9,6 +9,7 @@ module FlexTask.Generic.ParseInternal
   , parseInstanceMultiChoice
   , escaped
   , useParser
+  , useParserAnd
   ) where
 
 
@@ -252,7 +253,7 @@ useParser p input = bimap (refuse . code . showWithFieldNumber input) pure (pars
 
 
 
-useParserAnd :: (Monad m, OutputCapable m, Parse a) => Parser a -> (a -> LangM' m b) -> String -> Either (LangM m) (LangM' m b)
+useParserAnd :: (Monad m, OutputCapable m) => Parser a -> (a -> LangM' m b) -> String -> Either (LangM m) (LangM' m b)
 useParserAnd p f = fmap ($>>= f) . useParser p
 
 
