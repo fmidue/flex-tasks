@@ -249,12 +249,12 @@ parseText t = string $ T.unpack t
 
 
 useParser :: OutputCapable m => Parser a -> String -> Either (LangM m) (LangM' m a)
-useParser p input = bimap (refuse . code . showWithFieldNumber input) pure (parse p "" input)
+useParser p = useParserAnd p pure
 
 
 
-useParserAnd :: (Monad m, OutputCapable m) => Parser a -> (a -> LangM' m b) -> String -> Either (LangM m) (LangM' m b)
-useParserAnd p f = fmap ($>>= f) . useParser p
+useParserAnd :: OutputCapable m => Parser a -> (a -> LangM' m b) -> String -> Either (LangM m) (LangM' m b)
+useParserAnd p f input = bimap (refuse . code . showWithFieldNumber input) f (parse p "" input)
 
 
 
