@@ -23,22 +23,18 @@ syntaxAndSemantics
   -> FilePath
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
 syntaxAndSemantics preprocess syntax semantics input tData path  = do
-  let
-    parserRes = preprocess input
-    asLangM = parserRes $> ()
-  parseOut <- getOutputSequence asLangM
-  let
-    syn = if hasAbort parseOut
-      then asLangM
-      else parserRes $>>= syntax tData path
-  synRes <- getOutputSequence syn
-  if hasAbort synRes
-    then
-      pure (synRes,Nothing)
-    else do
+  quitOnAbort (parserRes $> ()) $ const $ do
+    quitOnAbort (parserRes $>>= syntax tData path) $ \synRes -> do
       let sem = parserRes $>>= semantics tData path
       semRes <- getOutputSequenceWithRating sem
       pure (synRes, Just semRes)
+  where
+    parserRes = preprocess input
+    quitOnAbort theThing continueWith = do
+      output <- getOutputSequence theThing
+      if hasAbort output
+        then pure (output,Nothing)
+        else continueWith output
 
 
 hasAbort :: [Output] -> Bool
