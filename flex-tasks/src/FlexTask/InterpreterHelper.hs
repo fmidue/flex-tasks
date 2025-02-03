@@ -7,6 +7,7 @@ import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks.Generic (
   ($>>=),
   )
+import Data.Functor                     (($>))
 
 
 
@@ -24,9 +25,14 @@ syntaxAndSemantics
 syntaxAndSemantics preprocess syntax semantics input tData path  = do
   let
     parserRes = preprocess input
-    syn = parserRes $>>= syntax tData path
+    asLangM = parserRes $> ()
+  parseOut <- getOutputSequence asLangM
+  let
+    syn = if hasAbort parseOut
+      then asLangM
+      else parserRes $>>= syntax tData path
   synRes <- getOutputSequence syn
-  if any isAbort synRes
+  if hasAbort synRes
     then
       pure (synRes,Nothing)
     else do
@@ -35,7 +41,5 @@ syntaxAndSemantics preprocess syntax semantics input tData path  = do
       pure (synRes, Just semRes)
 
 
-isAbort :: Output -> Bool
-isAbort (Refuse _)          = True
-isAbort (Assertion False _) = True
-isAbort _                   = False
+hasAbort :: [Output] -> Bool
+hasAbort = any $ withRefusal $ const True
