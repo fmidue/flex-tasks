@@ -435,16 +435,15 @@ stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
 
 
 parseSubmission :: OutputCapable m => String -> LangM' m Submission
-parseSubmission = useParserAnd parseInput $ \(Table xs,formula,names) -> let (headers,columns) = unzip xs in
-  parseDelayedAbortOrProcess
-    parser
-    complainAboutMissingParenthesesIfNotFailingOn
-    allSymbolParser
-    (delayed $ stringList headers)
-    $ \x -> parseDelayedAbortOrProcess
-              parser
-              complainAboutMissingParenthesesIfNotFailingOn
-              allSymbolParser
-              (delayed formula)
-              (\y -> pure (Table (zip x columns),y,names))
-
+parseSubmission = useParserAnd parseInput $ \(Table xs,formula,names) ->
+    let (headers,columns) = unzip xs in
+    parseWithFallBack (stringList headers) $ \x ->
+      parseWithFallBack formula $ \y ->
+        pure (Table (zip x columns),y,names)
+  where
+    parseWithFallBack input whatToDo = parseDelayedAbortOrProcess
+      parser
+      complainAboutMissingParenthesesIfNotFailingOn
+      allSymbolParser
+      (delayed input)
+      whatToDo
