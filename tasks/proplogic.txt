@@ -3,19 +3,16 @@ module Global where
 
 import Control.OutputCapable.Blocks
 import LogicTasks.Formula (TruthValue(..))
+import Trees.Types (PropFormula)
 
 
-
-instance Eq TruthValue where
-  (TruthValue a) == (TruthValue b) = a == b
-
-newtype Table = Table [(Maybe String, [Maybe TruthValue])] deriving (Eq,Show)
+newtype Table a = Table [(Maybe a, [Maybe TruthValue])] deriving (Eq,Show)
 
 data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
 
 type FormType = (String,[Namen])
 
-type Submission = (Table,String,[Namen])
+type Submission = (Table (PropFormula Char),PropFormula Char,[Namen])
 
 
 emptyColumns, staticColumns, totalColumns, rows :: Int
@@ -284,16 +281,6 @@ isSubFormula a b = noSpaces a `isInfixOf` noSpaces b
     noSpaces = filter (/=' ') . show
 
 
-stringTuple :: String -> String -> String
-stringTuple s1 s2 = '(':s1 ++ ',':s2 ++ ")"
-
-
-stringList :: [Maybe String] -> String
-stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
-  where
-    stringMaybe Nothing = "Nothing"
-    stringMaybe (Just s) = s
-
 
 toTree :: PropFormula Char -> SynTree BinOp Char
 toTree (Atomic c) = Leaf c
@@ -307,18 +294,7 @@ dropStatic = drop staticColumns
 
 
 checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
-checkSyntax _ _ (Table xs,formula,names) =
-  parseDelayedWithAndThen
-    parser
-    complainAboutMissingParenthesesIfNotFailingOn
-    allSymbolParser
-    (checkSyntax' names)
-    $ delayed $ stringTuple (stringList $ map fst xs) formula
-
-
-
-checkSyntax' :: OutputCapable m => [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> LangM m
-checkSyntax' n (fs,f) = do
+checkSyntax _ _ (Table xs,f,n) = do
     paragraph $ do
       bothLangs $ do
         "Es wurden Formeln wie folgt gelesen:"
@@ -335,24 +311,14 @@ checkSyntax' n (fs,f) = do
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
-    pure ()
+    pure undefined
   where
+    fs = map fst xs
     entered = dropStatic fs
 
 
 checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
-checkSemantics (_,nSol) _ (Table xs,formula,names) =
-  withDelayedSucceeding
-    (checkSemantics' nSol columns names)
-    parser
-    $ delayed $ stringTuple (stringList headers) formula
-  where
-    (headers,columns) = unzip xs
-
-
-
-checkSemantics' :: OutputCapable m => [Namen] -> [[Maybe TruthValue]] -> [Namen] -> ([Maybe (PropFormula Char)],PropFormula Char) -> Rated m
-checkSemantics' nSol columns n (headers,f) = do
+checkSemantics (_,nSol) _ (Table xs,f,n) = do
     let correctStart = take staticColumns columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
@@ -375,6 +341,7 @@ checkSemantics' nSol columns n (headers,f) = do
     res <- printSolutionAndAssert IndefiniteArticle maybeAnswer points
     pure res
   where
+    (headers,columns) = unzip xs
     maybeAnswer = flip (++) (show nSol) <$>
                     #{if showSolution
                        then Just ("Formel: " ++ simplestDisplay fSol ++ "\nKorrekte Einträge in Wahrheitstafel.\nBegleitende: ")
@@ -424,18 +391,20 @@ description _ ((legend,hints),_) = do
 module Parse (parseSubmission) where
 
 
-import Data.List               (transpose)
+import Control.OutputCapable.Blocks (LangM, LangM', OutputCapable)
+import Data.List               (intercalate, transpose)
 import Data.List.Split         (chunksOf)
 import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
   escaped,
-  useParser
+  useParserAnd
   )
 import LogicTasks.Formula      (TruthValue)
 import Text.Parsec             (ParseError)
 import Trees.Parsing           ()
-
+import LogicTasks.Parsing      (allSymbolParser, parser)
+import Formula.Parsing.Delayed
 import qualified Formula.Parsing as FP
 
 import Global
@@ -451,13 +420,31 @@ instance Parse [Namen] where
 
 
 
-instance Parse Table where
+instance Parse (Table String) where
   parseInput = do
     (headers,values) <- parseInput
     let allHeaders = map (Just . (:[])) "ABCD" ++ headers
     pure $ Table $ zip allHeaders $ transpose $ chunksOf totalColumns values
 
 
+stringList :: [Maybe String] -> String
+stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
+  where
+    stringMaybe Nothing = "Nothing"
+    stringMaybe (Just s) = s
 
-parseSubmission :: String -> Either ParseError Submission
-parseSubmission = useParser parseInput
+
+parseSubmission :: OutputCapable m => String -> LangM' m Submission
+parseSubmission = useParserAnd parseInput $ \(Table xs,formula,names) -> let (headers,columns) = unzip xs in
+  parseDelayedAbortOrProcess
+    parser
+    complainAboutMissingParenthesesIfNotFailingOn
+    allSymbolParser
+    (delayed $ stringList headers)
+    $ \x -> parseDelayedAbortOrProcess
+              parser
+              complainAboutMissingParenthesesIfNotFailingOn
+              allSymbolParser
+              (delayed formula)
+              (\y -> pure (Table (zip x columns),y,names))
+
