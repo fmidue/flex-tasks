@@ -291,7 +291,6 @@ module Parse (parseSubmission) where
 
 
 import Control.OutputCapable.Blocks (
-  LangM,
   LangM',
   OutputCapable,
   )
@@ -302,7 +301,7 @@ import Global
 
 
 
-parseSubmission :: OutputCapable m => String -> Either (LangM m) (LangM' m Solution)
+parseSubmission :: OutputCapable m => String -> LangM' m Solution
 parseSubmission = useParser parseInput
 
 |]

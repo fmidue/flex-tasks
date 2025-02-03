@@ -15,13 +15,12 @@ module FlexTask.Generic.ParseInternal
 
 import Control.Monad      (void)
 import Control.OutputCapable.Blocks (
-  LangM,
   LangM',
   OutputCapable,
   refuse,
   code,
   )
-import Data.Bifunctor     (bimap)
+import Data.Functor       (($>))
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -245,13 +244,15 @@ parseText t = string $ T.unpack t
 
 
 
-useParser :: OutputCapable m => Parser a -> String -> Either (LangM m) (LangM' m a)
+useParser :: OutputCapable m => Parser a -> String -> LangM' m a
 useParser p = useParserAnd p pure
 
 
 
-useParserAnd :: OutputCapable m => Parser a -> (a -> LangM' m b) -> String -> Either (LangM m) (LangM' m b)
-useParserAnd p f input = bimap (refuse . code . showWithFieldNumber input) f (parse p "" input)
+useParserAnd :: OutputCapable m => Parser a -> (a -> LangM' m b) -> String -> LangM' m b
+useParserAnd p f input = case parse p "" input of
+  Left err -> refuse (code $ showWithFieldNumber input err) $> undefined
+  Right success -> f success
 
 
 
