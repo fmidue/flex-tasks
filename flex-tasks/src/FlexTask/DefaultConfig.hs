@@ -36,6 +36,7 @@ module Global where
 
 type Solution = (Int,Int)
 type DescData = (Int,Int,Int)
+type TaskData = (DescData,Solution)
 
 |]
 
@@ -108,13 +109,13 @@ import Global
 
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (TaskData, String, IO ([String],String))
 getTask = do
     numbers <- vectorOf 3 $ elements [1..6 :: Int]
     let
       descData = (numbers !! 0, numbers !! 1, numbers !! 2)
       checkData = (product numbers, sum numbers)
-    pure (show (descData,checkData), checkers, getFormData form)
+    pure ((descData,checkData), checkers, getFormData form)
 
 
 
@@ -182,7 +183,7 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => (a,Solution) -> FilePath -> Solution -> LangM m
+checkSyntax :: OutputCapable m => TaskData -> FilePath -> Solution -> LangM m
 checkSyntax (_,sol) _ try
   | try == sol = pure ()
   | otherwise =
@@ -191,7 +192,7 @@ checkSyntax (_,sol) _ try
         english "syntactically wrong"
 
 
-checkSemantics :: OutputCapable m => (a,Solution) -> FilePath -> Solution -> Rated m
+checkSemantics :: OutputCapable m => TaskData -> FilePath -> Solution -> Rated m
 checkSemantics (_,sol) _ try
   | try == sol = pure 1.0
   | otherwise = do
@@ -236,7 +237,7 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> (DescData,a) -> LangM m
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ ((one,two,three),_) = do
   paragraph $ translate $ do
     german "Ich würfle drei Zahlen."

@@ -107,6 +107,7 @@ test-suite flex-tasks-test
     , raw-strings-qq
     , shakespeare
     , string-interpolate
+    , syb
     , text
     , transformers
     , yesod
