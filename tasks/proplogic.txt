@@ -323,7 +323,7 @@ checkSemantics (_,nSol) _ (Table xs,f,n) = do
     let subFormulas = all (`isSubFormula` f) $ catMaybes $ dropStatic headers
     #{checkType} subFormulas $ bothLangs
       "Als Tabellenspalten kommen nur Teilformeln der Gesamtformel vor?"
-    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- dropStatic $ zip headers columns]
+    let correctValues = all correctColumn [(sf,b)| (Just sf,b) <- dropStatic xs]
     #{checkType} correctValues $ bothLangs
       "Tabellenspalten enthalten nur korrekt ermittelte Wahrheitswerte?"
     yesNo (T.all (`elem` f) "ABCD") $ bothLangs
