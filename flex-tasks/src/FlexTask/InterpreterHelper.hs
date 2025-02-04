@@ -10,7 +10,7 @@ import Control.OutputCapable.Blocks.Type (
   getOutputSequenceWithRating,
   withRefusal,
   )
-import Data.Maybe (fromMaybe)
+import Data.Maybe                       (fromMaybe)
 
 
 
