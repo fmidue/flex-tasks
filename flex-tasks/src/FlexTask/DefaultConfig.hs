@@ -260,11 +260,24 @@ dParse = [rQ|
 Module for parsing the student submission.
 Must contain the function
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission :: OutputCapable m => String -> LangM' m Solution
 
 where the given String is the submission.
+This function should first apply a parser to the submission
+and then optionally process the input further or leave it as is.
+Finally, the result is embedded into 'OutputCapable'.
+The type LangM' is a variation of LangM, allowing for arbitrary embedded content instead of only '()'
+This enables more complex error handling,
+which might not be possible by purely using basic parsers alone.
+The final result is passed to the check functions to generate feedback.
 The parsers used are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
+
+To implement parseSubmission, you can use the 'useParser' and 'useParserAnd' functions, supplied by 'FlexTask.Generic.Parse'.
+'useParser' takes a parser as an argument and embeds the result directly into 'OutputCapable'.
+Use this if you do not need additional processing of the input.
+'useParserAnd' takes a parser and a processing function as arguments.
+This function will first parse the solution, then apply the processing to the output.
 
 As with forms, a generic parser interface is available.
 The steps are similar:
@@ -281,9 +294,6 @@ Instead, use bodyless instances for the component types where possible
 and use custom parsers for those where not applicable.
 Finally, use the bodyless instance method for the entire type.
 This is again necessary to avoid encoding problems that are caused internally by argument delimiters.
-
-To implement parseSubmission, you can use the 'useParser' function, again supplied by 'FlexTask.Generic.Parse'.
-It only takes your parser as an argument.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
