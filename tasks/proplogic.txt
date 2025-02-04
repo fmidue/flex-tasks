@@ -6,13 +6,13 @@ import LogicTasks.Formula (TruthValue(..))
 import Trees.Types (PropFormula)
 
 
-newtype Table a = Table [(Maybe a, [Maybe TruthValue])] deriving (Eq,Show)
+newtype Table = Table [(Maybe (PropFormula Char), [Maybe TruthValue])] deriving (Eq,Show)
 
 data Namen = A | B | C | D deriving (Eq,Enum,Bounded,Show)
 
 type FormType = (String,[Namen])
 
-type Submission = (Table (PropFormula Char),PropFormula Char,[Namen])
+type Submission = (Table,PropFormula Char,[Namen])
 
 
 emptyColumns, staticColumns, totalColumns, rows :: Int
@@ -245,14 +245,12 @@ module Check (checkSemantics, checkSyntax) where
 import Control.Monad (when)
 import Control.OutputCapable.Blocks
 import Data.Foldable (toList)
-import Data.List     (intercalate, isInfixOf)
+import Data.List     (isInfixOf)
 import Data.Maybe    (catMaybes, fromJust)
 import Data.Map      (fromList)
 import Data.Ratio    ((%))
 
 import LogicTasks.Formula (TruthValue(..), isSemanticEqual, convert)
-import LogicTasks.Parsing (allSymbolParser, parser)
-import Formula.Parsing.Delayed
 import Trees.Types (SynTree(..), PropFormula(..), BinOp(..))
 import Trees.Print (simplestDisplay)
 
@@ -391,20 +389,22 @@ description _ ((legend,hints),_) = do
 module Parse (parseSubmission) where
 
 
-import Control.OutputCapable.Blocks (LangM, LangM', OutputCapable)
-import Data.List               (intercalate, transpose)
-import Data.List.Split         (chunksOf)
+import Control.OutputCapable.Blocks (LangM', OutputCapable)
+import Data.List.Extra        (chunksOf, intercalate, transpose)
 import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
   escaped,
-  useParserAnd
+  useParserAnd,
+  )
+import Formula.Parsing.Delayed (
+  complainAboutMissingParenthesesIfNotFailingOn,
+  delayed,
+  parseDelayedAbortOrProcess,
   )
 import LogicTasks.Formula      (TruthValue)
-import Text.Parsec             (ParseError)
-import Trees.Parsing           ()
 import LogicTasks.Parsing      (allSymbolParser, parser)
-import Formula.Parsing.Delayed
+import Trees.Types             (PropFormula(Atomic))
 import qualified Formula.Parsing as FP
 
 import Global
@@ -419,14 +419,6 @@ instance Parse [Namen] where
   parseInput = parseInstanceMultiChoice
 
 
-
-instance Parse (Table String) where
-  parseInput = do
-    (headers,values) <- parseInput
-    let allHeaders = map (Just . (:[])) "ABCD" ++ headers
-    pure $ Table $ zip allHeaders $ transpose $ chunksOf totalColumns values
-
-
 stringList :: [Maybe String] -> String
 stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
   where
@@ -434,16 +426,22 @@ stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
     stringMaybe (Just s) = s
 
 
-parseSubmission :: OutputCapable m => String -> LangM' m Submission
-parseSubmission = useParserAnd parseInput $ \(Table xs,formula,names) ->
-    let (headers,columns) = unzip xs in
-    parseWithFallBack (stringList headers) $ \x ->
-      parseWithFallBack formula $ \y ->
-        pure (Table (zip x columns),y,names)
+makeTable :: [Maybe (PropFormula Char)] -> [Maybe TruthValue] -> Table
+makeTable headers values = Table $ zip allHeaders formattedTruthValues
   where
-    parseWithFallBack input whatToDo = parseDelayedAbortOrProcess
+    allHeaders = map (Just . Atomic) "ABCD" ++ headers
+    formattedTruthValues = transpose $ chunksOf totalColumns values
+
+
+parseSubmission :: OutputCapable m => String -> LangM' m Submission
+parseSubmission =
+    useParserAnd parseInput $ \(headerStrings,columns,formulaString,names) ->
+      parseWithFallBack (stringList headerStrings) $ \parsedHeaders ->
+        parseWithFallBack formulaString $ \parsedFormula ->
+          pure (makeTable parsedHeaders columns, parsedFormula, names)
+  where
+    parseWithFallBack input = parseDelayedAbortOrProcess
       parser
       complainAboutMissingParenthesesIfNotFailingOn
       allSymbolParser
-      (delayed input)
-      whatToDo
+      $ delayed input
