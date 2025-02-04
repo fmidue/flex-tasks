@@ -10,7 +10,6 @@ import Control.OutputCapable.Blocks.Type (
   getOutputSequenceWithRating,
   withRefusal,
   )
-import Data.Maybe                       (fromMaybe)
 
 
 
@@ -27,10 +26,9 @@ syntaxAndSemantics
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
 syntaxAndSemantics preprocess syntax semantics input tData path  = do
   (mParseResult,parseOutput) <- getOutputSequenceAndResult $ preprocess input
-  if hasAbort parseOutput
-    then pure (parseOutput,Nothing)
-    else do
-      let parseResult = getResult mParseResult
+  case mParseResult of
+    Nothing          -> pure (parseOutput,Nothing)
+    Just parseResult -> do
       synRes <- getOutputSequence (syntax tData path parseResult)
       let parseAndSyntax = parseOutput ++ synRes
       if hasAbort synRes
@@ -39,8 +37,6 @@ syntaxAndSemantics preprocess syntax semantics input tData path  = do
           let sem = semantics tData path parseResult
           semRes <- getOutputSequenceWithRating sem
           pure (parseAndSyntax, Just semRes)
-  where
-    getResult = fromMaybe (error "Result must be Just if output didn't abort!")
 
 
 
