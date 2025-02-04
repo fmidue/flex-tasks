@@ -309,7 +309,7 @@ checkSyntax _ _ (Table xs,f,n) = do
       "Tabellenspalten existieren nur einmal?"
     assertion (not (null n)) $ bothLangs
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
-    pure undefined
+    pure ()
   where
     fs = map fst xs
     entered = dropStatic fs
