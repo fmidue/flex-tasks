@@ -5,10 +5,8 @@ module FlexTask.InterpreterHelper (syntaxAndSemantics) where
 import Control.OutputCapable.Blocks     (LangM, LangM', Rated, ReportT)
 import Control.OutputCapable.Blocks.Type (
   Output,
-  getOutputSequence,
   getOutputSequenceAndResult,
   getOutputSequenceWithRating,
-  withRefusal,
   )
 
 
@@ -29,16 +27,11 @@ syntaxAndSemantics preprocess syntax semantics input tData path  = do
   case mParseResult of
     Nothing          -> pure (parseOutput,Nothing)
     Just parseResult -> do
-      synRes <- getOutputSequence (syntax tData path parseResult)
+      (synSuccess,synRes) <- getOutputSequenceAndResult $ syntax tData path parseResult
       let parseAndSyntax = parseOutput ++ synRes
-      if hasAbort synRes
-        then pure (parseAndSyntax,Nothing)
-        else do
+      case synSuccess of
+        Nothing -> pure (parseAndSyntax,Nothing)
+        Just () -> do
           let sem = semantics tData path parseResult
           semRes <- getOutputSequenceWithRating sem
           pure (parseAndSyntax, Just semRes)
-
-
-
-hasAbort :: [Output] -> Bool
-hasAbort = any $ withRefusal $ const False
