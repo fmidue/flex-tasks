@@ -295,7 +295,6 @@ import Control.OutputCapable.Blocks (
   OutputCapable,
   )
 import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
 
 import Global
 

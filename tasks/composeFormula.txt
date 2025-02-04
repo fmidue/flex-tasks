@@ -144,10 +144,14 @@ description path inst@ComposeFormulaInst{..} = do
 
 module Parse (parseSubmission) where
 
+
+import Control.OutputCapable.Blocks (
+  LangM',
+  OutputCapable,
+  )
 import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
 
 import Global
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission :: OutputCapable m => String -> LangM' m Solution
 parseSubmission = useParser parseInput
