@@ -248,7 +248,7 @@ parseText t = string $ T.unpack t
 Parses a String with the given parser and embeds the result into the `OutputCapable` interface.
 Reports a `ParseError` via `refuse` primitive instead.
 Error Reports provide positional information of the error in the input form.
-The embedded value will be undefined in case of a `ParseError`.
+No defined value will be embedded in case of a `ParseError`.
 -}
 useParser
   :: (Monad m, OutputCapable m)
@@ -262,8 +262,8 @@ useParser p = useParserAnd p pure
 {- |
 Like `useParser` but also applies a processing function to the parse result, if it succeeds.
 The function should embed its final output into the `OutputCapable` interface.
-The embedded value will be undefined in case of a `ParseError`.
-The provided function will not be applied to the value in this case.
+No defined value will be embedded in case of a `ParseError`.
+Also, the provided function will not be applied in this case.
 -}
 useParserAnd
   :: (Monad m, OutputCapable m)

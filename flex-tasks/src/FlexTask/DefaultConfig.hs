@@ -267,17 +267,17 @@ This function should first apply a parser to the submission
 and then optionally process the input further or leave it as is.
 Finally, the result is embedded into 'OutputCapable'.
 The type LangM' is a variation of LangM, allowing for arbitrary embedded content instead of only '()'
-This enables more complex error handling,
-which might not be possible by purely using basic parsers alone.
+The function enables more complex error handling
+than might be possible by purely using basic parsers alone.
 The final result is passed to the check functions to generate feedback.
-The parsers used are those of 'Text.Parsec'.
-Refer to its documentation if necessary.
 
 To implement parseSubmission you can use the 'useParser' and 'useParserAnd' functions,
 supplied by 'FlexTask.Generic.Parse'.
-'useParser' takes a parser as an argument and embeds the result directly into 'OutputCapable'.
+The parsers used there are those of 'Text.Parsec'.
+Refer to its documentation if necessary.
+The 'useParser' function takes a parser as an argument and embeds the result directly into 'OutputCapable'.
 Use this if you do not need additional processing of the input.
-'useParserAnd' takes a parser and a processing function as arguments.
+The 'useParserAnd' function takes a parser and a processing function as arguments.
 This function will first parse the solution, then apply the processing to the output.
 
 As with forms, a generic parser interface is available.
