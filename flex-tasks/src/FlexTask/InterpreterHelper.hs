@@ -38,4 +38,4 @@ syntaxAndSemantics preprocess syntax semantics input tData path  = do
 
 
 hasAbort :: [Output] -> Bool
-hasAbort = any $ withRefusal $ const True
+hasAbort = any $ withRefusal $ const False

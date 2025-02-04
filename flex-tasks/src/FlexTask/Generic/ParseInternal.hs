@@ -247,6 +247,7 @@ parseText t = string $ T.unpack t
 {- |
 Parses a String with the given parser and embeds the result into the `OutputCapable` interface.
 Reports a `ParseError` via `reject` primitive instead.
+Error Reports also provide positional information of the error in the input form.
 -}
 useParser :: OutputCapable m => Parser a -> String -> LangM' m a
 useParser p = useParserAnd p pure
@@ -254,9 +255,8 @@ useParser p = useParserAnd p pure
 
 
 {- |
-Parses a String with the given parser, then applies a processing function to the result.
-The function should embed its final result into the `OutputCapable` interface.
-Reports a `ParseError` via `reject` primitive instead.
+Like `useParser` but also applies a processing function to the parse result.
+The function should embed its final output into the `OutputCapable` interface.
 -}
 useParserAnd :: OutputCapable m => Parser a -> (a -> LangM' m b) -> String -> LangM' m b
 useParserAnd p f input = case parse p "" input of
