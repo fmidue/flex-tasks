@@ -8,6 +8,7 @@ import Data.List.Extra                  (dropEnd)
 import Data.Maybe                       (fromMaybe)
 import Data.Text                        (pack, unpack)
 import Test.Hspec (
+  Expectation,
   Spec,
   context,
   describe,
@@ -81,17 +82,17 @@ spec = do
 
   describe "anonymous choice selection parsers" $ do
     prop "single choice works" $ \i ->
-      withParser parseInput (escapedSingle $ show i) `shouldParse` singleChoiceAnswer i
+      escapedSingle (show i) `parsesTo` singleChoiceAnswer i
     prop "multiple choice works" $ \is ->
-      withParser parseInput (escapedList $ map show is) `shouldParse` multipleChoiceAnswer is
+      escapedList (map show is) `parsesTo` multipleChoiceAnswer is
 
   describe "choice selection parsers (for a test enum)" $ do
     specify "single choice works" $
       forAll (chooseInt (0,2)) $ \i ->
-        withParser parseInput (escapedSingle $ show $ i+1) `shouldParse` toEnum @TestEnum i
+        escapedSingle (show $ i+1) `parsesTo` toEnum @TestEnum i
     specify "multiple choice works" $
       forAll (sublistOf [0..2]) $ \is ->
-        withParser parseInput (escapedList $ map (show . (+1)) is) `shouldParse` map (toEnum @TestEnum) is
+        escapedList (map (show . (+1)) is) `parsesTo` map (toEnum @TestEnum) is
   where
     testParse = many1 digit
     boolShow b = if b then "yes" else "no"
@@ -102,19 +103,19 @@ spec = do
 
 
 testParsingString :: (Eq a, Parse a, Show a) => (String -> a) -> String -> IO ()
-testParsingString fromString s = withParser parseInput (escapedSingle s) `shouldParse` fromString (stripEscape s)
+testParsingString fromString s = escapedSingle s `parsesTo` fromString (stripEscape s)
 
 
 testParsing :: (Eq a, Parse a, Show a) => (a -> String) -> a -> IO ()
-testParsing toString a = withParser parseInput (escapedSingle $ toString a) `shouldParse` a
+testParsing toString a = escapedSingle (toString a) `parsesTo` a
 
 
 testParsingList :: (Eq a, Show a, Parse [a]) => (a -> String) -> [a] -> IO ()
-testParsingList toString as = withParser parseInput (escapedList $ map toString as) `shouldParse` as
+testParsingList toString as = escapedList (map toString as) `parsesTo` as
 
 
 testParsingStringList :: (Eq a, Parse [a], Show a) => (String -> a) -> [String] -> IO ()
-testParsingStringList fromString s = withParser parseInput (escapedList s) `shouldParse` map (fromString . stripEscape) s
+testParsingStringList fromString s = escapedList s `parsesTo` map (fromString . stripEscape) s
 
 
 escapedSingle :: String -> String
@@ -143,3 +144,7 @@ format from s
 
 withParser :: Parser a -> String -> Either ParseError a
 withParser p = parse p ""
+
+
+parsesTo :: (Show a, Eq a, Parse a) => String -> a -> Expectation
+parsesTo input output = withParser parseInput input `shouldParse` output
