@@ -3,11 +3,14 @@ module FlexTask.InterpreterHelper (syntaxAndSemantics) where
 
 
 import Control.OutputCapable.Blocks     (LangM, LangM', Rated, ReportT)
-import Control.OutputCapable.Blocks.Type
-import Control.OutputCapable.Blocks.Generic (
-  ($>>=),
+import Control.OutputCapable.Blocks.Type (
+  Output,
+  getOutputSequence,
+  getOutputSequenceAndResult,
+  getOutputSequenceWithRating,
+  withRefusal,
   )
-import Data.Functor                     (($>))
+import Data.Maybe (fromMaybe)
 
 
 
@@ -23,18 +26,22 @@ syntaxAndSemantics
   -> FilePath
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
 syntaxAndSemantics preprocess syntax semantics input tData path  = do
-  quitOnAbort (parserRes $> ()) $ const $ do
-    quitOnAbort (parserRes $>>= syntax tData path) $ \synRes -> do
-      let sem = parserRes $>>= semantics tData path
-      semRes <- getOutputSequenceWithRating sem
-      pure (synRes, Just semRes)
+  (mParseResult,parseOutput) <- getOutputSequenceAndResult $ preprocess input
+  if hasAbort parseOutput
+    then pure (parseOutput,Nothing)
+    else do
+      let parseResult = getResult mParseResult
+      synRes <- getOutputSequence (syntax tData path parseResult)
+      let parseAndSyntax = parseOutput ++ synRes
+      if hasAbort synRes
+        then pure (parseAndSyntax,Nothing)
+        else do
+          let sem = semantics tData path parseResult
+          semRes <- getOutputSequenceWithRating sem
+          pure (parseAndSyntax, Just semRes)
   where
-    parserRes = preprocess input
-    quitOnAbort theThing continueWith = do
-      output <- getOutputSequence theThing
-      if hasAbort output
-        then pure (output,Nothing)
-        else continueWith output
+    getResult = fromMaybe (error "Result must be Just if output didn't abort!")
+
 
 
 hasAbort :: [Output] -> Bool
