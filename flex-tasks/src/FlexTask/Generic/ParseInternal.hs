@@ -17,10 +17,11 @@ import Control.Monad      (void)
 import Control.OutputCapable.Blocks (
   LangM',
   OutputCapable,
+  ReportT,
   refuse,
   code,
   )
-import Data.Functor       (($>))
+import Control.OutputCapable.Blocks.Generic (toAbort)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -250,7 +251,11 @@ Reports a `ParseError` via `refuse` primitive instead.
 Error Reports provide positional information of the error in the input form.
 The embedded value will be undefined in case of a `ParseError`.
 -}
-useParser :: OutputCapable m => Parser a -> String -> LangM' m a
+useParser
+  :: (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -> String
+  -> LangM' (ReportT o m) a
 useParser p = useParserAnd p pure
 
 
@@ -261,9 +266,14 @@ The function should embed its final output into the `OutputCapable` interface.
 The embedded value will be undefined in case of a `ParseError`.
 The provided function will not be applied to the value in this case.
 -}
-useParserAnd :: OutputCapable m => Parser a -> (a -> LangM' m b) -> String -> LangM' m b
+useParserAnd
+  :: (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -> (a -> LangM' (ReportT o m) b)
+  -> String
+  -> LangM' (ReportT o m) b
 useParserAnd p f input = case parse p "" input of
-  Left err -> refuse (code $ showWithFieldNumber input err) $> undefined
+  Left err      -> toAbort $ refuse $ code $ showWithFieldNumber input err
   Right success -> f success
 
 
