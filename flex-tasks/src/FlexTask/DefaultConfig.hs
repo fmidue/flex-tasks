@@ -273,7 +273,8 @@ The final result is passed to the check functions to generate feedback.
 The parsers used are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
 
-To implement parseSubmission, you can use the 'useParser' and 'useParserAnd' functions, supplied by 'FlexTask.Generic.Parse'.
+To implement parseSubmission you can use the 'useParser' and 'useParserAnd' functions,
+supplied by 'FlexTask.Generic.Parse'.
 'useParser' takes a parser as an argument and embeds the result directly into 'OutputCapable'.
 Use this if you do not need additional processing of the input.
 'useParserAnd' takes a parser and a processing function as arguments.
