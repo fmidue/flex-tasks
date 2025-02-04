@@ -17,7 +17,8 @@ import Test.Hspec.QuickCheck            (prop)
 import Test.Hspec.Parsec                (shouldFailOn, shouldParse)
 import Test.QuickCheck                  (chooseInt, forAll, sublistOf)
 import Test.QuickCheck.Instances.Text   ()
-import Text.Parsec                      (eof, digit, many1)
+import Text.Parsec                      (ParseError, eof, digit, many1, parse)
+import Text.Parsec.String               (Parser)
 import Yesod (Textarea(..))
 
 import FlexTask.Generic.Form (
@@ -41,9 +42,9 @@ spec :: Spec
 spec = do
   describe "escaped" $
     prop "works like the original parser, minding the input escape" $ \s ->
-      case useParser (testParse <* eof) s of
-        Left _ -> useParser (escaped testParse) `shouldFailOn` escapedSingle s
-        Right res -> useParser (escaped testParse) (escapedSingle s) `shouldParse` stripEscape res
+      case withParser (testParse <* eof) s of
+        Left _ -> withParser (escaped testParse) `shouldFailOn` escapedSingle s
+        Right res -> withParser (escaped testParse) (escapedSingle s) `shouldParse` stripEscape res
 
   describe "parseInput" $ do
     context "should work for all base types" $ do
@@ -80,40 +81,40 @@ spec = do
 
   describe "anonymous choice selection parsers" $ do
     prop "single choice works" $ \i ->
-      useParser parseInput (escapedSingle $ show i) `shouldParse` singleChoiceAnswer i
+      withParser parseInput (escapedSingle $ show i) `shouldParse` singleChoiceAnswer i
     prop "multiple choice works" $ \is ->
-      useParser parseInput (escapedList $ map show is) `shouldParse` multipleChoiceAnswer is
+      withParser parseInput (escapedList $ map show is) `shouldParse` multipleChoiceAnswer is
 
   describe "choice selection parsers (for a test enum)" $ do
     specify "single choice works" $
       forAll (chooseInt (0,2)) $ \i ->
-        useParser parseInput (escapedSingle $ show $ i+1) `shouldParse` toEnum @TestEnum i
+        withParser parseInput (escapedSingle $ show $ i+1) `shouldParse` toEnum @TestEnum i
     specify "multiple choice works" $
       forAll (sublistOf [0..2]) $ \is ->
-        useParser parseInput (escapedList $ map (show . (+1)) is) `shouldParse` map (toEnum @TestEnum) is
+        withParser parseInput (escapedList $ map (show . (+1)) is) `shouldParse` map (toEnum @TestEnum) is
   where
     testParse = many1 digit
     boolShow b = if b then "yes" else "no"
     maybeShow = maybe "None"
 
-    testParsingMaybeStringList fromString = testParsingStringList (with fromString)
-    testParsingMaybe from = testParsingString (with from)
+    testParsingMaybeStringList fromString = testParsingStringList (format fromString)
+    testParsingMaybe from = testParsingString (format from)
 
 
 testParsingString :: (Eq a, Parse a, Show a) => (String -> a) -> String -> IO ()
-testParsingString fromString s = useParser parseInput (escapedSingle s) `shouldParse` fromString (stripEscape s)
+testParsingString fromString s = withParser parseInput (escapedSingle s) `shouldParse` fromString (stripEscape s)
 
 
 testParsing :: (Eq a, Parse a, Show a) => (a -> String) -> a -> IO ()
-testParsing toString a = useParser parseInput (escapedSingle $ toString a) `shouldParse` a
+testParsing toString a = withParser parseInput (escapedSingle $ toString a) `shouldParse` a
 
 
 testParsingList :: (Eq a, Show a, Parse [a]) => (a -> String) -> [a] -> IO ()
-testParsingList toString as = useParser parseInput (escapedList $ map toString as) `shouldParse` as
+testParsingList toString as = withParser parseInput (escapedList $ map toString as) `shouldParse` as
 
 
 testParsingStringList :: (Eq a, Parse [a], Show a) => (String -> a) -> [String] -> IO ()
-testParsingStringList fromString s = useParser parseInput (escapedList s) `shouldParse` map (fromString . stripEscape) s
+testParsingStringList fromString s = withParser parseInput (escapedList s) `shouldParse` map (fromString . stripEscape) s
 
 
 escapedSingle :: String -> String
@@ -134,7 +135,11 @@ stripEscape = toMaybe . drop 1 . dropEnd 1 . show
     toMaybe s = if null s then "None" else s
 
 
-with :: (String -> a) -> String -> Maybe a
-with from s
+format :: (String -> a) -> String -> Maybe a
+format from s
   | s == "None" = Nothing
   | otherwise =  Just $ from s
+
+
+withParser :: Parser a -> String -> Either ParseError a
+withParser p = parse p ""
