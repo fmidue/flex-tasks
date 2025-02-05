@@ -9,20 +9,27 @@ module FlexTask.Generic.ParseInternal
   , parseInstanceMultiChoice
   , escaped
   , useParser
-  , useParserAnd
+  , parseWithOrReport
   ) where
 
 
 import Control.Monad      (void)
+import Control.Monad.State (State)
 import Control.OutputCapable.Blocks (
+  Language,
   LangM',
   OutputCapable,
   ReportT,
-  code,
+  english,
+  german,
+  indent,
+  translate,
   )
 import Control.OutputCapable.Blocks.Generic (
+  ($>>=),
   toAbort,
   )
+import Data.Map           (Map)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -248,46 +255,62 @@ parseText t = string $ T.unpack t
 
 {- |
 Parses a String with the given parser and embeds the result into the `OutputCapable` interface.
-Reports a `ParseError` via `refuse` primitive instead.
-Error Reports provide positional information of the error in the input form.
-No defined value will be embedded in case of a `ParseError`.
+No value will be embedded in case of a `ParseError`.
+Instead, an error report is given via `refuse` primitive instead.
+Error reports provide positional information of the error in the input form.
 -}
 useParser
   :: (Monad m, OutputCapable (ReportT o m))
   => Parser a
   -> String
   -> LangM' (ReportT o m) a
-useParser p = useParserAnd p pure
+useParser p = parseWithOrReport (parse p "") showWithFieldNumber
 
 
 
 {- |
-Like `useParser` but also applies a processing function to the parse result, if it succeeds.
-The function should embed its final output into the `OutputCapable` interface.
-No defined value will be embedded in case of a `ParseError`.
-Also, the provided function will not be applied in this case.
+A more general version of `useParser`
+not restricted to `Parsec` parsers and Strings directly.
+Allows for further processing of a possible parse error.
+This can be useful for giving better error messages,
+e.g. checking a term for bracket consistency even if the parser failed early on.
 -}
-useParserAnd
-  :: (Monad m, OutputCapable (ReportT o m))
-  => Parser a
-  -> (a -> LangM' (ReportT o m) b)
-  -> String
+parseWithOrReport ::
+  (Monad m, OutputCapable (ReportT o m))
+  => (a -> Either ParseError b)
+  -- ^ How to parse the input initially
+  -> (a -> ParseError -> State (Map Language String) ())
+  -- ^ How to create the error report given the input and initial parse error
+  -> a
+  -- ^ The input
   -> LangM' (ReportT o m) b
-useParserAnd p f input = case parse p "" input of
-  Left err      -> toAbort $ code $ showWithFieldNumber input err
-  Right success -> f success
+  -- ^ The parse result embedded in `OutputCapable` or the error report
+parseWithOrReport initialParse errorMsg answer =
+  case initialParse answer of
+    Left err       -> toAbort $ indent $ translate $ errorMsg answer err
+    Right success  -> pure success
 
 
 
-showWithFieldNumber :: String -> ParseError -> String
-showWithFieldNumber input e = "Error in input field " ++ fieldNum ++ ":" ++ errors
+showWithFieldNumber :: String -> ParseError -> State (Map Language String) ()
+showWithFieldNumber input e = do
+    german $ "Fehler in Eingabefeld " ++ fieldNum ++ ":" ++ errorsDe
+    english $ "Error in input field " ++ fieldNum ++ ":" ++ errorsEng
   where
     fieldNum = show $ length (filter (=='\a') consumed) `div` 2 + 1
-    errors = showErrorMessages
+    messages = errorMessages e
+    errorsEng = showErrorMessages
       "or"
       "unknown parse error"
       "expecting"
       "unexpected"
       "end of input"
-      $ errorMessages e
+      messages
+    errorsDe = showErrorMessages
+      "oder"
+      "Unbekannter Parserfehler"
+      "erwarte"
+      "unerwartetes"
+      "Ende der Eingabe"
+      messages
     consumed = take (sourceColumn $ errorPos e) input
