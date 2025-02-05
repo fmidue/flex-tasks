@@ -26,7 +26,6 @@ import Control.OutputCapable.Blocks (
   translate,
   )
 import Control.OutputCapable.Blocks.Generic (
-  ($>>=),
   toAbort,
   )
 import Data.Map           (Map)
