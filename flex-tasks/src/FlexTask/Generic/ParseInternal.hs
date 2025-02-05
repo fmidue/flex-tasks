@@ -276,9 +276,9 @@ e.g. checking a term for bracket consistency even if the parser failed early on.
 -}
 parseWithOrReport ::
   (Monad m, OutputCapable (ReportT o m))
-  => (a -> Either ParseError b)
+  => (a -> Either err b)
   -- ^ How to parse the input initially
-  -> (a -> ParseError -> State (Map Language String) ())
+  -> (a -> err -> State (Map Language String) ())
   -- ^ How to create the error report given the input and initial parse error
   -> a
   -- ^ The input
@@ -286,8 +286,8 @@ parseWithOrReport ::
   -- ^ The parse result embedded in `OutputCapable` or the error report
 parseWithOrReport initialParse errorMsg answer =
   case initialParse answer of
-    Left err       -> toAbort $ indent $ translate $ errorMsg answer err
-    Right success  -> pure success
+    Left failure  -> toAbort $ indent $ translate $ errorMsg answer failure
+    Right success -> pure success
 
 
 
