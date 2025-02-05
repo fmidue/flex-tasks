@@ -303,6 +303,7 @@ module Parse (parseSubmission) where
 
 import Control.OutputCapable.Blocks (
   LangM',
+  ReportT,
   OutputCapable,
   )
 import FlexTask.Generic.Parse  (parseInput, useParser)
@@ -311,7 +312,10 @@ import Global
 
 
 
-parseSubmission :: OutputCapable m => String -> LangM' m Solution
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Solution
 parseSubmission = useParser parseInput
 
 |]

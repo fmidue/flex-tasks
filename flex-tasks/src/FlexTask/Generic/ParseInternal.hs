@@ -17,10 +17,12 @@ import Control.Monad      (void)
 import Control.OutputCapable.Blocks (
   LangM',
   OutputCapable,
-  refuse,
+  ReportT,
   code,
   )
-import Data.Functor       (($>))
+import Control.OutputCapable.Blocks.Generic (
+  toAbort,
+  )
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -251,10 +253,10 @@ Error Reports provide positional information of the error in the input form.
 No defined value will be embedded in case of a `ParseError`.
 -}
 useParser
-  :: (Monad m, OutputCapable m)
+  :: (Monad m, OutputCapable (ReportT o m))
   => Parser a
   -> String
-  -> LangM' m a
+  -> LangM' (ReportT o m) a
 useParser p = useParserAnd p pure
 
 
@@ -266,13 +268,13 @@ No defined value will be embedded in case of a `ParseError`.
 Also, the provided function will not be applied in this case.
 -}
 useParserAnd
-  :: (Monad m, OutputCapable m)
+  :: (Monad m, OutputCapable (ReportT o m))
   => Parser a
-  -> (a -> LangM' m b)
+  -> (a -> LangM' (ReportT o m) b)
   -> String
-  -> LangM' m b
+  -> LangM' (ReportT o m) b
 useParserAnd p f input = case parse p "" input of
-  Left err      -> refuse (code $ showWithFieldNumber input err) $> undefined
+  Left err      -> toAbort $ code $ showWithFieldNumber input err
   Right success -> f success
 
 
