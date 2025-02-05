@@ -260,25 +260,36 @@ dParse = [rQ|
 Module for parsing the student submission.
 Must contain the function
 
-parseSubmission :: OutputCapable m => String -> LangM' m Solution
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Solution
 
 where the given String is the submission.
-This function should first apply a parser to the submission
-and then optionally process the input further or leave it as is.
-Finally, the result is embedded into 'OutputCapable'.
-The type LangM' is a variation of LangM, allowing for arbitrary embedded content instead of only '()'
+This function should first apply a parser to the submission,
+then embed the result into 'OutputCapable'
+The type 'LangM' (ReportT o m) Solution' is a specialization of the more general 'LangM' m Solution'.
+'LangM' m Solution' represents sequential output like 'LangM m' or 'Rated m',
+but provides a value of type solution afterwards.
 The function enables more complex error handling
 than might be possible by purely using basic parsers alone.
 The final result is passed to the check functions to generate feedback.
 
-To implement parseSubmission you can use the 'useParser' and 'useParserAnd' functions,
+To implement parseSubmission you can use the 'useParser' or 'parseWithOrReport' functions,
 supplied by 'FlexTask.Generic.Parse'.
+The 'useParser' function takes a parser and the 'String' input as an argument
+and embeds the result directly into 'OutputCapable'.
+Use this if you do not need additional processing of the input.
 The parsers used there are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
-The 'useParser' function takes a parser as an argument and embeds the result directly into 'OutputCapable'.
-Use this if you do not need additional processing of the input.
-The 'useParserAnd' function takes a parser and a processing function as arguments.
-This function will first parse the solution, then apply the processing to the output.
+The 'parseWithOrReport' function is a more general version of 'useParser'.
+It takes a function to parse the input, a function to edit the parse error and the input itself.
+The arguments of this function are not limited to 'String', 'Parsec' parsers and ParseErrors.
+Use this to incorporate complex external parsers or create more sophisticated error messages.
+
+If you want to chain multiple parsing steps,
+use '$>>=' (infix) of 'Control.OutputCapable.Blocks.Generic'.
+This operation can be seen as a '>>=' equivalent for 'LangM''.
 
 As with forms, a generic parser interface is available.
 The steps are similar:
