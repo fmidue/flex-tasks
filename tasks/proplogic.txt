@@ -389,18 +389,19 @@ description _ ((legend,hints),_) = do
 module Parse (parseSubmission) where
 
 
-import Control.OutputCapable.Blocks (LangM', OutputCapable)
+import Control.OutputCapable.Blocks (LangM', OutputCapable, ReportT)
+import Control.OutputCapable.Blocks.Generic (($>>=))
 import Data.List.Extra        (chunksOf, intercalate, transpose)
 import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
   escaped,
-  useParserAnd,
+  useParser,
   )
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
   delayed,
-  parseDelayedAbortOrProcess,
+  withDelayedReportOrSucceed,
   )
 import LogicTasks.Formula      (TruthValue)
 import LogicTasks.Parsing      (allSymbolParser, parser)
@@ -433,15 +434,15 @@ makeTable headers values = Table $ zip allHeaders formattedTruthValues
     formattedTruthValues = transpose $ chunksOf totalColumns values
 
 
-parseSubmission :: OutputCapable m => String -> LangM' m Submission
-parseSubmission =
-    useParserAnd parseInput $ \(headerStrings,columns,formulaString,names) ->
-      parseWithFallBack (stringList headerStrings) $ \parsedHeaders ->
-        parseWithFallBack formulaString $ \parsedFormula ->
+parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
+parseSubmission input =
+    useParser parseInput input $>>= \(headerStrings,columns,formulaString,names) ->
+      parseWithFallBack parser (stringList headerStrings) $>>= \parsedHeaders ->
+        parseWithFallBack parser formulaString $>>= \parsedFormula ->
           pure (makeTable parsedHeaders columns, parsedFormula, names)
   where
-    parseWithFallBack input = parseDelayedAbortOrProcess
-      parser
-      complainAboutMissingParenthesesIfNotFailingOn
-      allSymbolParser
-      $ delayed input
+    parseWithFallBack p =
+      withDelayedReportOrSucceed
+        p
+        complainAboutMissingParenthesesIfNotFailingOn
+        allSymbolParser
