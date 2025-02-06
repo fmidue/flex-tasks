@@ -396,11 +396,11 @@ import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
   escaped,
+  parseWithFallback,
   useParser,
   )
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
-  withDelayedReportOrSucceed,
   )
 import LogicTasks.Formula      (TruthValue)
 import LogicTasks.Parsing      (formulaSymbolParser, parser)
@@ -428,12 +428,12 @@ makeTable headers values = Table $ zip allHeaders formattedTruthValues
 parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
 parseSubmission input =
     useParser parseInput input $>>= \(headerStrings,columns,formulaString,names) ->
-      traverse (traverse parseWithFallBack) headerStrings $>>= \parsedHeaders ->
-        parseWithFallBack formulaString $>>= \parsedFormula ->
+      traverse (traverse parseIt) headerStrings $>>= \parsedHeaders ->
+        parseIt formulaString $>>= \parsedFormula ->
           pure (makeTable parsedHeaders columns, parsedFormula, names)
   where
-    parseWithFallBack =
-      withDelayedReportOrSucceed
+    parseIt =
+      parseWithFallback
         parser
         complainAboutMissingParenthesesIfNotFailingOn
         formulaSymbolParser
