@@ -55,7 +55,13 @@ jobs:
           sudo mv -f ./${{ env.config }}/package.yaml ./haskell-template-setup
           cd haskell-template-setup
           this_repo="https://github.com/${{ github.repository }}"
-          sed -i "/extra-deps/a\  - git: $this_repo\n    commit: ${{ github.sha }}\n    subdirs:\n      -flex-tasks\n      -flex-tasks-processing" stack.yaml
+          insert='\'\
+          "  - git: $this_repo\n"\
+          "    commit: ${{ github.sha }}\n"\
+          '    subdirs:\n'\
+          '      - flex-tasks\n'\
+          '      - flex-tasks-processing'
+          sed -i "/extra-deps/a $insert" stack.yaml
           cat stack.yaml
           sed -i "s@/autotool/default@$(realpath $PWD/../${{ env.tasks }}/root)@" env
           ./create.sh
