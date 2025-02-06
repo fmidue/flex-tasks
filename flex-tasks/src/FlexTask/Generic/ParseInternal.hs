@@ -9,7 +9,7 @@ module FlexTask.Generic.ParseInternal
   , parseInstanceMultiChoice
   , escaped
   , useParser
-  , parseWithOrReport
+  , useParserWithFallback
   ) where
 
 
@@ -35,6 +35,7 @@ import Text.Parsec
   ( ParseError
   , (<|>)
   , between
+  , eof
   , lookAhead
   , manyTill
   , many1
@@ -45,7 +46,7 @@ import Text.Parsec
   , sourceColumn
   , try
   )
-import Text.Parsec.Char   (anyChar, char, digit, string)
+import Text.Parsec.Char   (anyChar, char, digit, spaces, string)
 import Text.Parsec.Error (
   errorMessages,
   errorPos,
@@ -263,31 +264,51 @@ useParser
   => Parser a
   -> String
   -> LangM' (ReportT o m) a
-useParser p = parseWithOrReport (parse p "") showWithFieldNumber
+useParser p = processWithOrReport (parse p "") showWithFieldNumber
 
 
 
-{- |
-A more general version of `useParser`
-not restricted to `Parsec` parsers and Strings directly.
-Allows for further processing of a possible parse error.
-This can be useful for giving better error messages,
-e.g. checking a term for bracket consistency even if the parser failed early on.
--}
-parseWithOrReport ::
+processWithOrReport ::
   (Monad m, OutputCapable (ReportT o m))
   => (a -> Either err b)
-  -- ^ How to parse the input initially
   -> (a -> err -> State (Map Language String) ())
-  -- ^ How to create the error report given the input and initial parse error
   -> a
-  -- ^ The input
   -> LangM' (ReportT o m) b
-  -- ^ The parse result embedded in `OutputCapable` or the error report
-parseWithOrReport initialParse errorMsg answer =
+processWithOrReport initialParse errorMsg answer =
   case initialParse answer of
     Left failure  -> toAbort $ indent $ translate $ errorMsg answer failure
     Right success -> pure success
+
+
+{- |
+A more complex version of `useParser`.
+Allows for further processing of a possible parse error.
+A second parser is used as a fallback in case of an error.
+The result of both parsers is then used to construct the report.
+This can be useful for giving better error messages,
+e.g. checking a term for bracket consistency even if the parser failed early on.
+-}
+useParserWithFallback ::
+  (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -- ^ Parser to use initially
+  -> (Maybe ParseError -> ParseError -> State (Map Language String) ())
+  -- ^ How to produce an error report based on:
+  -- ^ 1. The possible parse error of the fallback parser
+  -- ^ 2. The original parse error
+  -> Parser ()
+  -- ^ The secondary parser to use in case of a parse error.
+  -- ^ Only used for generating possible further errors, thus does not return a value.
+  -> String
+  -- ^ The input
+  -> LangM' (ReportT o m) a
+  -- ^ The finished error report or embedded value
+useParserWithFallback parser messaging fallBackParser =
+  processWithOrReport
+    (parse (fully parser) "")
+    (messaging . either Just (const Nothing) . parse (fully fallBackParser) "(answer string)")
+  where
+    fully p = spaces *> p <* eof
 
 
 
