@@ -9,7 +9,7 @@ module FlexTask.Generic.ParseInternal
   , parseInstanceMultiChoice
   , escaped
   , useParser
-  , useParserWithFallback
+  , parseWithFallback
   ) where
 
 
@@ -281,14 +281,14 @@ processWithOrReport initialParse errorMsg answer =
 
 
 {- |
-A more complex version of `useParser`.
+Parses a String with the given parser.
 Allows for further processing of a possible parse error.
 A second parser is used as a fallback in case of an error.
 The result of both parsers is then used to construct the report.
 This can be useful for giving better error messages,
 e.g. checking a term for bracket consistency even if the parser failed early on.
 -}
-useParserWithFallback ::
+parseWithFallback ::
   (Monad m, OutputCapable (ReportT o m))
   => Parser a
   -- ^ Parser to use initially
@@ -303,7 +303,7 @@ useParserWithFallback ::
   -- ^ The input
   -> LangM' (ReportT o m) a
   -- ^ The finished error report or embedded value
-useParserWithFallback parser messaging fallBackParser =
+parseWithFallback parser messaging fallBackParser =
   processWithOrReport
     (parse (fully parser) "")
     (messaging . either Just (const Nothing) . parse (fully fallBackParser) "(answer string)")

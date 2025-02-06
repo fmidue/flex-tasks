@@ -275,23 +275,27 @@ The function enables more complex error handling
 than might be possible by purely using basic parsers alone.
 The final result is passed to the check functions to generate feedback.
 
-To implement parseSubmission you can use the 'useParser' or 'parseWithOrReport' functions,
+To implement parseSubmission you can use the 'useParser' and 'parseWithFallback' functions,
 supplied by 'FlexTask.Generic.Parse'.
 The 'useParser' function takes a parser and the 'String' input as an argument
 and embeds the result directly into 'OutputCapable'.
+This function directly reads the form results.
 Use this if you do not need additional processing of the input.
 The parsers used there are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
-The 'useParserWithFallback' function is a more involved version of 'useParser'.
-It additionally takes a fallback parser and a function.
+The 'parseWithFallback' function can be used to parse additional Strings from the form result.
+It should be used after 'useParser', instead of on its own.
+'parseWithFallback' takes a parser, function, fallback parser and the input.
 The secondary parser is used on the input in case of an error.
 The possible error of this parser and the initial error
 are then fed to the function to construct the report.
 Use this to create more sophisticated error messages.
 
-If you want to chain multiple parsing steps,
-use '$>>=' (infix) of 'Control.OutputCapable.Blocks.Generic'.
+If you want to chain multiple parsing steps, e.g. with 'parseWithFallback'
+use '$>>=' of 'Control.OutputCapable.Blocks.Generic'.
 This operation can be seen as a '>>=' equivalent for 'LangM''.
+Example:
+'useParser parseInput input $>>= parseWithFallback p someFunc fallback $>>= ...'
 
 As with forms, a generic parser interface is available.
 The steps are similar:
