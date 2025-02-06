@@ -428,7 +428,7 @@ makeTable headers values = Table $ zip allHeaders formattedTruthValues
 parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
 parseSubmission input =
     useParser parseInput input $>>= \(headerStrings,columns,formulaString,names) ->
-      traverse (maybe (pure Nothing) (fmap Just . parseWithFallBack parser)) headerStrings $>>= \parsedHeaders ->
+      traverse (traverse $ parseWithFallBack parser) headerStrings $>>= \parsedHeaders ->
         parseWithFallBack parser formulaString $>>= \parsedFormula ->
           pure (makeTable parsedHeaders columns, parsedFormula, names)
   where
