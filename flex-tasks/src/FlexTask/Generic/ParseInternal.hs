@@ -312,8 +312,8 @@ parseWithFallback parser messaging fallBackParser =
   where
     fully p = spaces *> p <* eof
     displayInput a = do
-      german $ "Fehler in \"" ++ a ++ "\": "
-      english $ "Error in \"" ++ a ++ "\": "
+      german $ "Fehler in \"" ++ a ++ "\" : "
+      english $ "Error in \"" ++ a ++ "\" : "
 
 
 {- |
