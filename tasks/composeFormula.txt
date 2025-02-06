@@ -157,21 +157,21 @@ import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
   withDelayedReportOrSucceed,
   )
-import LogicTasks.Parsing (formulaListSymbolParser, parser)
+import LogicTasks.Parsing (formulaSymbolParser, parser)
 
 import Global
 
-
-toListString :: (String,String) -> String
-toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 
 parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Solution
-parseSubmission input = useParser parseInput input $>>=
-  withDelayedReportOrSucceed
-    parser
-    complainAboutMissingParenthesesIfNotFailingOn
-    formulaListSymbolParser
-    . toListString
+parseSubmission input = useParser parseInput input $>>= \(input1,input2) ->
+  parseWithFallback input1 $>>= \formula1 ->
+    parseWithFallback input2 $>>= \formula2 ->
+      pure [formula1,formula2]
+  where
+    parseWithFallback = withDelayedReportOrSucceed
+      parser
+      complainAboutMissingParenthesesIfNotFailingOn
+      formulaSymbolParser

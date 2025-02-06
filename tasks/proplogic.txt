@@ -391,7 +391,7 @@ module Parse (parseSubmission) where
 
 import Control.OutputCapable.Blocks (LangM', OutputCapable, ReportT)
 import Control.OutputCapable.Blocks.Generic (($>>=))
-import Data.List.Extra        (chunksOf, intercalate, transpose)
+import Data.List.Extra        (chunksOf, transpose)
 import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
@@ -400,31 +400,22 @@ import FlexTask.Generic.Parse (
   )
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
-  delayed,
   withDelayedReportOrSucceed,
   )
 import LogicTasks.Formula      (TruthValue)
-import LogicTasks.Parsing      (allSymbolParser, parser)
+import LogicTasks.Parsing      (formulaSymbolParser, parser)
 import Trees.Types             (PropFormula(Atomic))
-import qualified Formula.Parsing as FP
 
 import Global
 
 
 
 instance Parse TruthValue where
-  parseInput = escaped FP.parser
+  parseInput = escaped parser
 
 
 instance Parse [Namen] where
   parseInput = parseInstanceMultiChoice
-
-
-stringList :: [Maybe String] -> String
-stringList xs = '[': intercalate "," (map stringMaybe xs) ++ "]"
-  where
-    stringMaybe Nothing = "Nothing"
-    stringMaybe (Just s) = s
 
 
 makeTable :: [Maybe (PropFormula Char)] -> [Maybe TruthValue] -> Table
@@ -437,7 +428,7 @@ makeTable headers values = Table $ zip allHeaders formattedTruthValues
 parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
 parseSubmission input =
     useParser parseInput input $>>= \(headerStrings,columns,formulaString,names) ->
-      parseWithFallBack parser (stringList headerStrings) $>>= \parsedHeaders ->
+      traverse (maybe (pure Nothing) (fmap Just . parseWithFallBack parser)) headerStrings $>>= \parsedHeaders ->
         parseWithFallBack parser formulaString $>>= \parsedFormula ->
           pure (makeTable parsedHeaders columns, parsedFormula, names)
   where
@@ -445,4 +436,4 @@ parseSubmission input =
       withDelayedReportOrSucceed
         p
         complainAboutMissingParenthesesIfNotFailingOn
-        allSymbolParser
+        formulaSymbolParser
