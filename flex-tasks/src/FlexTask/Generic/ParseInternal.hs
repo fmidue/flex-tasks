@@ -336,23 +336,15 @@ parseWithMessaging parser messaging = parseWithFallback parser (const messaging)
 
 showWithFieldNumber :: String -> ParseError -> State (Map Language String) ()
 showWithFieldNumber input e = do
-    german $ "Fehler in Eingabefeld " ++ fieldNum ++ ":" ++ errorsDe
-    english $ "Error in input field " ++ fieldNum ++ ":" ++ errorsEng
+    german $ "Fehler in Eingabefeld " ++ fieldNum ++ ":" ++ errors
+    english $ "Error in input field " ++ fieldNum ++ ":" ++ errors
   where
     fieldNum = show $ length (filter (=='\a') consumed) `div` 2 + 1
-    messages = errorMessages e
-    errorsEng = showErrorMessages
+    errors = showErrorMessages
       "or"
       "unknown parse error"
       "expecting"
       "unexpected"
       "end of input"
-      messages
-    errorsDe = showErrorMessages
-      "oder"
-      "Unbekannter Parserfehler"
-      "erwarte"
-      "unerwartetes"
-      "Ende der Eingabe"
-      messages
+      $ errorMessages e
     consumed = take (sourceColumn $ errorPos e) input
