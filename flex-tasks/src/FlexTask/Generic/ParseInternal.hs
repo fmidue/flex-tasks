@@ -304,13 +304,16 @@ parseWithFallback ::
   -- ^ The input
   -> LangM' (ReportT o m) a
   -- ^ The finished error report or embedded value
-parseWithFallback parser messaging fallBackParser answer =
+parseWithFallback parser messaging fallBackParser =
   processWithOrReport
-    (parse (fully parser) answer)
-    (\a -> messaging $ either Just (const Nothing) (parse (fully fallBackParser) a a))
-    answer
+    (parse (fully parser) "")
+    (\a err -> displayInput a >>
+      messaging (either Just (const Nothing) (parse (fully fallBackParser) "" a)) err)
   where
     fully p = spaces *> p <* eof
+    displayInput a = do
+      german $ "Fehler in \"" ++ a ++ "\": "
+      english $ "Error in \"" ++ a ++ "\": "
 
 
 {- |
