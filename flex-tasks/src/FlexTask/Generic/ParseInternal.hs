@@ -304,10 +304,11 @@ parseWithFallback ::
   -- ^ The input
   -> LangM' (ReportT o m) a
   -- ^ The finished error report or embedded value
-parseWithFallback parser messaging fallBackParser =
+parseWithFallback parser messaging fallBackParser answer =
   processWithOrReport
-    (parse (fully parser) "")
+    (parse (fully parser) answer)
     (\a -> messaging $ either Just (const Nothing) (parse (fully fallBackParser) a a))
+    answer
   where
     fully p = spaces *> p <* eof
 
