@@ -10,6 +10,7 @@ module FlexTask.Generic.ParseInternal
   , escaped
   , useParser
   , parseWithFallback
+  , parseWithMessaging
   ) where
 
 
@@ -306,9 +307,26 @@ parseWithFallback ::
 parseWithFallback parser messaging fallBackParser =
   processWithOrReport
     (parse (fully parser) "")
-    (messaging . either Just (const Nothing) . parse (fully fallBackParser) "(answer string)")
+    (\a -> messaging $ either Just (const Nothing) (parse (fully fallBackParser) a a))
   where
     fully p = spaces *> p <* eof
+
+
+{- |
+like `parseWithFallback`, but does not use a second parser.
+The report is constructed out of the initial parse error only.
+-}
+parseWithMessaging ::
+  (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -- ^ Parser to use
+  -> (ParseError -> State (Map Language String) ())
+  -- ^ How to construct the error report
+  -> String
+  -- ^ The input
+  -> LangM' (ReportT o m) a
+  -- ^ The finished error report or embedded value
+parseWithMessaging parser messaging = parseWithFallback parser (const messaging) (pure ())
 
 
 
