@@ -282,10 +282,12 @@ and embeds the result directly into 'OutputCapable'.
 Use this if you do not need additional processing of the input.
 The parsers used there are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
-The 'parseWithOrReport' function is a more general version of 'useParser'.
-It takes a function to parse the input, a function to edit the parse error and the input itself.
-The arguments of this function are not limited to 'String', 'Parsec' parsers and ParseErrors.
-Use this to incorporate complex external parsers or create more sophisticated error messages.
+The 'useParserWithFallback' function is a more involved version of 'useParser'.
+It additionally takes a fallback parser and a function.
+The secondary parser is used on the input in case of an error.
+The possible error of this parser and the initial error
+are then fed to the function to construct the report.
+Use this to create more sophisticated error messages.
 
 If you want to chain multiple parsing steps,
 use '$>>=' (infix) of 'Control.OutputCapable.Blocks.Generic'.
