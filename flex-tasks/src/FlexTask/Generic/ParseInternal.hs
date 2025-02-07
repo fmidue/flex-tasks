@@ -255,9 +255,9 @@ parseText t = string $ T.unpack t
 
 
 {- |
-Parses a String with the given parser and embeds the result into the `OutputCapable` interface.
+Parses a String with the given input form parser and embeds the result into the `OutputCapable` interface.
 No value will be embedded in case of a `ParseError`.
-Instead, an error report is given via `refuse` primitive instead.
+Instead, an error report is given then.
 Error reports provide positional information of the error in the input form.
 -}
 useParser
