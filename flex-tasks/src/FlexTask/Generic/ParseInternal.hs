@@ -271,10 +271,10 @@ useParser p = parseWithOrReport p showWithFieldNumber
 
 parseWithOrReport ::
   (Monad m, OutputCapable (ReportT o m))
-  => Parser b
+  => Parser a
   -> (String -> ParseError -> State (Map Language String) ())
   -> String
-  -> LangM' (ReportT o m) b
+  -> LangM' (ReportT o m) a
 parseWithOrReport parser errorMsg answer =
   case parse parser "" answer of
     Left failure  -> toAbort $ indent $ translate $ errorMsg answer failure
