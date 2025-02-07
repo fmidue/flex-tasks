@@ -265,18 +265,18 @@ useParser
   => Parser a
   -> String
   -> LangM' (ReportT o m) a
-useParser p = processWithOrReport (parse p "") showWithFieldNumber
+useParser p = parseWithOrReport p showWithFieldNumber
 
 
 
-processWithOrReport ::
+parseWithOrReport ::
   (Monad m, OutputCapable (ReportT o m))
-  => (a -> Either err b)
-  -> (a -> err -> State (Map Language String) ())
-  -> a
+  => Parser b
+  -> (String -> ParseError -> State (Map Language String) ())
+  -> String
   -> LangM' (ReportT o m) b
-processWithOrReport initialParse errorMsg answer =
-  case initialParse answer of
+parseWithOrReport parser errorMsg answer =
+  case parse parser "" answer of
     Left failure  -> toAbort $ indent $ translate $ errorMsg answer failure
     Right success -> pure success
 
@@ -305,8 +305,8 @@ parseWithFallback ::
   -> LangM' (ReportT o m) a
   -- ^ The finished error report or embedded value
 parseWithFallback parser messaging fallBackParser =
-  processWithOrReport
-    (parse (fully parser) "")
+  parseWithOrReport
+    (fully parser)
     (\a err -> displayInput a >>
       messaging (either Just (const Nothing) (parse (fully fallBackParser) "" a)) err)
   where
@@ -330,7 +330,7 @@ parseWithMessaging ::
   -- ^ The input
   -> LangM' (ReportT o m) a
   -- ^ The finished error report or embedded value
-parseWithMessaging parser messaging = parseWithFallback parser (const messaging) (pure ())
+parseWithMessaging parser messaging = parseWithFallback parser (const messaging) undefined
 
 
 
