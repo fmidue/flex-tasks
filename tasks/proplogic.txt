@@ -316,7 +316,7 @@ checkSyntax _ _ (Table xs,f,n) = do
 
 
 checkSemantics :: OutputCapable m => FilePath -> (a,[Namen]) -> Submission -> Rated m
-checkSemantics (_,nSol) _ (Table xs,f,n) = do
+checkSemantics _ (_,nSol) (Table xs,f,n) = do
     let correctStart = take staticColumns columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
