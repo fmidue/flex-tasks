@@ -105,19 +105,19 @@ import Global
 
 checkSyntax
   :: (MonadIO m, OutputCapable m)
-  => TaskData
-  -> FilePath
+  => FilePath
+  -> TaskData
   -> Submission
   -> LangM m
-checkSyntax inst _ = partialGrade' inst
+checkSyntax _ = partialGrade'
 
 checkSemantics
   :: (MonadIO m, OutputCapable m)
-  => TaskData
-  -> FilePath
+  => FilePath
+  -> TaskData
   -> Submission
   -> Rated m
-checkSemantics inst path try = completeGrade' path inst try $> 1.0
+checkSemantics path inst try = completeGrade' path inst try $> 1.0
 
 |]
 

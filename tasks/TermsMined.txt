@@ -256,20 +256,20 @@ import Global
 
 checkSyntax
   :: OutputCapable m
-  => TaskData
-  -> FilePath
+  => FilePath
+  -> TaskData
   -> Submission
   -> LangM m
-checkSyntax inst _ = partialGrade inst
+checkSyntax _ = partialGrade
 
 
 checkSemantics
   :: (Alternative m, OutputCapable m)
-  => TaskData
-  -> FilePath
+  => FilePath
+  -> TaskData
   -> Submission
   -> Rated m
-checkSemantics inst _ = completeGrade inst
+checkSemantics _ = completeGrade
 
 |]
 

@@ -301,7 +301,7 @@ dropStatic :: [a] -> [a]
 dropStatic = drop staticColumns
 
 
-checkSyntax :: OutputCapable m => a -> FilePath -> Submission -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
 checkSyntax _ _ (Table xs,f,n) = do
     paragraph $ do
       bothLangs $ do
@@ -325,8 +325,8 @@ checkSyntax _ _ (Table xs,f,n) = do
     entered = dropStatic fs
 
 
-checkSemantics :: OutputCapable m => (a,[Namen]) -> FilePath -> Submission -> Rated m
-checkSemantics (_,nSol) _ (Table xs,f,n) = do
+checkSemantics :: OutputCapable m => FilePath -> (a,[Namen]) -> Submission -> Rated m
+checkSemantics _ (_,nSol) (Table xs,f,n) = do
     let correctStart = take staticColumns columns == #{startingTable}
     #{checkType} correctStart $ bothLangs
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"

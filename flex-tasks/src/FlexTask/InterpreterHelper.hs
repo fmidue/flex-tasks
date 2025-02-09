@@ -16,22 +16,22 @@ type Report = ReportT Output IO
 
 syntaxAndSemantics
   :: (String -> LangM' Report b)
-  -> (a -> FilePath -> b -> LangM Report)
-  -> (a -> FilePath -> b -> Rated Report)
+  -> (FilePath -> a -> b -> LangM Report)
+  -> (FilePath -> a -> b -> Rated Report)
   -> String
-  -> a
   -> FilePath
+  -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
-syntaxAndSemantics preprocess syntax semantics input tData path  = do
+syntaxAndSemantics preprocess syntax semantics input path tData = do
   (mParseResult,parseOutput) <- getOutputSequenceAndResult $ preprocess input
   case mParseResult of
     Nothing          -> pure (parseOutput,Nothing)
     Just parseResult -> do
-      (synSuccess,synRes) <- getOutputSequenceAndResult $ syntax tData path parseResult
+      (synSuccess,synRes) <- getOutputSequenceAndResult $ syntax path tData parseResult
       let parseAndSyntax = parseOutput ++ synRes
       case synSuccess of
         Nothing -> pure (parseAndSyntax,Nothing)
         Just () -> do
-          let sem = semantics tData path parseResult
+          let sem = semantics path tData parseResult
           semRes <- getOutputSequenceWithRating sem
           pure (parseAndSyntax, Just semRes)

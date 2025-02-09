@@ -183,8 +183,8 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => TaskData -> FilePath -> Submission -> LangM m
-checkSyntax (_,sol) _ try
+checkSyntax :: OutputCapable m => FilePath -> TaskData -> Submission -> LangM m
+checkSyntax _ (_,sol) try
   | try == sol = pure ()
   | otherwise =
       refuse $ indent $ translate $ do
@@ -192,8 +192,8 @@ checkSyntax (_,sol) _ try
         english "syntactically wrong"
 
 
-checkSemantics :: OutputCapable m => TaskData -> FilePath -> Submission -> Rated m
-checkSemantics (_,sol) _ try
+checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
+checkSemantics _ (_,sol) try
   | try == sol = pure 1.0
   | otherwise = do
       refuse $ indent $ translate $ do
