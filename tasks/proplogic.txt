@@ -374,7 +374,7 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> TaskData -> LangM m
+description :: OutputCapable m => FilePath -> ((String,[String]),a) -> LangM m
 description _ ((legend,hints),_) = do
     paragraph $ bothLangs
       ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++

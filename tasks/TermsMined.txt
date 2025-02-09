@@ -21,9 +21,9 @@ type Submission = [Int]
 type TaskData = SigInstance
 
 
--- The config to use for this task. Signatures are randomly picked out of a pool of options.
-defaultConfig :: Signature -> Certain
-defaultConfig sig = Certain {
+-- Making the config to use for this task. Signatures will be randomly picked out of a pool of options.
+makeConfig :: Signature -> Certain
+makeConfig sig = Certain {
   signatures = sig,
   root = Nothing,
   baseConf = Base {
@@ -237,7 +237,7 @@ form amount = formify
 
 
 genConfig :: Gen Certain
-genConfig = elements sigList <&> defaultConfig
+genConfig = elements sigList <&> makeConfig
 
 
 checkers :: String

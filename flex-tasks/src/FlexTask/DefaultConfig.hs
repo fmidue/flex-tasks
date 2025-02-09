@@ -27,7 +27,7 @@ dGlobalDefs = [rQ|
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Module for shared definitions. Can be imported in any other segment.
-Adjust the solution type or add utility functions here.
+Adjust the submission type or add utility functions here.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
@@ -61,7 +61,7 @@ implementing a generator for these elements.
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
 based on the type of your input.
-Derive Generic for your solution type and add an instance of Formify without a body. The expression
+Derive Generic for your submission type and add an instance of Formify without a body. The expression
 
 formify {OPTIONAL DEFAULT VALUE(S) OR Nothing} STRUCTURE
 
@@ -135,11 +135,11 @@ The entire module is first created as a String.
 It will later be written to file as an actual module.
 This module must contain two functions:
 
-checkSyntax :: OutputCapable m => StoredDataType -> FilePath -> Submission -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> TaskData -> Submission -> LangM m
 
-checkSemantics :: OutputCapable m => StoredDataType -> FilePath -> Submission -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
 
-StoredDataType is the actual type of the flexible data generated above.
+TaskData is the actual type of the flexible data generated above.
 It is stored in the task instance and passed to both check functions.
 Used to store variable data affected by random generation.
 Submission is the actual type of the student submission after parsing.
@@ -165,7 +165,7 @@ I.e. when introducing an anonymous function, write
 checkSyntax will always run first.
 If it does not succeed, then checkSemantics will not be evaluated for the submission.
 checkSemantics is only run if checkSyntax finished successfully,
-i.e. no syntax error was found in the given solution.
+i.e. no syntax error was found in the given submission.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
@@ -214,9 +214,9 @@ dDescription = [rQ|
 Module for writing the task description.
 This needs to contain the function
 
-description :: OutputCapable m => FilePath -> StoredDataType -> LangM m
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 
-where StoredDataType, FilePath and LangM are as explained in the 'Check' module.
+where FilePath, TaskData and LangM are as explained in the 'Check' module.
 This function is also supplied with static task data, the same as the check functions.
 If different data is required, consider splitting the type into a tuple of two different contents,
 one for each of the modules.

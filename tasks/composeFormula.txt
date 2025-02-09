@@ -14,6 +14,8 @@ import qualified Data.Map               as Map (fromList)
 type Submission = [TreeFormulaAnswer]
 type TaskData = ComposeFormulaInst
 
+listToFM :: Ord k => [(k, a)] -> Map k a
+listToFM = Map.fromList
 
 -- 2024: Weight 0.33
 task03 :: ComposeFormulaConfig
@@ -56,9 +58,6 @@ defaultTaskData = ComposeFormulaInst
   , showSolution = False
   , unicodeAllowed = True
   }
-
-listToFM :: Ord k => [(k, a)] -> Map k a
-listToFM = Map.fromList
 
 =============================================
 
@@ -128,13 +127,13 @@ checkSemantics path inst try = completeGrade' path inst try $> 1.0
 
 module Description (description) where
 
+import Global
+
 import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
 import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 
 import qualified LogicTasks.Syntax.ComposeFormula as LT
-
-import Global
 
 description :: (OutputCapable m, MonadIO m) => FilePath -> TaskData -> LangM m
 description path inst@ComposeFormulaInst{..} = do
