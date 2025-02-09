@@ -1,3 +1,4 @@
+{-# language ApplicativeDo #-}
 {-# language DefaultSignatures #-}
 {-# language OverloadedStrings #-}
 {-# language TypeOperators #-}
@@ -8,16 +9,15 @@ module FlexTask.Generic.ParseInternal
   , parseInstanceSingleChoice
   , parseInstanceMultiChoice
   , escaped
-  , useParser
+  , parseWithOrReport
+  , reportWithFieldNumber
+  , fully
   , parseWithFallback
-  , parseWithMessaging
   ) where
 
 
 import Control.Monad      (void)
-import Control.Monad.State (State)
 import Control.OutputCapable.Blocks (
-  Language,
   LangM',
   OutputCapable,
   ReportT,
@@ -29,7 +29,6 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   toAbort,
   )
-import Data.Map           (Map)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -260,29 +259,20 @@ parseText t = string $ T.unpack t
 
 
 {- |
-Parses a String with the given input form parser and embeds the result into the `OutputCapable` interface.
-No value will be embedded in case of a `ParseError`.
-Instead, an error report is given then.
-Error reports provide positional information of the error in the input form.
+Parses a String with the given parser and embeds the result into the `OutputCapable` interface.
+No value will be embedded in case of a `ParseError`. Instead, an error report is given then.
+That report is built using the second function argument.
+This can be useful for giving better error messages.
 -}
-useParser
-  :: (Monad m, OutputCapable (ReportT o m))
-  => Parser a
-  -> String
-  -> LangM' (ReportT o m) a
-useParser p = parseWithOrReport p showWithFieldNumber
-
-
-
 parseWithOrReport ::
   (Monad m, OutputCapable (ReportT o m))
   => Parser a
-  -> (String -> ParseError -> State (Map Language String) ())
+  -> (String -> ParseError -> LangM' (ReportT o m) ())
   -> String
   -> LangM' (ReportT o m) a
 parseWithOrReport parser errorMsg answer =
   case parse parser "" answer of
-    Left failure  -> toAbort $ indent $ translate $ errorMsg answer failure
+    Left failure  -> toAbort $ errorMsg answer failure
     Right success -> pure success
 
 
@@ -291,14 +281,14 @@ Parses a String with the given parser.
 Allows for further processing of a possible parse error.
 A second parser is used as a fallback in case of an error.
 The result of both parsers is then used to construct the report.
-This can be useful for giving better error messages,
+This can be useful for giving more specific error messages,
 e.g. checking a term for bracket consistency even if the parser failed early on.
 -}
 parseWithFallback ::
   (Monad m, OutputCapable (ReportT o m))
   => Parser a
   -- ^ Parser to use initially
-  -> (Maybe ParseError -> ParseError -> State (Map Language String) ())
+  -> (Maybe ParseError -> ParseError -> LangM' (ReportT o m) ())
   -- ^ How to produce an error report based on:
   -- ^ 1. The possible parse error of the fallback parser
   -- ^ 2. The original parse error
@@ -311,36 +301,26 @@ parseWithFallback ::
   -- ^ The finished error report or embedded value
 parseWithFallback parser messaging fallBackParser =
   parseWithOrReport
-    (fully parser)
-    (\a err -> displayInput a >>
-      messaging (either Just (const Nothing) (parse (fully fallBackParser) "" a)) err)
+    parser
+    (\a err -> do
+        displayInput a
+        indent $ messaging (either Just (const Nothing) (parse fallBackParser "" a)) err
+        pure ()
+    )
   where
-    fully p = spaces *> p <* eof
-    displayInput a = do
+    displayInput a = translate $ do
       german $ "Fehler in \"" ++ a ++ "\" : "
       english $ "Error in \"" ++ a ++ "\" : "
 
+fully :: Parser a -> Parser a
+fully p = spaces *> p <* eof
 
 {- |
-like `parseWithFallback`, but does not use a second parser.
-The report is constructed out of the initial parse error only.
+Provide error report with positional information relative to an input form.
 -}
-parseWithMessaging ::
-  (Monad m, OutputCapable (ReportT o m))
-  => Parser a
-  -- ^ Parser to use
-  -> (ParseError -> State (Map Language String) ())
-  -- ^ How to construct the error report
-  -> String
-  -- ^ The input
-  -> LangM' (ReportT o m) a
-  -- ^ The finished error report or embedded value
-parseWithMessaging parser messaging = parseWithFallback parser (const messaging) undefined
-
-
-
-showWithFieldNumber :: String -> ParseError -> State (Map Language String) ()
-showWithFieldNumber input e = do
+reportWithFieldNumber :: (Monad m, OutputCapable (ReportT o m))
+  => String -> ParseError -> LangM' (ReportT o m) ()
+reportWithFieldNumber input e = indent $ translate $ do
     german $ "Fehler in Eingabefeld " ++ fieldNum ++ ":" ++ errors
     english $ "Error in input field " ++ fieldNum ++ ":" ++ errors
   where

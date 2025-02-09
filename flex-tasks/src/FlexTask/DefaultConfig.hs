@@ -278,28 +278,29 @@ The final result is passed to the check functions to generate feedback.
 The parsers used throughout are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
 
-To implement parseSubmission, you will typically invoke 'useParser' and
-possibly 'parseWithFallback' or 'parseWithMessage', all
+To implement parseSubmission, you will typically invoke 'parseWithOrReport'
+and 'reportWithFieldNumber', and possibly also 'parseWithFallback', all
 supplied by 'FlexTask.Generic.Parse'. In simple situations, '<&>' may suffice.
-The 'useParser' function takes a parser and the 'String' input as arguments
-and embeds the result directly into 'OutputCapable'.
-This function directly reads the form results.
+Simply using `parseWithOrReport parseInput reportWithFieldNumber` directly
+reads the form inputs and embeds the result directly into 'OutputCapable'.
 It is enough if you do not need additional processing of the input.
 The 'parseWithFallback' function can be used to additionally parse/process
 Strings from among the form result, that is, individual input fields.
-It should be used after 'useParser', instead of on its own.
+It should be used after 'parseWithOrReport parseInput', instead of on its own.
 'parseWithFallback' takes a parser, messaging function, fallback parser and the input.
 The secondary parser is used as a simpler sanity check on the input in case
 of an error with the primary parser.
 The possible error of the fallback parser and the original error
 are then fed to the messaging function to construct the report.
 Use this to produce more sophisticated error messages.
+A simpler route is to also use just 'parseWithOrReport' in this phase, with
+something like 'const (bothLangs . show)' as the reporting function.
 
 If you want to chain multiple parsing steps, e.g. with 'parseWithFallback',
 use '$>>=' of 'Control.OutputCapable.Blocks.Generic'.
 This operation can be seen as a '>>=' equivalent for 'LangM''.
 Example:
-'useParser parseInput input $>>= \s -> parseWithFallback p someFunc fallback s $>>= pure . ...'
+'parseWithOrReport parseInput reportWithFieldNumber input $>>= \s -> parseWithFallback (fully p) someFunc (fully fallback) s $>>= pure . ...'
 
 As with forms, a generic parser interface is available.
 The steps are similar:
@@ -327,7 +328,7 @@ import Control.OutputCapable.Blocks (
   ReportT,
   OutputCapable,
   )
-import FlexTask.Generic.Parse  (parseInput, useParser)
+import FlexTask.Generic.Parse  (parseInput, parseWithOrReport, reportWithFieldNumber)
 
 import Global
 
@@ -337,6 +338,6 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Solution
-parseSubmission = useParser parseInput
+parseSubmission = parseWithOrReport parseInput reportWithFieldNumber
 
 |]

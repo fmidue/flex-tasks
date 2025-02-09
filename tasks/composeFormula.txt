@@ -152,7 +152,7 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   ($>>=),
   )
-import FlexTask.Generic.Parse  (parseInput, parseWithFallback, useParser)
+import FlexTask.Generic.Parse  (parseInput, parseWithFallback, fully, parseWithOrReport, reportWithFieldNumber)
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
   )
@@ -165,12 +165,12 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Solution
-parseSubmission input = useParser parseInput input $>>= \(input1,input2) ->
+parseSubmission input = parseWithOrReport parseInput reportWithFieldNumber input $>>= \(input1,input2) ->
   parseIt input1 $>>= \formula1 ->
     parseIt input2 $>>= \formula2 ->
       pure [formula1,formula2]
   where
     parseIt = parseWithFallback
-      parser
+      (fully parser)
       complainAboutMissingParenthesesIfNotFailingOn
-      formulaSymbolParser
+      (fully formulaSymbolParser)

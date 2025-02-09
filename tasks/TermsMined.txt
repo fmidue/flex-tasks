@@ -271,7 +271,7 @@ import Control.OutputCapable.Blocks (
   OutputCapable,
   ReportT,
   )
-import FlexTask.Generic.Parse  (parseInput, useParser)
+import FlexTask.Generic.Parse  (parseInput, parseWithOrReport, reportWithFieldNumber)
 
 import Global
 
@@ -281,4 +281,4 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Solution
-parseSubmission = useParser parseInput
+parseSubmission = parseWithOrReport parseInput reportWithFieldNumber
