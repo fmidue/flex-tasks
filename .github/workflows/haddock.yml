@@ -7,6 +7,8 @@ on:
     branches: [main]
     types: completed
 
+permissions: read-all
+
 jobs:
   build:
     permissions:
@@ -38,7 +40,7 @@ jobs:
           echo "doc_path=$(stack path --no-haddock-deps --local-doc-root)" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           name: github-pages
           path: ${{steps.haddock.outputs.doc_path}}
@@ -59,6 +61,6 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

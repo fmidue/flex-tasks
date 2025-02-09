@@ -64,7 +64,11 @@ Compose two forms sequentially.
 The output form contains all of the fields from both input forms.
 -}
 infixr 0 $$>
-($$>) :: Monad m => Rendered' m -> Rendered' m -> Rendered' m
+($$>)
+  :: (Monad w, Monad m)
+  => Rendered' m (w a)
+  -> Rendered' m (w b)
+  -> Rendered' m (w b)
 f1 $$> f2 = do
     res1 <- f1
     res2 <- f2
@@ -74,15 +78,15 @@ f1 $$> f2 = do
       pure (nubOrd $ names1 ++ names2, wid1 >> wid2)
 
 
-applyToWidget :: Functor m => (Widget -> Widget) -> Rendered' m -> Rendered' m
+applyToWidget :: Functor m => (w -> w') -> Rendered' m w -> Rendered' m w'
 applyToWidget f form = fmap (second f) <$> form
 
 
 addContent
   :: (ToWidget FlexForm (render -> a), Functor m)
   => (render -> a)
-  -> Rendered' m
-  -> Rendered' m
+  -> Rendered' m Widget
+  -> Rendered' m Widget
 addContent content = applyToWidget (<* toWidget content)
 
 
@@ -92,9 +96,9 @@ Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters or hosted files.
 -}
 addCss
   :: (render ~ RY FlexForm, Functor m)
-  => (render -> Css) -- ^ CSS template
-  -> Rendered' m     -- ^ Form to add to
-  -> Rendered' m
+  => (render -> Css)      -- ^ CSS template
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addCss = addContent
 
 
@@ -105,8 +109,8 @@ Use with `Yesod` Julius Shakespeare quasi quoters or hosted files.
 addJs
   :: (render ~ RY FlexForm, Functor m)
   => (render -> Javascript) -- ^ Javascript template
-  -> Rendered' m            -- ^ Form to add to
-  -> Rendered' m
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addJs = addContent
 
 
@@ -117,8 +121,8 @@ addCssAndJs
   :: (render ~ RY FlexForm, Functor m)
   => (render -> Css)        -- ^ CSS template
   -> (render -> Javascript) -- ^ Javascript template
-  -> Rendered' m            -- ^ Form to add to
-  -> Rendered' m
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addCssAndJs css js = applyToWidget ((<* toWidget css) . (<* toWidget js))
 
 
@@ -203,7 +207,7 @@ function setDefaults(values){
       else if(fieldType != null && fieldType.toLowerCase() === "checkbox"){
         field.checked = input.includes(field.getAttribute("value"));
       }
-      else{
+      else if(fieldType != null && fieldType.toLowerCase() !== "hidden"){
         var inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
         if(inputElem != "Missing" && inputElem != "None"){
           field.value = inputElem;
@@ -224,7 +228,7 @@ supportedLanguages = ["de","en"]
 Extract a form from the environment.
 The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
 -}
-getFormData :: Rendered -> IO ([Text], HtmlDict)
+getFormData :: Rendered Widget -> IO ([Text], HtmlDict)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     Unsafe.fakeHandlerGetLogger

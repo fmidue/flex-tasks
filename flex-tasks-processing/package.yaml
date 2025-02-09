@@ -22,7 +22,6 @@ library:
     - -Wall
     - -Widentities
     - -Werror
-    - -Wno-x-partial
 tests:
   flex-tasks-test:
     main: Spec.hs
