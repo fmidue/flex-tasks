@@ -300,7 +300,11 @@ If you want to chain multiple parsing steps, e.g. with 'parseWithFallback',
 use '$>>=' of 'Control.OutputCapable.Blocks.Generic'.
 This operation can be seen as a '>>=' equivalent for 'LangM''.
 Example:
-'parseWithOrReport parseInput reportWithFieldNumber input $>>= \s -> parseWithFallback (fully p) someFunc (fully fallback) s $>>= pure . ...'
+```
+parseWithOrReport parseInput reportWithFieldNumber input
+  $>>= \s -> parseWithFallback (fully p) someFunc (fully fallback) s
+    $>>= pure . ...
+```
 
 As with forms, a generic parser interface is available.
 The steps are similar:
