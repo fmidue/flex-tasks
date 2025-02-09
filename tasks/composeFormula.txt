@@ -1,6 +1,8 @@
 module Global where
 
-type Solution = (String,String)
+import Trees.Types (BinOp(..), SynTree(..), TreeFormulaAnswer)
+
+type Solution = [TreeFormulaAnswer]
 
 =============================================
 
@@ -66,7 +68,7 @@ fields :: [[FieldInfo]]
 fields = [[single "Erste Formel:", single "Zweite Formel:"]]
 
 form :: Rendered Widget
-form = formify (Nothing :: Maybe Solution) fields
+form = formify (Nothing :: Maybe (String,String)) fields
 
 checkers :: String
 checkers = [i|
@@ -78,31 +80,28 @@ module Check where
 import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
 import Data.Functor                     (($>))
-import Formula.Parsing.Delayed          (delayed)
-import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
+import LogicTasks.Syntax.ComposeFormula (partialGrade', completeGrade')
 import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
 
 import Global
 
-toListString :: (String,String) -> String
-toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 
 checkSyntax
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
-  -> FilePath
+  => FilePath
+  -> ComposeFormulaInst
   -> Solution
   -> LangM m
-checkSyntax inst _ try = partialGrade inst $ delayed $ toListString try
+checkSyntax _ = partialGrade'
 
 checkSemantics
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
-  -> FilePath
+  => FilePath
+  -> ComposeFormulaInst
   -> Solution
   -> Rated m
-checkSemantics inst path try = completeGrade path inst (delayed $ toListString try) $> 1.0
+checkSemantics path inst try = completeGrade' path inst try $> 1.0
 
 |]
 
@@ -144,10 +143,34 @@ description path inst@ComposeFormulaInst{..} = do
 
 module Parse (parseSubmission) where
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+
+import Control.OutputCapable.Blocks (
+  LangM',
+  OutputCapable,
+  ReportT,
+  )
+import Control.OutputCapable.Blocks.Generic (
+  ($>>=),
+  )
+import FlexTask.Generic.Parse  (parseInput, parseWithFallback, useParser)
+import Formula.Parsing.Delayed (
+  complainAboutMissingParenthesesIfNotFailingOn,
+  )
+import LogicTasks.Parsing (formulaSymbolParser, parser)
 
 import Global
 
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = useParser parseInput
+
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Solution
+parseSubmission input = useParser parseInput input $>>= \(input1,input2) ->
+  parseIt input1 $>>= \formula1 ->
+    parseIt input2 $>>= \formula2 ->
+      pure [formula1,formula2]
+  where
+    parseIt = parseWithFallback
+      parser
+      complainAboutMissingParenthesesIfNotFailingOn
+      formulaSymbolParser

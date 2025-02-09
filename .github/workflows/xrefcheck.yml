@@ -19,4 +19,4 @@ jobs:
       - name: Run Link Checker
         uses: serokell/xrefcheck-action@v1
         with:
-          xrefcheck-args: --ignored ./README.md
+          xrefcheck-args: --ignore ./README.md

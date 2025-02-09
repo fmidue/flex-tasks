@@ -517,9 +517,12 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
         | otherwise
           -> sequence mas
 
-    firstRender = snd $ formifyImplementation (head defaults) [[single f]]
+    headError [] = error "Defaults should never be empty here!"
+    headError (x:_) = x
+
+    firstRender = snd $ formifyImplementation (headError defaults) [[single f]]
     renderRest def fSettings = formifyImplementation def [[InternalListElem fSettings]]
-    followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (tail defaults) fs]
+    followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
 
 formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
 

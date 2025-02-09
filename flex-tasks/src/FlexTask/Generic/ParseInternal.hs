@@ -9,16 +9,34 @@ module FlexTask.Generic.ParseInternal
   , parseInstanceMultiChoice
   , escaped
   , useParser
+  , parseWithFallback
+  , parseWithMessaging
   ) where
 
 
 import Control.Monad      (void)
+import Control.Monad.State (State)
+import Control.OutputCapable.Blocks (
+  Language,
+  LangM',
+  OutputCapable,
+  ReportT,
+  english,
+  german,
+  indent,
+  translate,
+  )
+import Control.OutputCapable.Blocks.Generic (
+  toAbort,
+  )
+import Data.Map           (Map)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
   ( ParseError
   , (<|>)
   , between
+  , eof
   , lookAhead
   , manyTill
   , many1
@@ -26,9 +44,15 @@ import Text.Parsec
   , optionMaybe
   , parse
   , sepBy
+  , sourceColumn
   , try
   )
-import Text.Parsec.Char   (anyChar, char, digit, string)
+import Text.Parsec.Char   (anyChar, char, digit, spaces, string)
+import Text.Parsec.Error (
+  errorMessages,
+  errorPos,
+  showErrorMessages,
+  )
 import Text.Parsec.String (Parser)
 import Yesod              (Textarea(..))
 
@@ -230,5 +254,97 @@ parseText t = string $ T.unpack t
 
 
 
-useParser :: Parser a -> String -> Either ParseError a
-useParser p = parse p ""
+{- |
+Parses a String with the given input form parser and embeds the result into the `OutputCapable` interface.
+No value will be embedded in case of a `ParseError`.
+Instead, an error report is given then.
+Error reports provide positional information of the error in the input form.
+-}
+useParser
+  :: (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -> String
+  -> LangM' (ReportT o m) a
+useParser p = parseWithOrReport p showWithFieldNumber
+
+
+
+parseWithOrReport ::
+  (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -> (String -> ParseError -> State (Map Language String) ())
+  -> String
+  -> LangM' (ReportT o m) a
+parseWithOrReport parser errorMsg answer =
+  case parse parser "" answer of
+    Left failure  -> toAbort $ indent $ translate $ errorMsg answer failure
+    Right success -> pure success
+
+
+{- |
+Parses a String with the given parser.
+Allows for further processing of a possible parse error.
+A second parser is used as a fallback in case of an error.
+The result of both parsers is then used to construct the report.
+This can be useful for giving better error messages,
+e.g. checking a term for bracket consistency even if the parser failed early on.
+-}
+parseWithFallback ::
+  (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -- ^ Parser to use initially
+  -> (Maybe ParseError -> ParseError -> State (Map Language String) ())
+  -- ^ How to produce an error report based on:
+  -- ^ 1. The possible parse error of the fallback parser
+  -- ^ 2. The original parse error
+  -> Parser ()
+  -- ^ The secondary parser to use in case of a parse error.
+  -- ^ Only used for generating possible further errors, thus does not return a value.
+  -> String
+  -- ^ The input
+  -> LangM' (ReportT o m) a
+  -- ^ The finished error report or embedded value
+parseWithFallback parser messaging fallBackParser =
+  parseWithOrReport
+    (fully parser)
+    (\a err -> displayInput a >>
+      messaging (either Just (const Nothing) (parse (fully fallBackParser) "" a)) err)
+  where
+    fully p = spaces *> p <* eof
+    displayInput a = do
+      german $ "Fehler in \"" ++ a ++ "\" : "
+      english $ "Error in \"" ++ a ++ "\" : "
+
+
+{- |
+like `parseWithFallback`, but does not use a second parser.
+The report is constructed out of the initial parse error only.
+-}
+parseWithMessaging ::
+  (Monad m, OutputCapable (ReportT o m))
+  => Parser a
+  -- ^ Parser to use
+  -> (ParseError -> State (Map Language String) ())
+  -- ^ How to construct the error report
+  -> String
+  -- ^ The input
+  -> LangM' (ReportT o m) a
+  -- ^ The finished error report or embedded value
+parseWithMessaging parser messaging = parseWithFallback parser (const messaging) undefined
+
+
+
+showWithFieldNumber :: String -> ParseError -> State (Map Language String) ()
+showWithFieldNumber input e = do
+    german $ "Fehler in Eingabefeld " ++ fieldNum ++ ":" ++ errors
+    english $ "Error in input field " ++ fieldNum ++ ":" ++ errors
+  where
+    fieldNum = show $ length (filter (=='\a') consumed) `div` 2 + 1
+    errors = showErrorMessages
+      "or"
+      "unknown parse error"
+      "expecting"
+      "unexpected"
+      "end of input"
+      $ errorMessages e
+    consumed = take (sourceColumn $ errorPos e) input
