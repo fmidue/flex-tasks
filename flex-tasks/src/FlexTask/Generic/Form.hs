@@ -57,10 +57,10 @@ import Data.Text            (Text, pack, unpack)
 import Yesod
 
 import FlexTask.Widgets
-  ( horizontalRadioField
+  ( checkboxField
+  , horizontalRadioField
   , joinRenders
   , renderForm
-  , verticalCheckboxesField
   )
 import FlexTask.YesodConfig (FlexForm, Handler, Rendered, Widget)
 
@@ -581,8 +581,8 @@ renderNextMultipleChoiceField pairsWith =
                                       , True
                                       , areq $
                                           case align of
-                                            Vertical -> verticalCheckboxesField
-                                            Horizontal -> checkboxesField
+                                            Vertical   -> checkboxField True
+                                            Horizontal -> checkboxField False
                                           $ withOptions opts
                                       )
       _ -> error "Incorrect naming scheme for a multi choice!"

@@ -84,7 +84,7 @@ spec = do
     prop "single choice works" $ \i ->
       escapedSingle (show i) `parsesTo` singleChoiceAnswer i
     prop "multiple choice works" $ \is ->
-      escapedList (map show is) `parsesTo` multipleChoiceAnswer is
+      escapedList (map show is) `parsesTo` multipleChoiceAnswer (removeEmpty is)
 
   describe "choice selection parsers (for a test enum)" $ do
     specify "single choice works" $
@@ -92,11 +92,12 @@ spec = do
         escapedSingle (show $ i+1) `parsesTo` toEnum @TestEnum i
     specify "multiple choice works" $
       forAll (sublistOf [0..2]) $ \is ->
-        escapedList (map (show . (+1)) is) `parsesTo` map (toEnum @TestEnum) is
+        escapedList (map (show . (+1)) is) `parsesTo` map (toEnum @TestEnum) (removeEmpty is)
   where
     testParse = many1 digit
     boolShow b = if b then "yes" else "no"
     maybeShow = maybe "None"
+    removeEmpty = filter (<0)
 
     testParsingMaybeStringList fromString = testParsingStringList (format fromString)
     testParsingMaybe from = testParsingString (format from)

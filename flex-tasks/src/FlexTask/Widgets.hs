@@ -102,19 +102,27 @@ $newline never
 
 
 
-verticalCheckboxesField :: Eq a => Handler (OptionList a) -> Field Handler [a]
-verticalCheckboxesField optList = (multiSelectField optList)
+checkboxField :: Eq a => Bool -> Handler (OptionList a) -> Field Handler [a]
+checkboxField isVertical optList = (multiSelectField optList)
       { fieldView =
           \theId title attrs val _isReq -> do
               os <- olOptions <$> handlerToWidget optList
-              let optSelected (Left _) _ = False
-                  optSelected (Right values) opt = optionInternalValue opt `elem` values
+              let selected (Left _) _ = False
+                  selected (Right values) opt = optionInternalValue opt `elem` values
+                  checkboxWidget opt = [whamlet|
+<label>
+  <input type=checkbox name=#{title} value=#{optionExternalValue opt} *{attrs} :selected val opt:checked>
+  #{optionDisplay opt}
+|]
               [whamlet|
 <span ##{theId}>
+  <input type=hidden name=#{title} value=-1>
   $forall opt <- os
-    <div>
-      <label>
-        <input type=checkbox name=#{title} value=#{optionExternalValue opt} *{attrs} :optSelected val opt:checked>
-        #{optionDisplay opt}
+    $with box <- checkboxWidget opt
+      $if isVertical
+        <div>
+          ^{box}
+      $else
+        ^{box}
 |]
       }

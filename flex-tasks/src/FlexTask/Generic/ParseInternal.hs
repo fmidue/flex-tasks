@@ -207,7 +207,7 @@ instance Parse SingleChoiceSelection where
 
 
 instance Parse MultipleChoiceSelection where
-  parseInput = multipleChoiceAnswer <$> parseInput
+  parseInput = multipleChoiceAnswer <$> parseWithEmptyMarker
 
 
 
@@ -228,7 +228,12 @@ parseInstanceSingleChoice = toEnum . subtract 1 <$> parseInput
 
 -- | Same as `parseInstanceSingleChoice`, but for parsing a List of the given type, i.e. a multiple choice version.
 parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser [a]
-parseInstanceMultiChoice = map (toEnum . subtract 1) <$> parseInput
+parseInstanceMultiChoice = map (toEnum . subtract 1) <$> parseWithEmptyMarker
+
+
+
+parseWithEmptyMarker :: Parser [Int]
+parseWithEmptyMarker = filter (<0) <$> parseInput
 
 
 

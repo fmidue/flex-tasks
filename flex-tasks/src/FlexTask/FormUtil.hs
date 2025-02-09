@@ -203,7 +203,7 @@ function setDefaults(values){
       else if(fieldType != null && fieldType.toLowerCase() === "checkbox"){
         field.checked = input.includes(field.getAttribute("value"));
       }
-      else{
+      else if(fieldType != null && fieldType.toLowerCase() !== "hidden"){
         var inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
         if(inputElem != "Missing" && inputElem != "None"){
           field.value = inputElem;
