@@ -14,8 +14,10 @@ newtype Table = Table [(Maybe (PropFormula Char), [Maybe TruthValue])] deriving 
 data Namen = A | B | C | D deriving (Data,Eq,Enum,Bounded,Show)
 
 type FormType = (String,[Namen])
+
 type TaskData = ((String, [String]),[Namen])
 type Submission = (Table,PropFormula Char,[Namen])
+
 
 emptyColumns, staticColumns, totalColumns, rows :: Int
 emptyColumns  = 13

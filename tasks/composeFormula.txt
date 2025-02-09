@@ -160,6 +160,7 @@ description path inst@ComposeFormulaInst{..} = do
 
 module Parse (parseSubmission) where
 
+
 import Control.OutputCapable.Blocks (
   LangM',
   OutputCapable,

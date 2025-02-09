@@ -34,9 +34,9 @@ Adjust the solution type or add utility functions here.
 module Global where
 
 
-type Solution = (Int,Int)
+type Submission = (Int,Int)
 type DescData = (Int,Int,Int)
-type TaskData = (DescData,Solution)
+type TaskData = (DescData,Submission)
 
 |]
 
@@ -124,7 +124,7 @@ fieldNames = [[single "Product"], [single "Sum"]]
 
 
 form :: Rendered
-form = formify (Nothing :: Maybe Solution) fieldNames
+form = formify (Nothing :: Maybe Submission) fieldNames
 
 
 
@@ -135,14 +135,14 @@ The entire module is first created as a String.
 It will later be written to file as an actual module.
 This module must contain two functions:
 
-checkSyntax :: OutputCapable m => StoredDataType -> FilePath -> SolutionType -> LangM m
+checkSyntax :: OutputCapable m => StoredDataType -> FilePath -> Submission -> LangM m
 
-checkSemantics :: OutputCapable m => StoredDataType -> FilePath -> SolutionType -> Rated m
+checkSemantics :: OutputCapable m => StoredDataType -> FilePath -> Submission -> Rated m
 
 StoredDataType is the actual type of the flexible data generated above.
 It is stored in the task instance and passed to both check functions.
 Used to store variable data affected by random generation.
-SolutionType is the actual type of the student submission after parsing.
+Submission is the actual type of the student submission after parsing.
 The FilePath argument is the server path for storing and loading images and other data.
 It is supplied by the caller of the checker functions and can be used as is, if file creation is required.
 The type signature must also be adjusted in this case.
@@ -183,7 +183,7 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => TaskData -> FilePath -> Solution -> LangM m
+checkSyntax :: OutputCapable m => TaskData -> FilePath -> Submission -> LangM m
 checkSyntax (_,sol) _ try
   | try == sol = pure ()
   | otherwise =
@@ -192,7 +192,7 @@ checkSyntax (_,sol) _ try
         english "syntactically wrong"
 
 
-checkSemantics :: OutputCapable m => TaskData -> FilePath -> Solution -> Rated m
+checkSemantics :: OutputCapable m => TaskData -> FilePath -> Submission -> Rated m
 checkSemantics (_,sol) _ try
   | try == sol = pure 1.0
   | otherwise = do
@@ -264,14 +264,14 @@ Must contain the function
 parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
-  -> LangM' (ReportT o m) Solution
+  -> LangM' (ReportT o m) Submission
 
 where the given String is the submission.
 This function should first apply parsing to the submission,
 then embed the result into 'OutputCapable'.
-The type 'LangM' (ReportT o m) Solution' is a specialization of the more general 'LangM' m Solution'.
-'LangM' m Solution' represents sequential output like 'LangM m' or 'Rated m',
-but provides a value of type Solution afterwards.
+The type 'LangM' (ReportT o m) Submission' is a specialization of the more general 'LangM' m Submission'.
+'LangM' m Submission' represents sequential output like 'LangM m' or 'Rated m',
+but provides a value of type Submission afterwards.
 The function thus enables more complex reporting (e.g., of errors)
 than might be possible by purely using basic parsers alone.
 The final result is passed to the check functions to generate feedback.
@@ -337,7 +337,7 @@ import Global
 parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
-  -> LangM' (ReportT o m) Solution
+  -> LangM' (ReportT o m) Submission
 parseSubmission = useParser parseInput
 
 |]
