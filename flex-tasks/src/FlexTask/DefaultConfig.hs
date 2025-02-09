@@ -260,11 +260,46 @@ dParse = [rQ|
 Module for parsing the student submission.
 Must contain the function
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Solution
 
 where the given String is the submission.
-The parsers used are those of 'Text.Parsec'.
+This function should first apply parsing to the submission,
+then embed the result into 'OutputCapable'.
+The type 'LangM' (ReportT o m) Solution' is a specialization of the more general 'LangM' m Solution'.
+'LangM' m Solution' represents sequential output like 'LangM m' or 'Rated m',
+but provides a value of type Solution afterwards.
+The function thus enables more complex reporting (e.g., of errors)
+than might be possible by purely using basic parsers alone.
+The final result is passed to the check functions to generate feedback.
+
+The parsers used throughout are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
+
+To implement parseSubmission, you will typically invoke 'useParser' and
+possibly 'parseWithFallback' or 'parseWithMessage', all
+supplied by 'FlexTask.Generic.Parse'. In simple situations, '<&>' may suffice.
+The 'useParser' function takes a parser and the 'String' input as arguments
+and embeds the result directly into 'OutputCapable'.
+This function directly reads the form results.
+It is enough if you do not need additional processing of the input.
+The 'parseWithFallback' function can be used to additionally parse/process
+Strings from among the form result, that is, individual input fields.
+It should be used after 'useParser', instead of on its own.
+'parseWithFallback' takes a parser, messaging function, fallback parser and the input.
+The secondary parser is used as a simpler sanity check on the input in case
+of an error with the primary parser.
+The possible error of the fallback parser and the original error
+are then fed to the messaging function to construct the report.
+Use this to produce more sophisticated error messages.
+
+If you want to chain multiple parsing steps, e.g. with 'parseWithFallback',
+use '$>>=' of 'Control.OutputCapable.Blocks.Generic'.
+This operation can be seen as a '>>=' equivalent for 'LangM''.
+Example:
+'useParser parseInput input $>>= \s -> parseWithFallback p someFunc fallback s $>>= pure . ...'
 
 As with forms, a generic parser interface is available.
 The steps are similar:
@@ -281,23 +316,27 @@ Instead, use bodyless instances for the component types where possible
 and use custom parsers for those where not applicable.
 Finally, use the bodyless instance method for the entire type.
 This is again necessary to avoid encoding problems that are caused internally by argument delimiters.
-
-To implement parseSubmission, you can use the 'useParser' function, again supplied by 'FlexTask.Generic.Parse'.
-It only takes your parser as an argument.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
 module Parse (parseSubmission) where
 
 
+import Control.OutputCapable.Blocks (
+  LangM',
+  ReportT,
+  OutputCapable,
+  )
 import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
 
 import Global
 
 
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Solution
 parseSubmission = useParser parseInput
 
 |]

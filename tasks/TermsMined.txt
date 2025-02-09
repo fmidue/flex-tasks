@@ -265,12 +265,20 @@ description _ = TD.description False
 
 module Parse (parseSubmission) where
 
+
+import Control.OutputCapable.Blocks (
+  LangM',
+  OutputCapable,
+  ReportT,
+  )
 import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
 
 import Global
 
 
 
-parseSubmission :: String -> Either ParseError Solution
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Solution
 parseSubmission = useParser parseInput
