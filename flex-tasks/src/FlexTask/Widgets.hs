@@ -15,7 +15,12 @@ import FlexTask.FormUtil (
   repeatFlexName,
   )
 import FlexTask.Styling     (horizontalRBStyle)
-import FlexTask.YesodConfig (FlexForm, Handler, Rendered)
+import FlexTask.YesodConfig (
+  FlexForm,
+  Handler,
+  Rendered,
+  Widget,
+  )
 
 
 
@@ -23,7 +28,7 @@ renderForm
     :: Bool
     -> (FieldSettings FlexForm -> AForm Handler a)
     -> FieldSettings FlexForm
-    -> Rendered
+    -> Rendered Widget
 renderForm newId aformStub label =
     reader $ \fragment -> do
       ident <- newFlexId
@@ -47,7 +52,7 @@ $forall view <- views
 
 
 
-joinRenders :: [[Rendered]] -> Rendered
+joinRenders :: [[Rendered Widget]] -> Rendered Widget
 joinRenders = foldr (joinOuter . joinInner) zero
   where
     zero = pure (pure ([],pure ()))

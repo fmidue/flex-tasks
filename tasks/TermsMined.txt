@@ -208,7 +208,7 @@ import Data.String.Interpolate          (i)
 import Data.Text                        (pack)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (Rendered)
+import FlexTask.YesodConfig             (Rendered, Widget)
 import TermTasks.Direct                 (genInst)
 import TermTasks.Records (
   Certain,
@@ -230,7 +230,7 @@ getTask = do
     pure (inst, checkers, getFormData $ form $ length terms)
 
 
-form :: Int -> Rendered
+form :: Int -> Rendered Widget
 form amount = formify
   (Nothing :: Maybe MultipleChoiceSelection)
   [[buttons Vertical "Korrekte Terme/Correct terms" $ map (pack . (++ ".") . show) [1..amount]]]

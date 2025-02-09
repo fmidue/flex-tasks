@@ -100,7 +100,7 @@ module TaskData (getTask) where
 
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered)
+import FlexTask.YesodConfig    (Rendered, Widget)
 import Data.String.Interpolate (i)
 import Test.QuickCheck.Gen
 
@@ -123,7 +123,7 @@ fieldNames :: [[FieldInfo]]
 fieldNames = [[single "Product"], [single "Sum"]]
 
 
-form :: Rendered
+form :: Rendered Widget
 form = formify (Nothing :: Maybe Submission) fieldNames
 
 

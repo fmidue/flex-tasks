@@ -67,7 +67,7 @@ import FlexTask.Generic.Form (
   single,
   buttonsEnum
   )
-import FlexTask.YesodConfig    (Handler, FlexForm, Rendered)
+import FlexTask.YesodConfig    (Handler, FlexForm, Rendered, Widget)
 import LogicTasks.Formula      (TruthValue(..))
 import Numeric                 (showBin)
 import Test.QuickCheck.Arbitrary (arbitrary)
@@ -100,7 +100,7 @@ getTask = do
       coming = [ n | (True,n) <- zipped ]
     pure (((legend,hints),coming), checkers formula False True, getFormData (form names))
   where
-    form :: (Text,Text,Text,Text) -> Rendered
+    form :: (Text,Text,Text,Text) -> Rendered Widget
     form n = tableForm ["A","B","C","D"] $$>
              formify (Nothing :: Maybe FormType) (nonTableFields n)
 
@@ -161,7 +161,7 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
 
 
 
-tableForm :: [Text] -> Rendered
+tableForm :: [Text] -> Rendered Widget
 tableForm staticHeaders =
   addCss css $ reader $ \extra -> do
     let addAttr a fs@FieldSettings{..} = fs {fsAttrs = a : fsAttrs}

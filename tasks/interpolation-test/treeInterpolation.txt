@@ -46,7 +46,7 @@ module TaskData (getTask) where
 import Data.String.Interpolate (i)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered)
+import FlexTask.YesodConfig    (Rendered, Widget)
 import Test.QuickCheck.Gen
 
 
@@ -66,7 +66,7 @@ fields :: [[FieldInfo]]
 fields = [[single "Tree Sum"],[single "Tree Product"]]
 
 
-form :: Rendered
+form :: Rendered Widget
 form = formify (Nothing :: Maybe Solution) fields
 
 
