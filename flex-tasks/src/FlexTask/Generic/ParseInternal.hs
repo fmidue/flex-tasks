@@ -18,6 +18,7 @@ module FlexTask.Generic.ParseInternal
 
 import Control.Monad      (void)
 import Control.OutputCapable.Blocks (
+  LangM,
   LangM',
   OutputCapable,
   ReportT,
@@ -267,7 +268,7 @@ This can be useful for giving better error messages.
 parseWithOrReport ::
   (Monad m, OutputCapable (ReportT o m))
   => Parser a
-  -> (String -> ParseError -> LangM' (ReportT o m) ())
+  -> (String -> ParseError -> LangM (ReportT o m))
   -> String
   -> LangM' (ReportT o m) a
 parseWithOrReport parser errorMsg answer =
@@ -288,7 +289,7 @@ parseWithFallback ::
   (Monad m, OutputCapable (ReportT o m))
   => Parser a
   -- ^ Parser to use initially
-  -> (Maybe ParseError -> ParseError -> LangM' (ReportT o m) ())
+  -> (Maybe ParseError -> ParseError -> LangM (ReportT o m))
   -- ^ How to produce an error report based on:
   -- ^ 1. The possible parse error of the fallback parser
   -- ^ 2. The original parse error
@@ -318,8 +319,7 @@ fully p = spaces *> p <* eof
 {- |
 Provide error report with positional information relative to an input form.
 -}
-reportWithFieldNumber :: (Monad m, OutputCapable (ReportT o m))
-  => String -> ParseError -> LangM' (ReportT o m) ()
+reportWithFieldNumber :: OutputCapable m => String -> ParseError -> LangM m
 reportWithFieldNumber input e = indent $ translate $ do
     german $ "Fehler in Eingabefeld " ++ fieldNum ++ ":" ++ errors
     english $ "Error in input field " ++ fieldNum ++ ":" ++ errors
