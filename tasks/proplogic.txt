@@ -2,7 +2,6 @@
 module Global where
 
 
-import Control.OutputCapable.Blocks
 import LogicTasks.Formula (TruthValue)
 import Trees.Types (PropFormula)
 
@@ -26,10 +25,6 @@ rows          = 2^staticColumns
 tableRequired, showSolution :: Bool
 tableRequired = False
 showSolution  = True
-
-
-bothLangs :: OutputCapable m => String -> LangM m
-bothLangs s = translate $ german s >> english s
 
 =============================================
 
@@ -267,33 +262,31 @@ dropStatic = drop staticColumns
 checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
 checkSyntax _ _ (Table xs,f,n) = do
     paragraph $ do
-      bothLangs $ do
-        "Es wurden Formeln wie folgt gelesen:"
+      text "Es wurden Formeln wie folgt gelesen:"
       when (any (/=Nothing) mColumns) $ indent $ do
-        bothLangs "Tabellenspalten"
+        text "Tabellenspalten"
         code $ unlines $ map (simplestDisplay . toSynTree) entered
         pure ()
       indent $ do
-        bothLangs "Antwortformel"
+        text "Antwortformel"
         code $ simplestDisplay $ toSynTree f
         pure ()
       pure ()
-    when (atomicColumns == map reverse #{startingTable}) $ refuse $ indent $ bothLangs $
+    when (atomicColumns == map reverse #{startingTable}) $ refuse $ indent $ text $
       "Die Spalten der atomaren Formeln sind invertiert. " ++
       "Bitte legen Sie die Tafel so an wie in der Vorlesung vorgegeben."
-    assertion (nubOrd atomicRows == atomicRows) $ bothLangs
+    assertion (nubOrd atomicRows == atomicRows) $ text
       "Alle vollständig eingetragenen Belegungen kommen nur einmal in Tafel vor?"
-    assertion (notElem 'E' $ concatMap toList $ f : entered) $ bothLangs
+    assertion (notElem 'E' $ concatMap toList $ f : entered) $ text
       "Eva (E) kommt nicht in Formeln vor?"
     assertion (
       all (`elem` ('F': toList (#{fSol}))) (concatMap toList entered) &&
       all (`elem` toList (#{fSol})) (toList f)
       )
-      $ bothLangs
-      "Es wurden nur bekannte atomare Formeln genutzt?"
-    assertion (all noDuplicate entered) $ bothLangs
+      $ text "Es wurden nur bekannte atomare Formeln genutzt?"
+    assertion (all noDuplicate entered) $ text
       "Tabellenspalten existieren nur einmal?"
-    assertion (not (null n)) $ bothLangs
+    assertion (not (null n)) $ text
       "Es wurde mindestens ein Name angekreuzt? (Alleine gehen ist ausgeschlossen.)"
     pure ()
   where
@@ -309,22 +302,20 @@ checkSyntax _ _ (Table xs,f,n) = do
 checkSemantics :: OutputCapable m => FilePath -> (a,[Namen]) -> Submission -> Rated m
 checkSemantics _ (_,nSol) (Table xs,f,n) = do
     let correctStart = take staticColumns columns == #{startingTable}
-    #{checkType} correctStart $ bothLangs
+    #{checkType} correctStart $ text
       "Spalten der atomaren Formeln ergeben sinnvolle Wahrheitstafel?"
     let subFormulas = all (\\e -> e `isSubFormula` f || e `elem` negations) $ catMaybes $ dropStatic replaceFAll
-    #{checkType} subFormulas $ bothLangs
+    #{checkType} subFormulas $ text
       "Als Tabellenspalten kommen nur Teilformeln der Gesamtformel vor?"
     let correctValues = all correctColumn zippedEntries && not (all (null . catMaybes . snd) zippedEntries)
-    #{checkType} correctValues $ bothLangs
+    #{checkType} correctValues $ text
       "Tafel ist gefüllt und Tabellenspalten enthalten nur korrekt ermittelte Wahrheitswerte?"
-    yesNo (T.all (`elem` f) "ABCD") $ bothLangs
+    yesNo (T.all (`elem` f) "ABCD") $ text
        "Gesamtformel enthält alle vorkommenden atomaren Formeln?"
     let correctFormula = isSemanticEqual (#{fSol}) (toSynTree f)
-    yesNo correctFormula $ bothLangs
-        "Gesamtformel ist korrekt?"
+    yesNo correctFormula $ text "Gesamtformel ist korrekt?"
     let correctNames = n == nSol
-    yesNo correctNames $ bothLangs
-       "Die Auflistung der Begleitenden ist korrekt?"
+    yesNo correctNames $ text "Die Auflistung der Begleitenden ist korrekt?"
     let correct = filter id [correctStart, correctFormula, correctNames, correctValues]
     let points = fromIntegral (length correct) % 4
     res <- printSolutionAndAssertMinimum (MinimumThreshold (1 % 4)) IndefiniteArticle maybeAnswer points
@@ -365,13 +356,13 @@ import Global
 
 description :: OutputCapable m => FilePath -> ((String,[String]),a) -> LangM m
 description _ ((legend,hints),_) = do
-    paragraph $ bothLangs
+    paragraph $ text
       ( "Eva möchte gerne auf ein Konzert ihrer Lieblingsband gehen. " ++
         legend ++
         "ob sie mitkommen wollen. Leider sind die Antworten etwas seltsam."
       )
-    itemizeM $ map bothLangs hints
-    paragraph $ bothLangs $
+    itemizeM $ map text hints
+    paragraph $ text $
       "Übersetzen Sie die Kombination der Antworten in eine aussagenlogische Formel. " ++
       "Geben Sie diese Formel in das entsprechend benannte Textfeld ein. " ++
       "Verwenden Sie dabei die atomaren Formeln A, B, C, D mit der Interpretation, " ++
@@ -379,10 +370,10 @@ description _ ((legend,hints),_) = do
     keyHeading
     basicOpKey True
     arrowsKey
-    paragraph $ bothLangs $
+    paragraph $ text $
       "Wer geht mit Eva zum Konzert? Leiten Sie Ihr Ergebnis mittels Wahrheitstafel her. " ++
       "Kreuzen Sie dann alle Begleitenden in der Namensliste an."
-    paragraph $ bothLangs $
+    paragraph $ text $
       "Beim Ausfüllen der Wahrheitstafel können Spalten leer gelassen werden. " ++
       "Sollten Sie für die Eingabe einer Formelüberschrift mehr Platz benötigen, " ++
       "können Sie die kleineren Eingabefelder überspringen und eines der größeren nutzen."

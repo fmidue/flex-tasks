@@ -311,7 +311,7 @@ The possible error of the fallback parser and the original error
 are then fed to the messaging function to construct the report.
 Use this to produce more sophisticated error messages.
 A simpler route is to also use just 'parseWithOrReport' in this phase, with
-something like 'const (bothLangs . show)' as the reporting function.
+something like 'const (text . show)' as the reporting function.
 
 If you want to chain multiple parsing steps, e.g. with 'parseWithFallback',
 use '$>>=' of 'Control.OutputCapable.Blocks.Generic'.
