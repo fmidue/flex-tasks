@@ -233,7 +233,7 @@ parseInstanceMultiChoice = map (toEnum . subtract 1) <$> parseWithEmptyMarker
 
 
 parseWithEmptyMarker :: Parser [Int]
-parseWithEmptyMarker = filter (<0) <$> parseInput
+parseWithEmptyMarker = filter (>0) <$> parseInput
 
 
 
