@@ -17,9 +17,7 @@ module FlexTask.Generic.ParseInternal
 
 
 import Control.Monad      (void)
-import Control.Monad.State (State)
 import Control.OutputCapable.Blocks (
-  Language,
   LangM,
   LangM',
   OutputCapable,
@@ -33,7 +31,6 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   toAbort,
   )
-import Data.Map           (Map)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -339,12 +336,12 @@ reportWithFieldNumber input e = do
 
 displayInputAnd ::
   OutputCapable m =>
-  (Maybe a -> ParseError -> State (Map Language String) ())
+  (Maybe a -> ParseError -> LangM m)
   -> String -> Maybe a -> ParseError -> LangM m
 displayInputAnd messaging a ma err = do
   translate $ do
     german "Fehler in"
     english "Error in"
   text $ " \"" ++ a ++ "\" : "
-  indent $ translate $ messaging ma err
+  indent $ messaging ma err
   pure ()
