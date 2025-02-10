@@ -92,12 +92,13 @@ spec = do
         escapedSingle (show $ i+1) `parsesTo` toEnum @TestEnum i
     specify "multiple choice works" $
       forAll (sublistOf [0..2]) $ \is ->
-        escapedList (map (show . (+1)) is) `parsesTo` map (toEnum @TestEnum) (removeEmpty is)
+        escapedList (map show is) `parsesTo`
+        map (toEnum @TestEnum . subtract 1) (removeEmpty is)
   where
     testParse = many1 digit
     boolShow b = if b then "yes" else "no"
     maybeShow = maybe "None"
-    removeEmpty = filter (<0)
+    removeEmpty = filter (>0)
 
     testParsingMaybeStringList fromString = testParsingStringList (format fromString)
     testParsingMaybe from = testParsingString (format from)
