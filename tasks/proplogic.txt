@@ -391,9 +391,9 @@ import Data.List.Extra        (chunksOf, transpose)
 import FlexTask.Generic.Parse (
   Parse(..),
   parseInstanceMultiChoice,
+  displayInputAnd,
   escaped,
   parseWithFallback,
-  withInput,
   parseWithOrReport,
   reportWithFieldNumber,
   )
@@ -434,5 +434,5 @@ parseSubmission input =
     parseIt =
       parseWithFallback
         (fully parser)
-        (withInput complainAboutMissingParenthesesIfNotFailingOn)
+        (displayInputAnd complainAboutMissingParenthesesIfNotFailingOn)
         (fully formulaSymbolParser)

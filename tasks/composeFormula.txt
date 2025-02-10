@@ -165,7 +165,13 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   ($>>=),
   )
-import FlexTask.Generic.Parse  (formParser, parseWithFallback, withInput, parseWithOrReport, reportWithFieldNumber)
+import FlexTask.Generic.Parse (
+  displayInputAnd,
+  formParser,
+  parseWithFallback,
+  parseWithOrReport,
+  reportWithFieldNumber,
+  )
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
   )
@@ -186,5 +192,5 @@ parseSubmission input = parseWithOrReport formParser reportWithFieldNumber input
   where
     parseIt = parseWithFallback
       (fully parser)
-      (withInput complainAboutMissingParenthesesIfNotFailingOn)
+      (displayInputAnd complainAboutMissingParenthesesIfNotFailingOn)
       (fully formulaSymbolParser)
