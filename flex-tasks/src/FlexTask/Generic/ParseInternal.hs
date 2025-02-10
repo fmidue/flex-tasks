@@ -29,6 +29,7 @@ import Control.OutputCapable.Blocks (
   english,
   german,
   indent,
+  text,
   translate,
   )
 import Control.OutputCapable.Blocks.Generic (
@@ -318,9 +319,12 @@ fully p = spaces *> p <* eof
 Provide error report with positional information relative to an input form.
 -}
 reportWithFieldNumber :: OutputCapable m => String -> ParseError -> LangM m
-reportWithFieldNumber input e = indent $ translate $ do
-    german $ "Fehler in Eingabefeld " ++ fieldNum ++ ":" ++ errors
-    english $ "Error in input field " ++ fieldNum ++ ":" ++ errors
+reportWithFieldNumber input e = indent $ do
+    translate $ do
+      german "Fehler in Eingabefeld"
+      english "Error in input field"
+    text $ " " ++ fieldNum ++ ":" ++ errors
+    pure ()
   where
     fieldNum = show $ length (filter (=='\a') consumed) `div` 2 + 1
     errors = showErrorMessages
@@ -338,8 +342,9 @@ withInput ::
   -> String -> Maybe a -> ParseError -> LangM m
 withInput messaging a ma err = do
   translate $ do
-    german $ "Fehler in \"" ++ a ++ "\" : "
-    english $ "Error in \"" ++ a ++ "\" : "
+    german "Fehler in"
+    english "Error in"
+  text $ " \"" ++ a ++ "\" : "
   indent $ translate $ messaging ma err
   pure ()
 
