@@ -33,7 +33,7 @@ data HeaderLabel = HeaderLabel
 
 
 instance RenderMessage app HeaderLabel where
-  renderMessage _ ("en":_) HeaderLabel  = "Corect Terms"
+  renderMessage _ ("en":_) HeaderLabel  = "Correct Terms"
   renderMessage _ _        HeaderLabel  = "Korrekte Terme"
 
 
