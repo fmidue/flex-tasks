@@ -12,14 +12,17 @@ type Solution = [TreeFormulaAnswer]
 module TaskData where
 
 import Data.String.Interpolate          (i)
+import Data.Map                         (Map)
+import Data.Text                        (Text)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types                   (HtmlDict)
 import FlexTask.YesodConfig             (Rendered, Widget)
 import Tasks.ComposeFormula.Config      (ComposeFormulaConfig(..), TreeDisplayMode (TreeDisplay))
 import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
+import Yesod                            (RenderMessage(..), fieldSettingsLabel)
 import qualified Data.Map as Map        (fromList)
-import Data.Map                         (Map)
 
 import Tasks.SynTree.Config (
   SynTreeConfig(..)
@@ -28,7 +31,16 @@ import Trees.Types (BinOp(..))
 
 import Global
 
-getTask :: Gen (String, String, IO ([String],String))
+
+data InputLabel = First | Second
+
+instance RenderMessage app InputLabel where
+  renderMessage _ ("en":_) First  = "First Formula"
+  renderMessage _ _        First  = "Erste Formel"
+  renderMessage _ ("en":_) Second = "Second Formula"
+  renderMessage _ _        Second = "Zweite Formel"
+
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 getTask = do
     inst <- generateComposeFormulaInst task03
     pure (show inst, checkers, getFormData form)
@@ -65,7 +77,8 @@ task03 = ComposeFormulaConfig
   }
 
 fields :: [[FieldInfo]]
-fields = [[single "Erste Formel:", single "Zweite Formel:"]]
+fields = [[field First, field Second]]
+  where field = single . fieldSettingsLabel
 
 form :: Rendered Widget
 form = formify (Nothing :: Maybe (String,String)) fields

@@ -12,9 +12,11 @@ module TaskData where
 
 import Data.String.Interpolate          (i)
 import Data.Generics.Text               (gshow)
-import Data.Text                        (pack)
+import Data.String                      (fromString)
+import Data.Text                        (Text)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types                   (HtmlDict)
 import FlexTask.YesodConfig             (Rendered, Widget)
 import TermTasks.Direct                 (genInst)
 import TermTasks.Records (
@@ -24,14 +26,22 @@ import TermTasks.Records (
   )
 import TermTasks.DataType               (Error(..), Signature, toSignature)
 import Test.QuickCheck.Gen              (Gen, elements)
+import Yesod                            (RenderMessage(..), fieldSettingsLabel)
 
+
+data HeaderLabel = HeaderLabel
+
+
+instance RenderMessage app HeaderLabel where
+  renderMessage _ ("en":_) HeaderLabel  = "Correct Terms"
+  renderMessage _ _        HeaderLabel  = "Korrekte Terme"
 
 
 instance MonadFail Gen where
   fail = error
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 getTask = do
     config <- genConfig
     inst@SigInstance{..} <- genInst config
@@ -41,7 +51,7 @@ getTask = do
 form :: Int -> Rendered Widget
 form amount = formify
   (Nothing :: Maybe MultipleChoiceSelection)
-  [[buttons Vertical "Korrekte Terme/Correct terms" $ map (pack . (++ ".") . show) [1..amount]]]
+  [[buttons Vertical (fieldSettingsLabel HeaderLabel) $ map (fromString . (++ ".") . show) [1..amount]]]
 
 
 genConfig :: Gen Certain

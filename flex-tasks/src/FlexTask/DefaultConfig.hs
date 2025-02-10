@@ -51,11 +51,11 @@ This includes (in order):
 
 - Flexible data available to both the task description and the checks/feedback. (String)
 - The entire "Check" module, containing a syntax and a semantics check. (String, use QuasiQuoting)
-- An HTML input form represented by the names of all contained input fields and HTML code,
-  wrapped in IO. (IO ([String],String))
+- An HTML input form represented by the names of all contained input fields
+  and a map of languages to translated HTML code, wrapped in IO. (IO ([Text],HtmlDict))
 
 Provide a function
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 implementing a generator for these elements.
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
@@ -99,16 +99,31 @@ module TaskData (getTask) where
 
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Data.String.Interpolate (i)
+import Data.Text               (Text)
 import Test.QuickCheck.Gen
+import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 
 import Global
 
 
 
 
-getTask :: Gen (String, String, IO ([String],String))
+data Label = Product | Sum
+
+
+
+instance RenderMessage a Label where
+  renderMessage app ("de":_) Product = "Produkt"
+  renderMessage app ("de":_) Sum     = "Summe"
+  renderMessage app _        Product = "Product"
+  renderMessage app _        Sum     = "Sum"
+
+
+
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 getTask = do
     numbers <- vectorOf 3 $ elements [1..6 :: Int]
     let
@@ -119,7 +134,9 @@ getTask = do
 
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [[single "Product"], [single "Sum"]]
+fieldNames = [[fromLabel Product], [fromLabel Sum]]
+  where
+    fromLabel = single. fieldSettingsLabel
 
 
 form :: Rendered Widget
