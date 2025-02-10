@@ -165,11 +165,12 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   ($>>=),
   )
-import FlexTask.Generic.Parse  (formParser, parseWithFallback, withInput, fully, parseWithOrReport, reportWithFieldNumber)
+import FlexTask.Generic.Parse  (formParser, parseWithFallback, withInput, parseWithOrReport, reportWithFieldNumber)
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
   )
 import LogicTasks.Parsing (formulaSymbolParser, parser)
+import ParsingHelpers          (fully)
 
 import Global
 

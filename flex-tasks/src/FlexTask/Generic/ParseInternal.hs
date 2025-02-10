@@ -11,7 +11,6 @@ module FlexTask.Generic.ParseInternal
   , escaped
   , parseWithOrReport
   , reportWithFieldNumber
-  , fully
   , parseWithFallback
   , withInput
   , withoutInput
@@ -42,7 +41,6 @@ import Text.Parsec
   ( ParseError
   , (<|>)
   , between
-  , eof
   , lookAhead
   , manyTill
   , many1
@@ -53,7 +51,7 @@ import Text.Parsec
   , sourceColumn
   , try
   )
-import Text.Parsec.Char   (anyChar, char, digit, spaces, string)
+import Text.Parsec.Char   (anyChar, char, digit, string)
 import Text.Parsec.Error (
   errorMessages,
   errorPos,
@@ -312,8 +310,7 @@ parseWithFallback parser messaging fallBackParser =
     parser
     (\a -> messaging a (either Just (const Nothing) (parse fallBackParser "" a)))
 
-fully :: Parser a -> Parser a
-fully p = spaces *> p <* eof
+
 
 {- |
 Provide error report with positional information relative to an input form.

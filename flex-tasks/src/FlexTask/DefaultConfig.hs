@@ -319,7 +319,7 @@ This operation can be seen as a '>>=' equivalent for 'LangM''.
 Example:
 ```
 parseWithOrReport formParser reportWithFieldNumber input
-  $>>= \s -> parseWithFallback (fully p) someFunc (fully fallback) s
+  $>>= \s -> parseWithFallback p someFunc fallback s
     $>>= pure . ...
 ```
 

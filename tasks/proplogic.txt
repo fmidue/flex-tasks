@@ -394,7 +394,6 @@ import FlexTask.Generic.Parse (
   escaped,
   parseWithFallback,
   withInput,
-  fully,
   parseWithOrReport,
   reportWithFieldNumber,
   )
@@ -403,6 +402,7 @@ import Formula.Parsing.Delayed (
   )
 import LogicTasks.Formula      (TruthValue)
 import LogicTasks.Parsing      (formulaSymbolParser, parser)
+import ParsingHelpers          (fully)
 import Trees.Types             (PropFormula(Atomic))
 
 import Global
