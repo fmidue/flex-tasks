@@ -397,6 +397,7 @@ import FlexTask.Generic.Parse (
   parseInstanceMultiChoice,
   escaped,
   parseWithFallback,
+  withInput,
   fully,
   parseWithOrReport,
   reportWithFieldNumber,
@@ -437,5 +438,5 @@ parseSubmission input =
     parseIt =
       parseWithFallback
         (fully parser)
-        complainAboutMissingParenthesesIfNotFailingOn
+        (withInput complainAboutMissingParenthesesIfNotFailingOn)
         (fully formulaSymbolParser)

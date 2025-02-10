@@ -13,11 +13,15 @@ module FlexTask.Generic.ParseInternal
   , reportWithFieldNumber
   , fully
   , parseWithFallback
+  , withInput
+  , withoutInput
   ) where
 
 
 import Control.Monad      (void)
+import Control.Monad.State (State)
 import Control.OutputCapable.Blocks (
+  Language,
   LangM,
   LangM',
   OutputCapable,
@@ -30,6 +34,7 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   toAbort,
   )
+import Data.Map           (Map)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -289,10 +294,11 @@ parseWithFallback ::
   (Monad m, OutputCapable (ReportT o m))
   => Parser a
   -- ^ Parser to use initially
-  -> (Maybe ParseError -> ParseError -> LangM (ReportT o m))
+  -> (String -> Maybe ParseError -> ParseError -> LangM (ReportT o m))
   -- ^ How to produce an error report based on:
-  -- ^ 1. The possible parse error of the fallback parser
-  -- ^ 2. The original parse error
+  -- ^ 1. The input string
+  -- ^ 2. The possible parse error of the fallback parser
+  -- ^ 3. The original parse error
   -> Parser ()
   -- ^ The secondary parser to use in case of a parse error.
   -- ^ Only used for generating possible further errors, thus does not return a value.
@@ -303,15 +309,7 @@ parseWithFallback ::
 parseWithFallback parser messaging fallBackParser =
   parseWithOrReport
     parser
-    (\a err -> do
-        displayInput a
-        indent $ messaging (either Just (const Nothing) (parse fallBackParser "" a)) err
-        pure ()
-    )
-  where
-    displayInput a = translate $ do
-      german $ "Fehler in \"" ++ a ++ "\" : "
-      english $ "Error in \"" ++ a ++ "\" : "
+    (\a -> messaging a (either Just (const Nothing) (parse fallBackParser "" a)))
 
 fully :: Parser a -> Parser a
 fully p = spaces *> p <* eof
@@ -333,3 +331,20 @@ reportWithFieldNumber input e = indent $ translate $ do
       "end of input"
       $ errorMessages e
     consumed = take (sourceColumn $ errorPos e) input
+
+withInput ::
+  OutputCapable m =>
+  (Maybe a -> ParseError -> State (Map Language String) ())
+  -> String -> Maybe a -> ParseError -> LangM m
+withInput messaging a ma err = do
+  translate $ do
+    german $ "Fehler in \"" ++ a ++ "\" : "
+    english $ "Error in \"" ++ a ++ "\" : "
+  indent $ translate $ messaging ma err
+  pure ()
+
+withoutInput ::
+  OutputCapable m =>
+  (Maybe a -> ParseError -> State (Map Language String) ())
+  -> String -> Maybe a -> ParseError -> LangM m
+withoutInput messaging _ ma = translate . messaging ma
