@@ -267,6 +267,9 @@ parseText t = string $ T.unpack t
 Parses a String with the given parser and embeds the result into the `OutputCapable` interface.
 No value will be embedded in case of a `ParseError`. Instead, an error report is given then.
 That report is built using the second function argument.
+The report will automatically abort after displaying.
+It is therefore not necessary to include a `refuse`, but it is not harmful either.
+Adding a refuse will display text and cut off any following output as usual.
 This can be useful for giving better error messages.
 -}
 parseWithOrReport ::
@@ -286,6 +289,7 @@ Parses a String with the given parser.
 Allows for further processing of a possible parse error.
 A second parser is used as a fallback in case of an error.
 The result of both parsers is then used to construct the report.
+Comments on `refuse`'s behaviour for `parseWithOrReport` also apply for this function.
 This can be useful for giving more specific error messages,
 e.g. checking a term for bracket consistency even if the parser failed early on.
 -}
