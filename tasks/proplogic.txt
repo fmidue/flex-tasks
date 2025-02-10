@@ -38,6 +38,7 @@ module TaskData (getTask) where
 
 import Control.Monad.Reader    (reader)
 import Data.Char               (digitToInt)
+import Data.String             (fromString)
 import Data.List               (transpose)
 import Data.Maybe              (fromJust)
 import Data.Text               (Text, pack)
@@ -57,6 +58,7 @@ import FlexTask.Generic.Form (
   single,
   buttonsEnum
   )
+import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Handler, FlexForm, Rendered, Widget)
 import LogicTasks.Formula      (TruthValue(..))
 import Numeric                 (showBin)
@@ -80,7 +82,7 @@ getParticipants :: Gen [Bool]
 getParticipants = vectorOf 4 arbitrary `suchThat` \bs -> or bs && not (and bs)
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 getTask = do
     [a,b,c,d] <- getParticipants
     names <- getNames
@@ -90,11 +92,11 @@ getTask = do
       coming = [ n | (True,n) <- zipped ]
     pure (show ((legend,hints),coming), checkers formula False True, getFormData (form names))
   where
-    form :: (Text,Text,Text,Text) -> Rendered Widget
+    form :: (String,String,String,String) -> Rendered Widget
     form n = tableForm ["A","B","C","D"] $$>
              formify (Nothing :: Maybe FormType) (nonTableFields n)
 
-    getNames :: Gen (Text,Text,Text,Text)
+    getNames :: Gen (String,String,String,String)
     getNames = do
       a <- elements ["Astrid","Anna"]
       b <- elements ["Ben","Bernd"]
@@ -104,7 +106,7 @@ getTask = do
 
 
 
-formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (Text,Text,Text,Text) -> Gen (SynTree BinOp Char, String, [String])
+formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (String,String,String,String) -> Gen (SynTree BinOp Char, String, [String])
 formulaAndHints a b c d (aN,bN,cN,dN) = do
     shuffled <- shuffle (zip [part1,part2,part3,part4,part5] [hint1,hint2,hint3,hint4,hint5])
     let (parts,hints) = unzip shuffled
@@ -214,8 +216,8 @@ tableForm staticHeaders =
 
 
 
-nonTableFields :: (Text,Text,Text,Text) -> [[FieldInfo]]
-nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsEnum Vertical "Wer kommt?" (fromJust . flip lookup nameMatching)]]
+nonTableFields :: (String,String,String,String) -> [[FieldInfo]]
+nonTableFields (a,b,c,d) = [[single "Formel"], [buttonsEnum Vertical "Wer kommt?" (fromString . fromJust . flip lookup nameMatching)]]
   where
     nameMatching = [(A, a), (B, b), (C, c), (D, d)]
 
