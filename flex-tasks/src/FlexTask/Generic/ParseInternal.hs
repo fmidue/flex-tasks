@@ -87,10 +87,10 @@ Bodyless instances can be declared for any type instancing Generic.
 __Exception: Types with multiple constructors.__ Use utility functions for those or provide your own instance.
 -}
 class Parse a where
-  parseInput :: Parser a
+  formParser :: Parser a
 
-  default parseInput :: (Generic a, GParse (Rep a)) => Parser a
-  parseInput = to <$> gparse
+  default formParser :: (Generic a, GParse (Rep a)) => Parser a
+  formParser = to <$> gparse
 
 
 
@@ -116,12 +116,12 @@ instance GParse a => GParse (M1 i c a) where
 
 -- | Constants, additional parameters and recursion of kind *
 instance Parse a => GParse (K1 i a) where
-  gparse = K1 <$> parseInput
+  gparse = K1 <$> formParser
 
 
 
 instance Parse Int where
-  parseInput = escaped $ do
+  formParser = escaped $ do
     sign <- optionMaybe $ char '-'
     ds <- many1 digit
     pure $ read $ case sign of
@@ -131,23 +131,23 @@ instance Parse Int where
 
 
 instance Parse String where
-  parseInput = escaped $ manyTill anyChar $ try $ lookAhead $
+  formParser = escaped $ manyTill anyChar $ try $ lookAhead $
       escape >> notFollowedBy (string "\"")
 
 
 
 instance Parse Text where
-  parseInput = T.pack <$> parseInput
+  formParser = T.pack <$> formParser
 
 
 
 instance Parse Textarea where
-  parseInput = Textarea <$> parseInput
+  formParser = Textarea <$> formParser
 
 
 
 instance Parse Bool where
-  parseInput = escaped $ do
+  formParser = escaped $ do
     val <- try (string "yes") <|> string "no"
     pure $ case val of
             "yes" -> True
@@ -156,7 +156,7 @@ instance Parse Bool where
 
 
 instance Parse Double where
-  parseInput = escaped $ do
+  formParser = escaped $ do
     sign <- optionMaybe $ char '-'
     whole <- many1 digit
     dot <- optionMaybe (char '.' <|> char ',')
@@ -186,39 +186,39 @@ instance (Parse a, Parse b, Parse c, Parse d, Parse e, Parse f) => Parse (a,b,c,
 
 
 parseList :: Parse a => Parser [a]
-parseList = try (escaped parseEmpty) <|> sepBy parseInput (parseText listDelimiter)
+parseList = try (escaped parseEmpty) <|> sepBy formParser (parseText listDelimiter)
     where
       parseEmpty = parseText missingMarker >> pure []
 
 
 instance {-# Overlappable #-} Parse a => Parse [a] where
-  parseInput = parseList
+  formParser = parseList
 
 
 -- To avoid clash with TypeError instance in Parse.hs
 instance Parse [String] where
-  parseInput = parseList
+  formParser = parseList
 
 
 instance Parse a => Parse (Maybe a) where
-  parseInput = do
+  formParser = do
     mValue <- optionMaybe $ try $ escaped $ parseText emptyMarker
     case mValue of
-      Nothing -> Just <$> parseInput
+      Nothing -> Just <$> formParser
       Just _  -> pure Nothing
 
 
 instance Parse SingleChoiceSelection where
-  parseInput = singleChoiceAnswer <$> parseInput
+  formParser = singleChoiceAnswer <$> formParser
 
 
 instance Parse MultipleChoiceSelection where
-  parseInput = multipleChoiceAnswer <$> parseWithEmptyMarker
+  formParser = multipleChoiceAnswer <$> parseWithEmptyMarker
 
 
 
 {- |
-Parser for single choice answer of Enum types. Use as implementation of `parseInput` for manual `Parse` instances.
+Parser for single choice answer of Enum types. Use as implementation of `formParser` for manual `Parse` instances.
 Intended for use with types such as
 
 @
@@ -228,7 +228,7 @@ data MyType = One | Two | Three deriving (Bounded, Enum, Eq)
 that can not use a bodyless `Parse` instance.
 -}
 parseInstanceSingleChoice :: (Bounded a, Enum a, Eq a) => Parser a
-parseInstanceSingleChoice = toEnum . subtract 1 <$> parseInput
+parseInstanceSingleChoice = toEnum . subtract 1 <$> formParser
 
 
 
@@ -239,7 +239,7 @@ parseInstanceMultiChoice = map (toEnum . subtract 1) <$> parseWithEmptyMarker
 
 
 parseWithEmptyMarker :: Parser [Int]
-parseWithEmptyMarker = filter (>0) <$> parseInput
+parseWithEmptyMarker = filter (>0) <$> formParser
 
 
 

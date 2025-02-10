@@ -33,10 +33,10 @@ import FlexTask.Processing.Text         (formatAnswer)
 data TestEnum = One | Two | Three deriving (Bounded, Enum, Eq, Show)
 
 instance Parse TestEnum where
-  parseInput = parseInstanceSingleChoice
+  formParser = parseInstanceSingleChoice
 
 instance Parse [TestEnum] where
-  parseInput = parseInstanceMultiChoice
+  formParser = parseInstanceMultiChoice
 
 
 spec :: Spec
@@ -47,7 +47,7 @@ spec = do
         Left _ -> withParser (escaped testParse) `shouldFailOn` escapedSingle s
         Right res -> withParser (escaped testParse) (escapedSingle s) `shouldParse` stripEscape res
 
-  describe "parseInput" $ do
+  describe "formParser" $ do
     context "should work for all base types" $ do
       prop "String" $ testParsingString id
       prop "Text" $ testParsingString pack
@@ -149,4 +149,4 @@ withParser p = parse p ""
 
 
 parsesTo :: (Show a, Eq a, Parse a) => String -> a -> Expectation
-parsesTo input output = withParser parseInput input `shouldParse` output
+parsesTo input output = withParser formParser input `shouldParse` output

@@ -298,12 +298,12 @@ Refer to its documentation if necessary.
 To implement parseSubmission, you will typically invoke 'parseWithOrReport'
 and 'reportWithFieldNumber', and possibly also 'parseWithFallback', all
 supplied by 'FlexTask.Generic.Parse'. In simple situations, '<&>' may suffice.
-Simply using `parseWithOrReport parseInput reportWithFieldNumber` directly
+Simply using `parseWithOrReport formParser reportWithFieldNumber` directly
 reads the form inputs and embeds the result directly into 'OutputCapable'.
 It is enough if you do not need additional processing of the input.
 The 'parseWithFallback' function can be used to additionally parse/process
 Strings from among the form result, that is, individual input fields.
-It should be used after 'parseWithOrReport parseInput', instead of on its own.
+It should be used after 'parseWithOrReport formParser', instead of on its own.
 'parseWithFallback' takes a parser, messaging function, fallback parser and the input.
 The secondary parser is used as a simpler sanity check on the input in case
 of an error with the primary parser.
@@ -318,7 +318,7 @@ use '$>>=' of 'Control.OutputCapable.Blocks.Generic'.
 This operation can be seen as a '>>=' equivalent for 'LangM''.
 Example:
 ```
-parseWithOrReport parseInput reportWithFieldNumber input
+parseWithOrReport formParser reportWithFieldNumber input
   $>>= \s -> parseWithFallback (fully p) someFunc (fully fallback) s
     $>>= pure . ...
 ```
@@ -349,7 +349,7 @@ import Control.OutputCapable.Blocks (
   ReportT,
   OutputCapable,
   )
-import FlexTask.Generic.Parse  (parseInput, parseWithOrReport, reportWithFieldNumber)
+import FlexTask.Generic.Parse  (formParser, parseWithOrReport, reportWithFieldNumber)
 
 import Global
 
@@ -359,6 +359,6 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Solution
-parseSubmission = parseWithOrReport parseInput reportWithFieldNumber
+parseSubmission = parseWithOrReport formParser reportWithFieldNumber
 
 |]

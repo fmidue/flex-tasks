@@ -410,11 +410,11 @@ import Global
 
 
 instance Parse TruthValue where
-  parseInput = escaped parser
+  formParser = escaped parser
 
 
 instance Parse [Namen] where
-  parseInput = parseInstanceMultiChoice
+  formParser = parseInstanceMultiChoice
 
 
 makeTable :: [Maybe (PropFormula Char)] -> [Maybe TruthValue] -> Table
@@ -426,7 +426,7 @@ makeTable headers values = Table $ zip allHeaders formattedTruthValues
 
 parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
 parseSubmission input =
-    parseWithOrReport parseInput reportWithFieldNumber input $>>= \(headerStrings,columns,formulaString,names) ->
+    parseWithOrReport formParser reportWithFieldNumber input $>>= \(headerStrings,columns,formulaString,names) ->
       traverse (traverse parseIt) headerStrings $>>= \parsedHeaders ->
         parseIt formulaString $>>= \parsedFormula ->
           pure (makeTable parsedHeaders columns, parsedFormula, names)
