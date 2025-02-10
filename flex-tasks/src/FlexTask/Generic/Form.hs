@@ -1,8 +1,10 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-missing-fields #-}
 {-# language DefaultSignatures #-}
 {-# language DeriveGeneric #-}
 {-# language LambdaCase #-}
 {-# language OverloadedStrings #-}
+{-# language StandaloneDeriving #-}
 {-# language TypeOperators #-}
 
 {- |
@@ -48,8 +50,7 @@ module FlexTask.Generic.Form
   ) where
 
 
-import Control.Monad.Reader (Reader)
-import Data.List.Extra      (nubSort, uncons, unsnoc)
+import Data.List.Extra      (intercalate, nubSort, uncons, unsnoc)
 import Data.Tuple.Extra     (first)
 import Data.Maybe           (fromMaybe)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
@@ -58,12 +59,12 @@ import Data.Text            (Text, pack, unpack)
 import Yesod
 
 import FlexTask.Widgets
-  ( horizontalRadioField
+  ( checkboxField
+  , horizontalRadioField
   , joinRenders
   , renderForm
-  , verticalCheckboxesField
   )
-import FlexTask.YesodConfig (FlexForm, Handler, Rendered, Widget)
+import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
 
 
@@ -137,19 +138,23 @@ list22
 data FieldInfo
   = Single (FieldSettings FlexForm)
   | List Alignment [FieldSettings FlexForm]
-  | ChoicesDropdown (FieldSettings FlexForm) [Text]
-  | ChoicesButtons Alignment (FieldSettings FlexForm) [Text]
+  | ChoicesDropdown (FieldSettings FlexForm) [SomeMessage FlexForm]
+  | ChoicesButtons Alignment (FieldSettings FlexForm) [SomeMessage FlexForm]
   | InternalListElem (FieldSettings FlexForm)
   deriving (Show)
 
 
--- For tests; Not used in actual code
-instance Show (FieldSettings FlexForm) where
-  show (FieldSettings _ _ fId fName fAttrs) = unlines
-    [ "Id: " ++ show fId
-    , "Name: " ++ show fName
-    , "Attributes: " ++ show fAttrs
-    ]
+-- For tests; TODO: Move completely into test suite
+deriving instance Show (FieldSettings FlexForm)
+
+instance Show (SomeMessage FlexForm) where
+  show m = '(': intercalate ", " (map unpack
+      [ "German: " <> inLang "de"
+      , "English: " <> inLang "en"
+      ]
+      ) ++ ")"
+    where
+      inLang l = renderMessage FlexForm{} [l] m
 
 
 -- | Inner alignment of input field elements.
@@ -257,19 +262,19 @@ class Formify a where
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
       -> [[FieldInfo]] -- ^ Structure and type of form.
-      -> ([[FieldInfo]], [[Rendered]]) -- ^ remaining form structure and completed sub-renders.
+      -> ([[FieldInfo]], [[Rendered Widget]]) -- ^ remaining form structure and completed sub-renders.
 
   default formifyImplementation
       :: (Generic a, GFormify (Rep a))
       => Maybe a
       -> [[FieldInfo]]
-      -> ([[FieldInfo]], [[Rendered]])
+      -> ([[FieldInfo]], [[Rendered Widget]])
   formifyImplementation mDefault = gformify $ from <$> mDefault
 
 
 
 class GFormify f where
-  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], [[Rendered]])
+  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], [[Rendered Widget]])
 
 
 
@@ -404,7 +409,7 @@ formify
   :: (Formify a)
   => Maybe a -- ^ Optional default value for form.
   -> [[FieldInfo]] -- ^ Structure of form.
-  -> Rendered -- ^ Rendered form.
+  -> Rendered Widget -- ^ Rendered form.
 formify = checkAndApply joinRenders
 
 
@@ -413,7 +418,7 @@ like `formify`, but yields the individual sub-renders instead of a combined form
 Retains the layout structure given by the `FieldInfo` list argument.
 This can be used in custom forms to incorporate generated inputs.
 -}
-formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Reader Html (MForm Handler ([Text],[[Widget]]))
+formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered [[Widget]]
 formifyComponents = checkAndApply (fmap (tupleSequence . mapM sequence) . mapM sequence)
   where tupleSequence = fmap (joinAndPart . map joinAndPart)
 
@@ -422,7 +427,7 @@ formifyComponents = checkAndApply (fmap (tupleSequence . mapM sequence) . mapM s
 like `formifyComponents`, but takes a simple list of `FieldInfo` values.
 The sub-renders will also be returned as a flat list without any additional structure.
 -}
-formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Reader Html (MForm Handler ([Text],[Widget]))
+formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Rendered [Widget]
 formifyComponentsFlat ma = checkAndApply (fmap (tupleSequence . sequence) . sequence . concat) ma . (:[])
   where tupleSequence = fmap joinAndPart
 
@@ -433,7 +438,7 @@ joinAndPart = first concat . unzip
 
 checkAndApply
   :: Formify a
-  => ([[Rendered]] -> b)
+  => ([[Rendered Widget]] -> b)
   -> Maybe a
   -> [[FieldInfo]]
   -> b
@@ -455,7 +460,7 @@ renderNextField
      )
   -> Maybe a
   -> [[FieldInfo]]
-  -> ([[FieldInfo]], [[Rendered]])
+  -> ([[FieldInfo]], [[Rendered Widget]])
 renderNextField _ _ [] = error "Incorrect amount of field names"
 renderNextField h ma ((x : xs) : xss) =
   let
@@ -472,7 +477,7 @@ formifyInstanceBasicField
     :: BaseForm a
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceBasicField = renderNextField
   (\case
       Single fs -> (fs, True, areq baseForm)
@@ -487,7 +492,7 @@ formifyInstanceOptionalField
     :: BaseForm a
     => Maybe (Maybe a)
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceOptionalField = renderNextField
   (\case
       Single fs -> (fs, True, aopt baseForm)
@@ -500,7 +505,7 @@ formifyInstanceList
     :: (Formify a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceList _ [] = error "ran out of field names"
 formifyInstanceList _ ((List _ [] : _) : _) = error "List of fields without names!"
 formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
@@ -537,15 +542,15 @@ formifyInstanceSingleChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
 renderNextSingleChoiceField
     :: Eq a
-    => ([Text] -> [(Text, a)])
+    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 renderNextSingleChoiceField pairsWith =
   renderNextField
   (\case
@@ -567,10 +572,10 @@ renderNextSingleChoiceField pairsWith =
 
 renderNextMultipleChoiceField
     :: Eq a
-    => ([Text] -> [(Text, a)])
+    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 renderNextMultipleChoiceField pairsWith =
   renderNextField
   (\case
@@ -582,8 +587,8 @@ renderNextMultipleChoiceField pairsWith =
                                       , True
                                       , areq $
                                           case align of
-                                            Vertical -> verticalCheckboxesField
-                                            Horizontal -> checkboxesField
+                                            Vertical   -> checkboxField True
+                                            Horizontal -> checkboxField False
                                           $ withOptions opts
                                       )
       _ -> error "Incorrect naming scheme for a multi choice!"
@@ -597,12 +602,12 @@ formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered]])
+    -> ([[FieldInfo]], [[Rendered Widget]])
 formifyInstanceMultiChoice = renderNextMultipleChoiceField zipWithEnum
 
 
 
-zipWithEnum :: forall a. (Bounded a, Enum a) => [Text] -> [(Text, a)]
+zipWithEnum :: forall a. (Bounded a, Enum a) => [SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)]
 zipWithEnum labels
   | equalLength labels options = zip labels options
   | otherwise = error "Labels list and options list are of different lengths in an Enum choice form."
@@ -619,8 +624,8 @@ Same as `buttons`, but using an explicit enum type.
 buttonsEnum
   :: (Bounded a, Enum a)
   => Alignment
-  -> FieldSettings FlexForm -- ^ FieldSettings for option input
-  -> (a -> Text)            -- ^ Function from enum type values to labels.
+  -> FieldSettings FlexForm      -- ^ FieldSettings for option input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo
 buttonsEnum align t f = ChoicesButtons align t $ map f [minBound .. maxBound]
 
@@ -634,7 +639,7 @@ depending on the form type.
 buttons
   :: Alignment
   -> FieldSettings FlexForm -- ^ FieldSettings for option input
-  -> [Text]                 -- ^ Option labels
+  -> [SomeMessage FlexForm] -- ^ Option labels
   -> FieldInfo
 buttons = ChoicesButtons
 
@@ -645,8 +650,8 @@ Same as `dropdown`, but using an explicit enum type.
 -}
 dropdownEnum
   :: (Bounded a, Enum a)
-  => FieldSettings FlexForm -- ^ FieldSettings for select input
-  -> (a -> Text)            -- ^ Function from enum type values to labels.
+  => FieldSettings FlexForm      -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo
 dropdownEnum t f = ChoicesDropdown t $ map f [minBound .. maxBound]
 
@@ -659,7 +664,7 @@ depending on the form type.
 -}
 dropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
-  -> [Text]                  -- ^ Option labels
+  -> [SomeMessage FlexForm]  -- ^ Option labels
   -> FieldInfo
 dropdown = ChoicesDropdown
 

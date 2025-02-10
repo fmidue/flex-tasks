@@ -1,5 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
+{-# language RecordWildCards #-}
 {-# language TypeOperators #-}
 
 {- | Functions for creating and composing forms.
@@ -19,6 +20,7 @@ module FlexTask.FormUtil
   , addAttributes
   , addCssClass
   , addNameAndCssClass
+  , supportedLanguages
   -- * functions for custom forms
   , newFlexId
   , newFlexName
@@ -29,7 +31,8 @@ module FlexTask.FormUtil
 
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
-import Data.Text                       (Text, pack, unpack)
+import Data.Map                        (fromList)
+import Data.Text                       (Text, pack)
 import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
 import System.Log.FastLogger           (defaultBufSize, newStdoutLoggerSet)
@@ -37,13 +40,14 @@ import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Cassius                    (Css)
 import Text.Julius                     (Javascript, RawJS(..))
 import Yesod
-import Yesod.Core.Types                (RY)
+import Yesod.Core.Types                (HandlerData(..), HandlerFor(..), RY)
 import Yesod.Default.Config2           (makeYesodLogger)
 
 import qualified Control.Monad.Trans.RWS as RWS   (get)
 import qualified Data.Text               as T     (replace)
 import qualified Yesod.Core.Unsafe       as Unsafe
 
+import FlexTask.Types                  (HtmlDict)
 import FlexTask.YesodConfig (
   FlexForm(..),
   Handler,
@@ -60,7 +64,11 @@ Compose two forms sequentially.
 The output form contains all of the fields from both input forms.
 -}
 infixr 0 $$>
-($$>) :: Monad m => Rendered' m -> Rendered' m -> Rendered' m
+($$>)
+  :: (Monad w, Monad m)
+  => Rendered' m (w a)
+  -> Rendered' m (w b)
+  -> Rendered' m (w b)
 f1 $$> f2 = do
     res1 <- f1
     res2 <- f2
@@ -70,15 +78,15 @@ f1 $$> f2 = do
       pure (nubOrd $ names1 ++ names2, wid1 >> wid2)
 
 
-applyToWidget :: Functor m => (Widget -> Widget) -> Rendered' m -> Rendered' m
+applyToWidget :: Functor m => (w -> w') -> Rendered' m w -> Rendered' m w'
 applyToWidget f form = fmap (second f) <$> form
 
 
 addContent
   :: (ToWidget FlexForm (render -> a), Functor m)
   => (render -> a)
-  -> Rendered' m
-  -> Rendered' m
+  -> Rendered' m Widget
+  -> Rendered' m Widget
 addContent content = applyToWidget (<* toWidget content)
 
 
@@ -88,9 +96,9 @@ Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters or hosted files.
 -}
 addCss
   :: (render ~ RY FlexForm, Functor m)
-  => (render -> Css) -- ^ CSS template
-  -> Rendered' m     -- ^ Form to add to
-  -> Rendered' m
+  => (render -> Css)      -- ^ CSS template
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addCss = addContent
 
 
@@ -101,8 +109,8 @@ Use with `Yesod` Julius Shakespeare quasi quoters or hosted files.
 addJs
   :: (render ~ RY FlexForm, Functor m)
   => (render -> Javascript) -- ^ Javascript template
-  -> Rendered' m            -- ^ Form to add to
-  -> Rendered' m
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addJs = addContent
 
 
@@ -113,8 +121,8 @@ addCssAndJs
   :: (render ~ RY FlexForm, Functor m)
   => (render -> Css)        -- ^ CSS template
   -> (render -> Javascript) -- ^ Javascript template
-  -> Rendered' m            -- ^ Form to add to
-  -> Rendered' m
+  -> Rendered' m Widget -- ^ Form to add to
+  -> Rendered' m Widget
 addCssAndJs css js = applyToWidget ((<* toWidget css) . (<* toWidget js))
 
 
@@ -199,7 +207,7 @@ function setDefaults(values){
       else if(fieldType != null && fieldType.toLowerCase() === "checkbox"){
         field.checked = input.includes(field.getAttribute("value"));
       }
-      else{
+      else if(fieldType != null && fieldType.toLowerCase() !== "hidden"){
         var inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
         if(inputElem != "Missing" && inputElem != "None"){
           field.value = inputElem;
@@ -211,26 +219,47 @@ function setDefaults(values){
 var fieldNames = #{rawJS (show names)};|]
 
 
+-- | List of languages to cover in instances of `RenderMessage` for custom translations.
+supportedLanguages :: [Lang]
+supportedLanguages = ["de","en"]
+
+
 {- |
 Extract a form from the environment.
-The result is an IO embedded tuple of field IDs and Html code.
+The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
 -}
-getFormData :: Rendered -> IO ([String],String)
+getFormData :: Rendered Widget -> IO ([Text], HtmlDict)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    (fNames,html) <- unsafeHandler FlexForm {appLogger = logger} writeHtml
-    let fields = unpack <$> fNames
-    let form = concat $ lines $ renderHtml html
-    return (fields,form)
+    Unsafe.fakeHandlerGetLogger
+      appLogger
+      FlexForm {appLogger = logger}
+      writeHtml
   where
-    unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
+    writeHtml :: Handler ([Text], HtmlDict)
+    writeHtml = case supportedLanguages of
+      (l:ls) -> do
+        (names,first) <- withLang l
+        rest <- traverse (fmap snd . withLang) ls
+        return (names, fromList $ first:rest)
+      _ -> error "No supported languages found!"
 
-    writeHtml :: Handler ([Text],Html)
-    writeHtml = do
-      ((names,wid),_) <- runFormGet $ runReader widget
+    withLang :: Lang -> Handler ([Text], (Lang, String))
+    withLang lang = setRequestLang lang $ do
+      (names,wid) <- fst <$> runFormGet (runReader widget)
       let withJS = wid >> toWidgetBody (setDefaultsJS names)
       content <- widgetToPageContent withJS
       html <- withUrlRenderer [hamlet|
         ^{pageHead content}
         ^{pageBody content}|]
-      return (names,html)
+      return (names, (lang, concat $ lines $ renderHtml html))
+
+
+
+-- Manipulate the request data to use a specific language.
+setRequestLang :: Lang -> HandlerFor FlexForm a -> HandlerFor FlexForm a
+setRequestLang lang HandlerFor{..} = do
+  HandlerFor $ unHandlerFor . alterHandlerData
+  where
+    alterHandlerData hd@HandlerData{..} =
+      hd{handlerRequest = handlerRequest{reqLangs = [lang]}}

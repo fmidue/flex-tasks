@@ -5,6 +5,6 @@ packages:
   - flex-tasks-processing
 extra-deps:
   - git: https://github.com/fmidue/output-blocks.git
-    commit: f14dca13e3fa06858ee6299333764b9b89d820c9
+    commit: 15eec5a92d4d372233dc1180f0d68beb9d42fe9d
     subdirs:
       - output-blocks
