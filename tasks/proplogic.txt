@@ -177,9 +177,13 @@ formulaAndHints a b c d (aN,bN,cN,dN) = do
 
 
 nonTableFields :: (String,String,String,String) -> [[FieldInfo]]
-nonTableFields (a,b,c,d) = [[single $ addCssClass formulaClass "Formel"], [buttonsEnum Vertical "Wer kommt?" (fromString . fromJust . flip lookup nameMatching)]]
+nonTableFields (a,b,c,d) = [
+      [single $ addCssClass formulaClass "Formel"]
+    , [buttonsEnum Vertical "Wer kommt?" getName]
+    ]
   where
     nameMatching = [(A, a), (B, b), (C, c), (D, d)]
+    getName = fromString . fromJust . flip lookup nameMatching
 
 
 
