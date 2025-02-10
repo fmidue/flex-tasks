@@ -319,11 +319,12 @@ fully p = spaces *> p <* eof
 Provide error report with positional information relative to an input form.
 -}
 reportWithFieldNumber :: OutputCapable m => String -> ParseError -> LangM m
-reportWithFieldNumber input e = indent $ do
+reportWithFieldNumber input e = do
     translate $ do
       german "Fehler in Eingabefeld"
       english "Error in input field"
-    text $ " " ++ fieldNum ++ ":" ++ errors
+    text $ " " ++ fieldNum ++ ":"
+    indent $ text errors
     pure ()
   where
     fieldNum = show $ length (filter (=='\a') consumed) `div` 2 + 1
