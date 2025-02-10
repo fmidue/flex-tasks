@@ -12,8 +12,7 @@ module FlexTask.Generic.ParseInternal
   , parseWithOrReport
   , reportWithFieldNumber
   , parseWithFallback
-  , withInput
-  , withoutInput
+  , displayInputAnd
   ) where
 
 
@@ -338,20 +337,14 @@ reportWithFieldNumber input e = do
       $ errorMessages e
     consumed = take (sourceColumn $ errorPos e) input
 
-withInput ::
+displayInputAnd ::
   OutputCapable m =>
   (Maybe a -> ParseError -> State (Map Language String) ())
   -> String -> Maybe a -> ParseError -> LangM m
-withInput messaging a ma err = do
+displayInputAnd messaging a ma err = do
   translate $ do
     german "Fehler in"
     english "Error in"
   text $ " \"" ++ a ++ "\" : "
   indent $ translate $ messaging ma err
   pure ()
-
-withoutInput ::
-  OutputCapable m =>
-  (Maybe a -> ParseError -> State (Map Language String) ())
-  -> String -> Maybe a -> ParseError -> LangM m
-withoutInput messaging _ ma = translate . messaging ma
