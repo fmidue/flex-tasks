@@ -213,7 +213,6 @@ import Data.Containers.ListUtils        (nubOrd)
 import Data.Foldable                    (toList)
 import Data.List (
   delete,
-  intercalate,
   isInfixOf,
   transpose,
   )
