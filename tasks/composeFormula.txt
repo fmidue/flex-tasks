@@ -45,20 +45,6 @@ task03 = ComposeFormulaConfig
   , offerUnicodeInput = True
   }
 
--- For documentation and type checking. Not used in task.
-defaultTaskData :: TaskData
-defaultTaskData = ComposeFormulaInst
-  { operator = And
-  , leftTree = Leaf 'A'
-  , rightTree = Leaf 'B'
-  , leftTreeImage = Just "example.svg"
-  , rightTreeImage = Nothing
-  , addExtraHintsOnAssociativity = True
-  , addText = Nothing
-  , showSolution = False
-  , unicodeAllowed = True
-  }
-
 =============================================
 
 {-# language OverloadedStrings #-}

@@ -35,24 +35,6 @@ makeConfig sig = Certain {
   }
 }
 
--- For documentation and type checking. Not used in the task
-defaultTaskData :: TaskData
-defaultTaskData = SigInstance {
-  symbols = [ Symbol "f" [Type "a", Type "b"] (Type "c")
-            , Symbol "g" [] (Type "a")
-            , Symbol "h" [Type "a"] (Type "b")
-            ],
-  terms = [ Term "f" [ Term "g" []
-                     , Term "h" [Term "g" []]
-                     ]
-          , Term "g" [Term "h" []]
-          , Term "f" [Term "h" []]
-          ],
-  correct = [1],
-  moreFeedback = False,
-  showSolution = False
-  }
-
 
 -- Possible signatures to roll for the task
 sigList :: [Signature]

@@ -3,7 +3,6 @@
 module Global where
 
 
-import Control.OutputCapable.Blocks
 import Data.Data (Data)
 import LogicTasks.Formula (TruthValue(..))
 import Trees.Types (PropFormula)
@@ -29,11 +28,6 @@ rows          = 2^staticColumns
 tableRequired, showSolution :: Bool
 tableRequired = False
 showSolution  = True
-
-
--- For Documentation and type checking. Not used in task.
-defaultTaskData :: TaskData
-defaultTaskData = (("Match names with Characters",["hint1","hint2"]), [A,B])
 
 
 =============================================
