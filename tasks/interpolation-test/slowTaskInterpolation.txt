@@ -1,7 +1,8 @@
 module Global where
 
 
-type Solution = (Int,Int)
+type Submission = (Int,Int)
+type TaskData = [Int]
 
 =============================================
 
@@ -23,10 +24,10 @@ import Global
 
 
 
-getTask :: Gen (String, String, IO ([Text],HtmlDict))
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
 getTask = do
     numbers <- vectorOf 3000 $ chooseInt (-100000,100000)
-    pure (show numbers, checkers numbers, getFormData form)
+    pure (numbers, checkers numbers, getFormData form)
 
 
 
@@ -35,7 +36,7 @@ fields = [[single "Number one"], [single "Number two"]]
 
 
 form :: Rendered Widget
-form = formify (Nothing :: Maybe Solution) fields
+form = formify (Nothing :: Maybe Submission) fields
 
 
 checkers :: [Int] -> String
@@ -51,7 +52,7 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> a -> Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
 checkSyntax _ _ (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
@@ -62,7 +63,7 @@ checkSyntax _ _ (a,b)= do
     sol = #{solution}
 
 
-checkSemantics :: OutputCapable m => FilePath -> a -> Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> a -> Submission -> Rated m
 checkSemantics _ _ (a,b) = do
     assertion (all (`elem` #{noNegNeighbours}) [a,b]) $
       translate $ do
@@ -89,9 +90,10 @@ module Description (description) where
 
 import Control.OutputCapable.Blocks
 
+import Global
 
 
-description :: OutputCapable m => FilePath -> [Int] -> LangM m
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ input = do
   paragraph $ translate $ do
     german "Betrachten Sie die folgende Liste von Zahlen."
@@ -130,5 +132,5 @@ import Global
 
 
 
-parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Solution
+parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
 parseSubmission = parseWithOrReport formParser reportWithFieldNumber

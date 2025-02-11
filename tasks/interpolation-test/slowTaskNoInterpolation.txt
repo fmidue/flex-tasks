@@ -11,7 +11,7 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> [Int] -> Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> TaskData -> Submission -> LangM m
 checkSyntax _ sol (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
@@ -20,7 +20,7 @@ checkSyntax _ sol (a,b)= do
     pure ()
 
 
-checkSemantics :: OutputCapable m => FilePath -> [Int] -> Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
 checkSemantics _ sol (a,b) = do
     assertion (all (`elem` noNegNeighbours) [a,b]) $
       translate $ do

@@ -11,11 +11,11 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> Tree -> Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> a -> b -> LangM m
 checkSyntax _ _ _ = pure ()
 
 
-checkSemantics :: OutputCapable m => FilePath -> Tree -> Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
 checkSemantics _ sol (s,p) = do
     assertion (s == getSum sol) $
       translate $ do
