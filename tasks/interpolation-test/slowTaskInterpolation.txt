@@ -11,8 +11,10 @@ module TaskData (getTask) where
 
 
 import Data.String.Interpolate (i)
+import Data.Text               (Text)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Test.QuickCheck.Gen
 
@@ -21,7 +23,7 @@ import Global
 
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 getTask = do
     numbers <- vectorOf 3000 $ chooseInt (-100000,100000)
     pure (show numbers, checkers numbers, getFormData form)
@@ -116,13 +118,17 @@ description _ input = do
 module Parse (parseSubmission) where
 
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+import Control.OutputCapable.Blocks     (LangM', OutputCapable, ReportT)
+import FlexTask.Generic.Parse (
+  formParser,
+  parseWithOrReport,
+  reportWithFieldNumber,
+  )
 
 import Global
 
 
 
 
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = useParser parseInput
+parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Solution
+parseSubmission = parseWithOrReport formParser reportWithFieldNumber

@@ -116,7 +116,7 @@ checkboxField isVertical optList = (multiSelectField optList)
 |]
               [whamlet|
 <span ##{theId}>
-  <input type=hidden name=#{title} value=-1>
+  <input type=hidden name=#{title} value=0>
   $forall opt <- os
     $with box <- checkboxWidget opt
       $if isVertical

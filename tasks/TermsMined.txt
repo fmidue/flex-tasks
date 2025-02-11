@@ -204,10 +204,12 @@ sigList = [
 module TaskData where
 
 import Data.Functor                     ((<&>))
+import Data.String                      (fromString)
 import Data.String.Interpolate          (i)
-import Data.Text                        (pack)
+import Data.Text                        (Text)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types                   (HtmlDict)
 import FlexTask.YesodConfig             (Rendered, Widget)
 import TermTasks.Direct                 (genInst)
 import TermTasks.Records (
@@ -215,15 +217,25 @@ import TermTasks.Records (
   SigInstance(..),
   )
 import Test.QuickCheck.Gen              (Gen, elements)
+import Yesod                            (RenderMessage(..), fieldSettingsLabel)
 
 import Global
+
+
+
+data HeaderLabel = HeaderLabel
 
 
 instance MonadFail Gen where
   fail = error
 
 
-getTask :: Gen (TaskData, String, IO ([String],String))
+instance RenderMessage app HeaderLabel where
+  renderMessage _ ("en":_) HeaderLabel  = "Correct Terms"
+  renderMessage _ _        HeaderLabel  = "Korrekte Terme"
+
+
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
 getTask = do
     config <- genConfig
     inst@SigInstance{..} <- genInst config
@@ -233,7 +245,7 @@ getTask = do
 form :: Int -> Rendered Widget
 form amount = formify
   (Nothing :: Maybe MultipleChoiceSelection)
-  [[buttons Vertical "Korrekte Terme/Correct terms" $ map (pack . (++ ".") . show) [1..amount]]]
+  [[buttons Vertical (fieldSettingsLabel HeaderLabel) $ map (fromString . (++ ".") . show) [1..amount]]]
 
 
 genConfig :: Gen Certain
@@ -297,7 +309,7 @@ import Control.OutputCapable.Blocks (
   OutputCapable,
   ReportT,
   )
-import FlexTask.Generic.Parse  (parseInput, useParser)
+import FlexTask.Generic.Parse  (formParser, parseWithOrReport, reportWithFieldNumber)
 
 import Global
 
@@ -307,4 +319,4 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Submission
-parseSubmission = useParser parseInput
+parseSubmission = parseWithOrReport formParser reportWithFieldNumber

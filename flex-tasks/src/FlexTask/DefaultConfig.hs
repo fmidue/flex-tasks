@@ -34,7 +34,7 @@ Adjust the submission type or add utility functions here.
 module Global where
 
 
-type Submission = (Int,Int)
+type Solution = (Int,Int)
 type DescData = (Int,Int,Int)
 type TaskData = (DescData,Submission)
 
@@ -52,11 +52,11 @@ This includes (in order):
 
 - Flexible data available to both the task description and the checks/feedback. (String)
 - The entire "Check" module, containing a syntax and a semantics check. (String, use QuasiQuoting)
-- An HTML input form represented by the names of all contained input fields and HTML code,
-  wrapped in IO. (IO ([String],String))
+- An HTML input form represented by the names of all contained input fields
+  and a map of languages to translated HTML code, wrapped in IO. (IO ([Text],HtmlDict))
 
 Provide a function
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (String, String, IO ([Text],HtmlDict))
 implementing a generator for these elements.
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
@@ -100,16 +100,31 @@ module TaskData (getTask) where
 
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Data.String.Interpolate (i)
+import Data.Text               (Text)
 import Test.QuickCheck.Gen
+import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 
 import Global
 
 
 
 
-getTask :: Gen (TaskData, String, IO ([String],String))
+data Label = Product | Sum
+
+
+
+instance RenderMessage a Label where
+  renderMessage app ("de":_) Product = "Produkt"
+  renderMessage app ("de":_) Sum     = "Summe"
+  renderMessage app _        Product = "Product"
+  renderMessage app _        Sum     = "Sum"
+
+
+
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
 getTask = do
     numbers <- vectorOf 3 $ elements [1..6 :: Int]
     let
@@ -120,7 +135,9 @@ getTask = do
 
 
 fieldNames :: [[FieldInfo]]
-fieldNames = [[single "Product"], [single "Sum"]]
+fieldNames = [[fromLabel Product], [fromLabel Sum]]
+  where
+    fromLabel = single. fieldSettingsLabel
 
 
 form :: Rendered Widget
@@ -279,28 +296,33 @@ The final result is passed to the check functions to generate feedback.
 The parsers used throughout are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
 
-To implement parseSubmission, you will typically invoke 'useParser' and
-possibly 'parseWithFallback' or 'parseWithMessage', all
+To implement parseSubmission, you will typically invoke 'parseWithOrReport'
+and 'reportWithFieldNumber', and possibly also 'parseWithFallback', all
 supplied by 'FlexTask.Generic.Parse'. In simple situations, '<&>' may suffice.
-The 'useParser' function takes a parser and the 'String' input as arguments
-and embeds the result directly into 'OutputCapable'.
-This function directly reads the form results.
+Simply using `parseWithOrReport formParser reportWithFieldNumber` directly
+reads the form inputs and embeds the result directly into 'OutputCapable'.
 It is enough if you do not need additional processing of the input.
 The 'parseWithFallback' function can be used to additionally parse/process
 Strings from among the form result, that is, individual input fields.
-It should be used after 'useParser', instead of on its own.
+It should be used after 'parseWithOrReport formParser', instead of on its own.
 'parseWithFallback' takes a parser, messaging function, fallback parser and the input.
 The secondary parser is used as a simpler sanity check on the input in case
 of an error with the primary parser.
 The possible error of the fallback parser and the original error
 are then fed to the messaging function to construct the report.
 Use this to produce more sophisticated error messages.
+A simpler route is to also use just 'parseWithOrReport' in this phase, with
+something like 'const (text . show)' as the reporting function.
 
 If you want to chain multiple parsing steps, e.g. with 'parseWithFallback',
 use '$>>=' of 'Control.OutputCapable.Blocks.Generic'.
 This operation can be seen as a '>>=' equivalent for 'LangM''.
 Example:
-'useParser parseInput input $>>= \s -> parseWithFallback p someFunc fallback s $>>= pure . ...'
+```
+parseWithOrReport formParser reportWithFieldNumber input
+  $>>= \s -> parseWithFallback p someFunc fallback s
+    $>>= pure . ...
+```
 
 As with forms, a generic parser interface is available.
 The steps are similar:
@@ -328,7 +350,7 @@ import Control.OutputCapable.Blocks (
   ReportT,
   OutputCapable,
   )
-import FlexTask.Generic.Parse  (parseInput, useParser)
+import FlexTask.Generic.Parse  (formParser, parseWithOrReport, reportWithFieldNumber)
 
 import Global
 
@@ -338,6 +360,6 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Submission
-parseSubmission = useParser parseInput
+parseSubmission = parseWithOrReport formParser reportWithFieldNumber
 
 |]

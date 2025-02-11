@@ -33,10 +33,10 @@ import FlexTask.Processing.Text         (formatAnswer)
 data TestEnum = One | Two | Three deriving (Bounded, Enum, Eq, Show)
 
 instance Parse TestEnum where
-  parseInput = parseInstanceSingleChoice
+  formParser = parseInstanceSingleChoice
 
 instance Parse [TestEnum] where
-  parseInput = parseInstanceMultiChoice
+  formParser = parseInstanceMultiChoice
 
 
 spec :: Spec
@@ -47,7 +47,7 @@ spec = do
         Left _ -> withParser (escaped testParse) `shouldFailOn` escapedSingle s
         Right res -> withParser (escaped testParse) (escapedSingle s) `shouldParse` stripEscape res
 
-  describe "parseInput" $ do
+  describe "formParser" $ do
     context "should work for all base types" $ do
       prop "String" $ testParsingString id
       prop "Text" $ testParsingString pack
@@ -92,12 +92,13 @@ spec = do
         escapedSingle (show $ i+1) `parsesTo` toEnum @TestEnum i
     specify "multiple choice works" $
       forAll (sublistOf [0..2]) $ \is ->
-        escapedList (map (show . (+1)) is) `parsesTo` map (toEnum @TestEnum) (removeEmpty is)
+        escapedList (map show is) `parsesTo`
+        map (toEnum @TestEnum . subtract 1) (removeEmpty is)
   where
     testParse = many1 digit
     boolShow b = if b then "yes" else "no"
     maybeShow = maybe "None"
-    removeEmpty = filter (<0)
+    removeEmpty = filter (>0)
 
     testParsingMaybeStringList fromString = testParsingStringList (format fromString)
     testParsingMaybe from = testParsingString (format from)
@@ -148,4 +149,4 @@ withParser p = parse p ""
 
 
 parsesTo :: (Show a, Eq a, Parse a) => String -> a -> Expectation
-parsesTo input output = withParser parseInput input `shouldParse` output
+parsesTo input output = withParser formParser input `shouldParse` output

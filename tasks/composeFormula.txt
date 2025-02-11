@@ -67,22 +67,35 @@ defaultTaskData = ComposeFormulaInst
 module TaskData where
 
 import Data.String.Interpolate          (i)
+import Data.Text                        (Text)
 import FlexTask.FormUtil                (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.Types                   (HtmlDict)
 import FlexTask.YesodConfig             (Rendered, Widget)
 import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
+import Yesod                            (RenderMessage(..), fieldSettingsLabel)
 
 import Global
 
 
-getTask :: Gen (TaskData, String, IO ([String],String))
+data InputLabel = First | Second
+
+instance RenderMessage app InputLabel where
+  renderMessage _ ("en":_) First  = "First Formula"
+  renderMessage _ _        First  = "Erste Formel"
+  renderMessage _ ("en":_) Second = "Second Formula"
+  renderMessage _ _        Second = "Zweite Formel"
+
+
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
 getTask = do
     inst <- generateComposeFormulaInst task03
     pure (inst, checkers, getFormData form)
 
 fields :: [[FieldInfo]]
-fields = [[single "Erste Formel:", single "Zweite Formel:"]]
+fields = [[field First, field Second]]
+  where field = single . fieldSettingsLabel
 
 form :: Rendered Widget
 form = formify (Nothing :: Maybe (String,String)) fields
@@ -168,11 +181,18 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   ($>>=),
   )
-import FlexTask.Generic.Parse  (parseInput, parseWithFallback, useParser)
+import FlexTask.Generic.Parse (
+  displayInputAnd,
+  formParser,
+  parseWithFallback,
+  parseWithOrReport,
+  reportWithFieldNumber,
+  )
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
   )
 import LogicTasks.Parsing (formulaSymbolParser, parser)
+import ParsingHelpers          (fully)
 
 import Global
 
@@ -181,12 +201,12 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Submission
-parseSubmission input = useParser parseInput input $>>= \(input1,input2) ->
+parseSubmission input = parseWithOrReport formParser reportWithFieldNumber input $>>= \(input1,input2) ->
   parseIt input1 $>>= \formula1 ->
     parseIt input2 $>>= \formula2 ->
       pure [formula1,formula2]
   where
     parseIt = parseWithFallback
-      parser
-      complainAboutMissingParenthesesIfNotFailingOn
-      formulaSymbolParser
+      (fully parser)
+      (displayInputAnd complainAboutMissingParenthesesIfNotFailingOn)
+      (fully formulaSymbolParser)
