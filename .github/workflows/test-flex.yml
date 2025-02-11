@@ -79,6 +79,8 @@ jobs:
         run: |
           set -ex
           cd ${{ env.tasks }}
+          export GHC_PACKAGE_PATH=root/pkgdb
+          expect defaultConfig.expect ${{ steps.ghc-version.outputs.version }}
           find . -name '*.txt' -exec ../${{ env.script }}/test.sh {} root \;
           set +ex
 
