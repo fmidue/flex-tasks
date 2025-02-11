@@ -34,7 +34,7 @@ Adjust the submission type or add utility functions here.
 module Global where
 
 
-type Solution = (Int,Int)
+type Submission = (Int,Int)
 type DescData = (Int,Int,Int)
 type TaskData = (DescData,Submission)
 
