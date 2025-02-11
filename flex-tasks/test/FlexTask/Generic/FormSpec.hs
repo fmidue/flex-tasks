@@ -26,7 +26,7 @@ import Test.QuickCheck (
   vectorOf,
   )
 import Test.QuickCheck.Instances.Text   ()
-import Yesod                            (FieldSettings, Textarea)
+import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
 import FlexTask.FormUtil                (getFormData)
@@ -156,6 +156,10 @@ listInfo = doubleNest $ do
   labels <- vectorOf amount arbitrary
   attributes <- chooseInt (1,20) >>= flip vectorOf arbitrary
   elements [list align labels,listWithoutLabels align amount attributes]
+
+
+instance Arbitrary (SomeMessage FlexForm) where
+  arbitrary = fromString <$> arbitrary
 
 
 instance Arbitrary (FieldSettings FlexForm) where

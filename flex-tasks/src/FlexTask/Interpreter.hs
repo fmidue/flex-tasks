@@ -22,6 +22,7 @@ import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (replace)
 import Data.Map                     (elems)
+import Data.Text                    (Text)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Data.Typeable                (Typeable)
@@ -49,13 +50,18 @@ import System.FilePath             ((</>), (<.>))
 import Test.QuickCheck.Gen         (Gen)
 import Text.RawString.QQ (rQ)
 
-import FlexTask.Types              (CommonModules(..), FlexConf(..), FlexInst(..))
+import FlexTask.Types (
+  CommonModules(..),
+  FlexConf(..),
+  FlexInst(..),
+  HtmlDict,
+  )
 import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
 
-type GenOutput = (String, String, IO ([String],String))
+type GenOutput = (String, String, IO ([Text],HtmlDict))
 
 
 {- |
@@ -90,8 +96,15 @@ genFlexInst
       }
     where
       tfInter :: Interpreter (Gen GenOutput)
-      tfInter = setTopLevelModules ["TaskData", "Global"] >>
-                  interpret "getTask " infer
+      tfInter = do
+        setTopLevelModules ["TaskData", "Global"]
+        setImports [
+            "Data.Generics.Text"
+          , "Data.Map"
+          , "Data.Text"
+          , "Data.Tuple.Extra"
+          ]
+        interpret "first3 gshow <$> getTask " infer
 
 
 
@@ -200,7 +213,7 @@ checkSolution taskData globalCode parseCode checkCode submission picPath = do
         , "Data.Ratio"
         ]
       setTopLevelModules ["Check", "Parse", "Global", "Helper"]
-      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ tData ++ path) infer
+      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
 
     tData = parens taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)

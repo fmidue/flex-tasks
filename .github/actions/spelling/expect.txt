@@ -4,11 +4,13 @@ Equi
 esac
 flexident
 formify
+fwhamlet
 gformify
 gparse
 gshow
 hlint
 lindex
+mappend
 OBT
 oss
 PKGDB
@@ -22,4 +24,5 @@ usr
 Wno
 xit
 xprop
+yesod
 YOURFORM

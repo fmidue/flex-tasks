@@ -1,6 +1,11 @@
+{-# language DeriveDataTypeable #-}
+
 module Global where
 
-data Tree = Leaf Int | Branch (Maybe Tree) (Maybe Tree) Int deriving (Show,Eq)
+
+import Data.Data     (Data)
+
+data Tree = Leaf Int | Branch (Maybe Tree) (Maybe Tree) Int deriving (Data,Eq,Show)
 
 
 addToTree :: [Int] -> Tree
@@ -31,7 +36,8 @@ getProd (Leaf x) = x
 getProd (Branch t1 t2 x) = x * maybe 1 getProd t1 * maybe 1 getProd t2
 
 
-type Solution = (Int,Int)
+type Submission = (Int,Int)
+type TaskData = Tree
 
 =============================================
 
@@ -44,9 +50,11 @@ module TaskData (getTask) where
 
 
 import Data.String.Interpolate (i)
+import Data.Text               (Text)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered)
+import FlexTask.Types          (HtmlDict)
+import FlexTask.YesodConfig    (Rendered, Widget)
 import Test.QuickCheck.Gen
 
 
@@ -55,10 +63,10 @@ import Global
 
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
 getTask = do
     tree <- addToTree <$> vectorOf 3000 (chooseInt (-100000,100000))
-    pure (show tree, checkers tree, getFormData form)
+    pure (tree, checkers tree, getFormData form)
 
 
 
@@ -66,8 +74,8 @@ fields :: [[FieldInfo]]
 fields = [[single "Tree Sum"],[single "Tree Product"]]
 
 
-form :: Rendered
-form = formify (Nothing :: Maybe Solution) fields
+form :: Rendered Widget
+form = formify (Nothing :: Maybe Submission) fields
 
 
 checkers :: Tree -> String
@@ -83,11 +91,11 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => a -> FilePath -> Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
 checkSyntax _ _ _ = pure ()
 
 
-checkSemantics :: OutputCapable m => a -> FilePath -> Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> a -> Submission -> Rated m
 checkSemantics _ _ (s,p) = do
     assertion (s == #{getSum solution}) $
       translate $ do
@@ -113,7 +121,7 @@ import Global
 
 
 
-description :: OutputCapable m => FilePath -> Tree -> LangM m
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ input = do
   code $ show input
   pure ()
@@ -124,14 +132,17 @@ description _ input = do
 module Parse (parseSubmission) where
 
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+import Control.OutputCapable.Blocks     (LangM', OutputCapable, ReportT)
+import FlexTask.Generic.Parse (
+  formParser,
+  parseWithOrReport,
+  reportWithFieldNumber,
+  )
 
 import Global
 
 
 
 
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = useParser parseInput
-
+parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
+parseSubmission = parseWithOrReport formParser reportWithFieldNumber

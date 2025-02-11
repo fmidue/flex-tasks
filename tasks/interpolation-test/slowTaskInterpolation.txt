@@ -1,7 +1,8 @@
 module Global where
 
 
-type Solution = (Int,Int)
+type Submission = (Int,Int)
+type TaskData = [Int]
 
 =============================================
 
@@ -11,9 +12,11 @@ module TaskData (getTask) where
 
 
 import Data.String.Interpolate (i)
+import Data.Text               (Text)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered)
+import FlexTask.Types          (HtmlDict)
+import FlexTask.YesodConfig    (Rendered, Widget)
 import Test.QuickCheck.Gen
 
 import Global
@@ -21,10 +24,10 @@ import Global
 
 
 
-getTask :: Gen (String, String, IO ([String],String))
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
 getTask = do
     numbers <- vectorOf 3000 $ chooseInt (-100000,100000)
-    pure (show numbers, checkers numbers, getFormData form)
+    pure (numbers, checkers numbers, getFormData form)
 
 
 
@@ -32,8 +35,8 @@ fields :: [[FieldInfo]]
 fields = [[single "Number one"], [single "Number two"]]
 
 
-form :: Rendered
-form = formify (Nothing :: Maybe Solution) fields
+form :: Rendered Widget
+form = formify (Nothing :: Maybe Submission) fields
 
 
 checkers :: [Int] -> String
@@ -49,7 +52,7 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => a -> FilePath -> Solution -> LangM m
+checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
 checkSyntax _ _ (a,b)= do
     assertion (all (`elem` sol) [a,b]) $
       translate $ do
@@ -60,7 +63,7 @@ checkSyntax _ _ (a,b)= do
     sol = #{solution}
 
 
-checkSemantics :: OutputCapable m => a -> FilePath -> Solution -> Rated m
+checkSemantics :: OutputCapable m => FilePath -> a -> Submission -> Rated m
 checkSemantics _ _ (a,b) = do
     assertion (all (`elem` #{noNegNeighbours}) [a,b]) $
       translate $ do
@@ -87,9 +90,10 @@ module Description (description) where
 
 import Control.OutputCapable.Blocks
 
+import Global
 
 
-description :: OutputCapable m => FilePath -> [Int] -> LangM m
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ input = do
   paragraph $ translate $ do
     german "Betrachten Sie die folgende Liste von Zahlen."
@@ -116,13 +120,17 @@ description _ input = do
 module Parse (parseSubmission) where
 
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+import Control.OutputCapable.Blocks     (LangM', OutputCapable, ReportT)
+import FlexTask.Generic.Parse (
+  formParser,
+  parseWithOrReport,
+  reportWithFieldNumber,
+  )
 
 import Global
 
 
 
 
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = useParser parseInput
+parseSubmission :: (Monad m, OutputCapable (ReportT o m)) => String -> LangM' (ReportT o m) Submission
+parseSubmission = parseWithOrReport formParser reportWithFieldNumber

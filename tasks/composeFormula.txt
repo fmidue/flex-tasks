@@ -1,35 +1,18 @@
 module Global where
 
-type Solution = (String,String)
-
-=============================================
-
-{-# language OverloadedStrings #-}
-{-# Language QuasiQuotes #-}
-
-module TaskData where
-
-import Data.String.Interpolate          (i)
-import FlexTask.FormUtil                (getFormData)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (Rendered)
-import Tasks.ComposeFormula.Config      (ComposeFormulaConfig(..), TreeDisplayMode (TreeDisplay))
-import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
-import Test.QuickCheck.Gen              (Gen)
-import qualified Data.Map as Map        (fromList)
 import Data.Map                         (Map)
-
-import Tasks.SynTree.Config (
-  SynTreeConfig(..)
+import Tasks.ComposeFormula.Config (
+  ComposeFormulaConfig(..),
+  ComposeFormulaInst(..),
+  TreeDisplayMode (TreeDisplay),
   )
-import Trees.Types (BinOp(..))
+import Tasks.SynTree.Config             (SynTreeConfig(..))
+import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
+import qualified Data.Map               as Map (fromList)
 
-import Global
 
-getTask :: Gen (String, String, IO ([String],String))
-getTask = do
-    inst <- generateComposeFormulaInst task03
-    pure (show inst, checkers, getFormData form)
+type Submission = [TreeFormulaAnswer]
+type TaskData = ComposeFormulaInst
 
 listToFM :: Ord k => [(k, a)] -> Map k a
 listToFM = Map.fromList
@@ -62,11 +45,46 @@ task03 = ComposeFormulaConfig
   , offerUnicodeInput = True
   }
 
-fields :: [[FieldInfo]]
-fields = [[single "Erste Formel:", single "Zweite Formel:"]]
+=============================================
 
-form :: Rendered
-form = formify (Nothing :: Maybe Solution) fields
+{-# language OverloadedStrings #-}
+{-# Language QuasiQuotes #-}
+
+module TaskData where
+
+import Data.String.Interpolate          (i)
+import Data.Text                        (Text)
+import FlexTask.FormUtil                (getFormData)
+import FlexTask.Generic.Form
+import FlexTask.Types                   (HtmlDict)
+import FlexTask.YesodConfig             (Rendered, Widget)
+import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
+import Test.QuickCheck.Gen              (Gen)
+import Yesod                            (RenderMessage(..), fieldSettingsLabel)
+
+import Global
+
+
+data InputLabel = First | Second
+
+instance RenderMessage app InputLabel where
+  renderMessage _ ("en":_) First  = "First Formula"
+  renderMessage _ _        First  = "Erste Formel"
+  renderMessage _ ("en":_) Second = "Second Formula"
+  renderMessage _ _        Second = "Zweite Formel"
+
+
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
+getTask = do
+    inst <- generateComposeFormulaInst task03
+    pure (inst, checkers, getFormData form)
+
+fields :: [[FieldInfo]]
+fields = [[field First, field Second]]
+  where field = single . fieldSettingsLabel
+
+form :: Rendered Widget
+form = formify (Nothing :: Maybe (String,String)) fields
 
 checkers :: String
 checkers = [i|
@@ -78,31 +96,26 @@ module Check where
 import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
 import Data.Functor                     (($>))
-import Formula.Parsing.Delayed          (delayed)
-import LogicTasks.Syntax.ComposeFormula (partialGrade, completeGrade)
-import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
-import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
+import LogicTasks.Syntax.ComposeFormula (partialGrade', completeGrade')
 
 import Global
 
-toListString :: (String,String) -> String
-toListString (x,y) = '[' : x ++ ',' : y ++ "]"
 
 checkSyntax
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
-  -> FilePath
-  -> Solution
+  => FilePath
+  -> TaskData
+  -> Submission
   -> LangM m
-checkSyntax inst _ try = partialGrade inst $ delayed $ toListString try
+checkSyntax _ = partialGrade'
 
 checkSemantics
   :: (MonadIO m, OutputCapable m)
-  => ComposeFormulaInst
-  -> FilePath
-  -> Solution
+  => FilePath
+  -> TaskData
+  -> Submission
   -> Rated m
-checkSemantics inst path try = completeGrade path inst (delayed $ toListString try) $> 1.0
+checkSemantics path inst try = completeGrade' path inst try $> 1.0
 
 |]
 
@@ -113,14 +126,15 @@ checkSemantics inst path try = completeGrade path inst (delayed $ toListString t
 
 module Description (description) where
 
-import Control.Monad.IO.Class                    (MonadIO)
+import Global
+
+import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
-import Tasks.ComposeFormula.Config               (ComposeFormulaInst(..))
-import Trees.Types                               (BinOp(..), SynTree(..))
+import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 
 import qualified LogicTasks.Syntax.ComposeFormula as LT
 
-description :: (OutputCapable m, MonadIO m) => FilePath -> ComposeFormulaInst -> LangM m
+description :: (OutputCapable m, MonadIO m) => FilePath -> TaskData -> LangM m
 description path inst@ComposeFormulaInst{..} = do
   LT.description False (path <> "/") inst
   paragraph $ do
@@ -144,10 +158,41 @@ description path inst@ComposeFormulaInst{..} = do
 
 module Parse (parseSubmission) where
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+
+import Control.OutputCapable.Blocks (
+  LangM',
+  OutputCapable,
+  ReportT,
+  )
+import Control.OutputCapable.Blocks.Generic (
+  ($>>=),
+  )
+import FlexTask.Generic.Parse (
+  displayInputAnd,
+  formParser,
+  parseWithFallback,
+  parseWithOrReport,
+  reportWithFieldNumber,
+  )
+import Formula.Parsing.Delayed (
+  complainAboutMissingParenthesesIfNotFailingOn,
+  )
+import LogicTasks.Parsing (formulaSymbolParser, parser)
+import ParsingHelpers          (fully)
 
 import Global
 
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = useParser parseInput
+
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Submission
+parseSubmission input = parseWithOrReport formParser reportWithFieldNumber input $>>= \(input1,input2) ->
+  parseIt input1 $>>= \formula1 ->
+    parseIt input2 $>>= \formula2 ->
+      pure [formula1,formula2]
+  where
+    parseIt = parseWithFallback
+      (fully parser)
+      (displayInputAnd complainAboutMissingParenthesesIfNotFailingOn)
+      (fully formulaSymbolParser)

@@ -1,76 +1,45 @@
 module Global where
 
-type Solution = [Int]
 
-=============================================
-
-{-# language OverloadedStrings #-}
-{-# language QuasiQuotes #-}
-{-# language RecordWildCards #-}
-
-module TaskData where
-
-import Data.String.Interpolate          (i)
-import Data.Generics.Text               (gshow)
-import Data.Text                        (pack)
-import FlexTask.FormUtil                (getFormData)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (Rendered)
-import TermTasks.Direct                 (genInst)
 import TermTasks.Records (
   Certain(..),
   SigInstance(..),
   Base(..),
   )
-import TermTasks.DataType               (Error(..), Signature, toSignature)
-import Test.QuickCheck.Gen              (Gen, elements)
+
+import TermTasks.DataType (
+  Error(..),
+  Signature(..),
+  Symbol(..),
+  Term(..),
+  Type(..),
+  toSignature,
+  )
 
 
-
-instance MonadFail Gen where
-  fail = error
-
-
-getTask :: Gen (String, String, IO ([String],String))
-getTask = do
-    config <- genConfig
-    inst@SigInstance{..} <- genInst config
-    pure (gshow inst, checkers, getFormData $ form $ length terms)
+type Submission = [Int]
+type TaskData = SigInstance
 
 
-form :: Int -> Rendered
-form amount = formify
-  (Nothing :: Maybe MultipleChoiceSelection)
-  [[buttons Vertical "Korrekte Terme/Correct terms" $ map (pack . (++ ".") . show) [1..amount]]]
-
-
-genConfig :: Gen Certain
-genConfig = do
-  sig <- elements sigList
-  pure $ Certain {
-    signatures = sig,
-    root = Nothing,
-    baseConf = Base {
-      termSizeRange = ( 6, 10 ),
-      wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
-      properTerms = 5,
-      extraFeedback = True,
-      printSolution = True
-    }
+-- Making the config to use for this task. Signatures will be randomly picked out of a pool of options.
+makeConfig :: Signature -> Certain
+makeConfig sig = Certain {
+  signatures = sig,
+  root = Nothing,
+  baseConf = Base {
+    termSizeRange = ( 6, 10 ),
+    wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
+    properTerms = 5,
+    extraFeedback = True,
+    printSolution = True
   }
+}
 
 
+-- Possible signatures to roll for the task
 sigList :: [Signature]
 sigList = [
 
-  toSignature [
-      ("zeroPos", [], "Position"),
-      ("retPos", ["Position"], "Position"),
-      ("showPos", ["Position"], "String"),
-      ("positionRow", ["Position"], "Int"),
-      ("makePosition", ["Int", "Int"], "Position"),
-      ("incPos", ["Int", "Position"], "Position")
-      ],
 {- too long
   toSignature [
       ("defaultPushOptions", [], "PushOptions"),
@@ -80,8 +49,7 @@ sigList = [
       ("flushInterval", ["PushOptions"], "Int"),
       ("makeOptions", ["Int", "Bool", "Text", "Text"], "PushOptions")
       ],
--}
-{- too long
+
   toSignature [
       ("trackEnd", [], "Message"),
       ("key", ["Message"], "Key"),
@@ -90,7 +58,34 @@ sigList = [
       ("controlChange", ["Channel", "Int", "Int"], "Message"),
       ("timeSignature", ["Int", "Int", "Int", "Int"], "Message")
       ],
+
+  toSignature [
+      ("defaultAmazonS3Port", [], "Int"),
+      ("defaultAmazonS3Host", [], "String"),
+      ("makeAWSConnection", ["String", "Int", "String", "String"], "AWSConnection"),
+      ("awsPort", ["AWSConnection"], "Int"),
+      ("amazonS3Connection", ["String", "String"], "AWSConnection"),
+      ("awsAccessKey", ["AWSConnection"], "String")
+      ],
+
+  toSignature [
+      ("emptyPermissions", [], "Permissions"),
+      ("exeExtension", [], "String"),
+      ("readable", ["Permissions"], "Bool"),
+      ("setOwnerReadable", ["Bool", "Permissions"], "Permissions"),
+      ("setOwnerSearchable", ["Bool", "Permissions"], "Permissions"),
+      ("executable", ["Permissions"], "Bool")
+      ],
 -}
+  toSignature [
+      ("zeroPos", [], "Position"),
+      ("retPos", ["Position"], "Position"),
+      ("showPos", ["Position"], "String"),
+      ("positionRow", ["Position"], "Int"),
+      ("makePosition", ["Int", "Int"], "Position"),
+      ("incPos", ["Int", "Position"], "Position")
+      ],
+
   toSignature [
       ("rTwo", [], "Rank"),
       ("diamonds", [], "Suit"),
@@ -117,16 +112,7 @@ sigList = [
       ("yPos", ["Pos"], "Int"),
       ("gridValue", ["Pos"], "String")
       ],
-{- too long
-  toSignature [
-      ("defaultAmazonS3Port", [], "Int"),
-      ("defaultAmazonS3Host", [], "String"),
-      ("makeAWSConnection", ["String", "Int", "String", "String"], "AWSConnection"),
-      ("awsPort", ["AWSConnection"], "Int"),
-      ("amazonS3Connection", ["String", "String"], "AWSConnection"),
-      ("awsAccessKey", ["AWSConnection"], "String")
-      ],
--}
+
   toSignature [
       ("defaultPFS", [], "ParticleFieldState"),
       ("position", ["ParticleFieldState"], "Position"),
@@ -180,16 +166,7 @@ sigList = [
       ("makeTime", ["Int", "Int", "Pico"], "TimeOfDay"),
       ("sinceMidnight", ["TimeOfDay"], "DiffTime")
       ],
-{- too long
-  toSignature [
-      ("emptyPermissions", [], "Permissions"),
-      ("exeExtension", [], "String"),
-      ("readable", ["Permissions"], "Bool"),
-      ("setOwnerReadable", ["Bool", "Permissions"], "Permissions"),
-      ("setOwnerSearchable", ["Bool", "Permissions"], "Permissions"),
-      ("executable", ["Permissions"], "Bool")
-      ],
--}
+
   toSignature [
       ("defaultSocketConfig", [], "SocketConfig"),
       ("defaultSocketPage", [], "Page"),
@@ -200,6 +177,62 @@ sigList = [
       ]
   ]
 
+=============================================
+
+{-# language OverloadedStrings #-}
+{-# language QuasiQuotes #-}
+{-# language RecordWildCards #-}
+
+module TaskData where
+
+import Data.Functor                     ((<&>))
+import Data.String                      (fromString)
+import Data.String.Interpolate          (i)
+import Data.Text                        (Text)
+import FlexTask.FormUtil                (getFormData)
+import FlexTask.Generic.Form
+import FlexTask.Types                   (HtmlDict)
+import FlexTask.YesodConfig             (Rendered, Widget)
+import TermTasks.Direct                 (genInst)
+import TermTasks.Records (
+  Certain,
+  SigInstance(..),
+  )
+import Test.QuickCheck.Gen              (Gen, elements)
+import Yesod                            (RenderMessage(..), fieldSettingsLabel)
+
+import Global
+
+
+
+data HeaderLabel = HeaderLabel
+
+
+instance MonadFail Gen where
+  fail = error
+
+
+instance RenderMessage app HeaderLabel where
+  renderMessage _ ("en":_) HeaderLabel  = "Correct Terms"
+  renderMessage _ _        HeaderLabel  = "Korrekte Terme"
+
+
+getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
+getTask = do
+    config <- genConfig
+    inst@SigInstance{..} <- genInst config
+    pure (inst, checkers, getFormData $ form $ length terms)
+
+
+form :: Int -> Rendered Widget
+form amount = formify
+  (Nothing :: Maybe MultipleChoiceSelection)
+  [[buttons Vertical (fieldSettingsLabel HeaderLabel) $ map (fromString . (++ ".") . show) [1..amount]]]
+
+
+genConfig :: Gen Certain
+genConfig = elements sigList <&> makeConfig
+
 
 checkers :: String
 checkers = [i|
@@ -209,14 +242,7 @@ module Check where
 
 import Control.Applicative              (Alternative)
 import Control.OutputCapable.Blocks
-import TermTasks.DataType (
-  Signature(..),
-  Symbol(..),
-  Term(..),
-  Type(..),
-  )
 import TermTasks.Direct                 (completeGrade, partialGrade)
-import TermTasks.Records                (SigInstance(..))
 
 import Global
 
@@ -224,20 +250,20 @@ import Global
 
 checkSyntax
   :: OutputCapable m
-  => SigInstance
-  -> FilePath
-  -> Solution
+  => FilePath
+  -> TaskData
+  -> Submission
   -> LangM m
-checkSyntax inst _ = partialGrade inst
+checkSyntax _ = partialGrade
 
 
 checkSemantics
   :: (Alternative m, OutputCapable m)
-  => SigInstance
-  -> FilePath
-  -> Solution
+  => FilePath
+  -> TaskData
+  -> Submission
   -> Rated m
-checkSemantics inst _ = completeGrade inst
+checkSemantics _ = completeGrade
 
 |]
 
@@ -246,31 +272,33 @@ checkSemantics inst _ = completeGrade inst
 module Description (description) where
 
 import Control.OutputCapable.Blocks
-import TermTasks.DataType (
-  Term(..),
-  Type(..),
-  Symbol(..),
-  Signature(..),
-  )
-import TermTasks.Records                (SigInstance(..))
+import qualified TermTasks.Direct       as TD
 
-import qualified TermTasks.Direct as TD
+import Global
 
 
 
-description :: OutputCapable m => FilePath -> SigInstance -> LangM m
+description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ = TD.description False
 
 =============================================
 
 module Parse (parseSubmission) where
 
-import FlexTask.Generic.Parse  (parseInput, useParser)
-import Text.Parsec             (ParseError)
+
+import Control.OutputCapable.Blocks (
+  LangM',
+  OutputCapable,
+  ReportT,
+  )
+import FlexTask.Generic.Parse  (formParser, parseWithOrReport, reportWithFieldNumber)
 
 import Global
 
 
 
-parseSubmission :: String -> Either ParseError Solution
-parseSubmission = useParser parseInput
+parseSubmission ::
+  (Monad m, OutputCapable (ReportT o m))
+  => String
+  -> LangM' (ReportT o m) Submission
+parseSubmission = parseWithOrReport formParser reportWithFieldNumber

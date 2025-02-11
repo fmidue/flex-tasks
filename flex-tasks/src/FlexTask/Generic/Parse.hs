@@ -21,4 +21,4 @@ instance {-# Overlappable #-} TypeError ('Text "Parse instances for nested lists
               ':$$: 'Text "Please use a newtype or custom datatype instead."
                    )
          => Parse [[a]] where
-   parseInput = error "unreachable"
+   formParser = error "unreachable"
