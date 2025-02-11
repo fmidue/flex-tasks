@@ -3,15 +3,6 @@ resolver: nightly-2024-03-20
 packages:
   - .
 extra-deps:
-  - git: https://github.com/fmidue/flex-tasks.git
-    commit: f503e8fe838074b8d6770b85976269b2745b757c
-    subdirs:
-      - flex-tasks
-      - flex-tasks-processing
-  - git: https://github.com/fmidue/output-blocks.git
-    commit: 15eec5a92d4d372233dc1180f0d68beb9d42fe9d
-    subdirs:
-      - output-blocks
   - git: https://github.com/fmidue/logic-tasks.git
     commit: b3c446cc96081b5eec4dee465cb4e56211d42601
   - git: https://github.com/fmidue/term-tasks

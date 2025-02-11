@@ -54,6 +54,16 @@ jobs:
           sudo mv -f ./${{ env.config }}/stack.yaml ./haskell-template-setup
           sudo mv -f ./${{ env.config }}/package.yaml ./haskell-template-setup
           cd haskell-template-setup
+          awk '/extra-deps/ {f=1; next} f' ../stack.yaml |
+            awk 'NR==FNR {buffer=buffer $0 RS; next} /extra-deps/ {print; printf buffer; next}1' - stack.yaml > new_stack.yaml
+          sudo mv -f new_stack.yaml stack.yaml
+          insert='\'\
+          "  - git: https://github.com/${{ github.repository }}\n"\
+          "    commit: ${{ github.sha }}\n"\
+          '    subdirs:\n'\
+          '      - flex-tasks\n'\
+          '      - flex-tasks-processing'
+          sed -i "/extra-deps/a $insert" stack.yaml
           sed -i "s@/autotool/default@$(realpath $PWD/../${{ env.tasks }}/root)@" env
           ./create.sh
           sudo mv root ../${{ env.tasks }}

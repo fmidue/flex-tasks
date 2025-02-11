@@ -353,8 +353,6 @@ module Description (description) where
 import Control.OutputCapable.Blocks
 import LogicTasks.Keys                  (keyHeading, basicOpKey, arrowsKey)
 
-import Global
-
 
 
 description :: OutputCapable m => FilePath -> ((String,[String]),a) -> LangM m
