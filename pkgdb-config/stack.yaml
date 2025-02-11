@@ -3,10 +3,6 @@ resolver: nightly-2024-03-20
 packages:
   - .
 extra-deps:
-  - git: https://github.com/fmidue/output-blocks.git
-    commit: f14dca13e3fa06858ee6299333764b9b89d820c9
-    subdirs:
-      - output-blocks
   - git: https://github.com/fmidue/logic-tasks.git
     commit: 186d62d731ef751f84c92bbc4d4ae34f0a2cd593
   - git: https://github.com/fmidue/term-tasks
