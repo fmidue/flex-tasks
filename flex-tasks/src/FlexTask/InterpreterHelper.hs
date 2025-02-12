@@ -15,14 +15,15 @@ type Report = ReportT Output IO
 
 
 syntaxAndSemantics
-  :: (FilePath -> a -> b -> LangM Report)
+  :: (String -> LangM' Report b)
+  -> (FilePath -> a -> b -> LangM Report)
   -> (FilePath -> a -> b -> Rated Report)
-  -> LangM' Report b
+  -> String
   -> FilePath
   -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
-syntaxAndSemantics syntax semantics preprocessed path tData = do
-  (mParseResult,parseOutput) <- getOutputSequenceAndResult preprocessed
+syntaxAndSemantics preprocess syntax semantics input path tData = do
+  (mParseResult,parseOutput) <- getOutputSequenceAndResult $ preprocess input
   case mParseResult of
     Nothing          -> pure (parseOutput,Nothing)
     Just parseResult -> do

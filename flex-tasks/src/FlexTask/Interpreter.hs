@@ -36,7 +36,6 @@ import Language.Haskell.Interpreter (
     parens,
     setImports,
     setTopLevelModules,
-    runStmt,
     )
 import Language.Haskell.Interpreter.Unsafe (
     unsafeRunInterpreterWithArgs
@@ -207,36 +206,27 @@ Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 checkSolution
   :: String   -- ^ Data made available to checker functions
   -> String   -- ^ Additional code module
-  -> String   -- ^ Module containing settings constants
   -> String   -- ^ Module containing /parseSubmission/
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
   -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
-checkSolution taskData globalCode settingsCode parseCode checkCode submission picPath = do
+checkSolution taskData globalCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
       , ("Helper", helper)
-      , ("Settings", settingsCode)
       ]
     runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
     runCheck= do
       setImports
-        [ "Control.OutputCapable.Blocks.Type"
-        ]
-      setTopLevelModules ["Parse", "Global", "Settings"]
-      runStmt $
-        "let res = parseSubmission " ++ input ++
-        " :: LangM' (ReportT Output IO) Submission"
-      setImports
         [ "Control.OutputCapable.Blocks.Generic.Type"
         , "Data.Ratio"
         ]
-      setTopLevelModules ["Check", "Global", "Helper"]
-      interpret ("syntaxAndSemantics checkSyntax checkSemantics res" ++ path ++ tData) infer
+      setTopLevelModules ["Check", "Global", "Helper", "Parse"]
+      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
 
     tData = parens taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)

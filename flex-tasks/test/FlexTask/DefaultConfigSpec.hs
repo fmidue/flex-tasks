@@ -63,7 +63,6 @@ spec = do
             checkSolution
               taskData
               globalModule
-              settingsModule
               parseModule
               checkModule
               "test"
