@@ -45,8 +45,9 @@ type TaskData = (DescData,Submission)
 dSettings :: String
 dSettings = [rQ|
 
-module Settings where
+module TaskSettings where
 
+test = 1
 |]
 
 dTaskData :: String

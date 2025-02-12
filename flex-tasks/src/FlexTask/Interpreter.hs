@@ -85,7 +85,7 @@ genFlexInst
   = do
       filePaths <- writeUncachedAndGetPaths
         [ ("Global", globalModule)
-        , ("Settings", settingsModule)
+        , ("TaskSettings", settingsModule)
         , ("TaskData", taskDataModule)
         ]
       taskAndFormResult <- runWithPackageDB $
@@ -102,7 +102,7 @@ genFlexInst
     where
       tfInter :: Interpreter (Gen GenOutput)
       tfInter = do
-        setTopLevelModules ["TaskData", "Global", "Settings"]
+        setTopLevelModules ["TaskData", "Global", "TaskSettings"]
         setImports [
             "Data.Generics.Text"
           , "Data.Map"
@@ -124,13 +124,13 @@ makeDescription
 makeDescription taskData global settings description picPath = do
     filePaths <- writeUncachedAndGetPaths
           [ ("Global", global)
-          , ("Settings", settings)
+          , ("TaskSettings", settings)
           , ("Description", description)
           ]
     runWithPackageDB $ loadModules filePaths >> descInter
   where
     descInter = do
-      setTopLevelModules ["Description", "Global", "Settings"]
+      setTopLevelModules ["Description", "Global", "TaskSettings"]
       setImports ["Control.OutputCapable.Blocks.Generic.Type"]
       interpret ("description " ++ show picPath ++ parens taskData) infer
 
@@ -220,7 +220,7 @@ checkSolution taskData globalCode parseCode checkCode submission picPath = do
       ]
     runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
-    runCheck= do
+    runCheck = do
       setImports
         [ "Control.OutputCapable.Blocks.Generic.Type"
         , "Data.Ratio"
