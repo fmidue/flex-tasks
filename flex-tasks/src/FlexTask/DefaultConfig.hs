@@ -16,7 +16,7 @@ defaultConfig :: FlexConf
 defaultConfig =
   FlexConf {
     taskDataModule = dTaskData,
-    commonModules = CommonModules dGlobalDefs "" dDescription dParse
+    commonModules = CommonModules dGlobalDefs dSettings dDescription dParse
   }
 
 
@@ -41,6 +41,13 @@ type TaskData = (DescData,Submission)
 |]
 
 
+
+dSettings :: String
+dSettings = [rQ|
+
+module Settings where
+
+|]
 
 dTaskData :: String
 dTaskData = [rQ|

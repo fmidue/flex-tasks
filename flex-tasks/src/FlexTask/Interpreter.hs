@@ -225,10 +225,12 @@ checkSolution taskData globalCode settingsCode parseCode checkCode submission pi
   where
     runCheck= do
       setImports
-        [ "Control.OutputCapable.Blocks.Generic.Type"
+        [ "Control.OutputCapable.Blocks.Type"
         ]
       setTopLevelModules ["Parse", "Global", "Settings"]
-      runStmt ("let res = parseSubmission " ++ input)
+      runStmt $
+        "let res = parseSubmission " ++ input ++
+        " :: LangM' (ReportT Output IO) Submission"
       setImports
         [ "Control.OutputCapable.Blocks.Generic.Type"
         , "Data.Ratio"

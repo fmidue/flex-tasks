@@ -54,6 +54,7 @@ spec = do
             validDescription @TestReport
               taskData
               globalModule
+              settingsModule
               descriptionModule
               ""
             `shouldNotThrow` anyErrorCall
@@ -62,6 +63,7 @@ spec = do
             checkSolution
               taskData
               globalModule
+              settingsModule
               parseModule
               checkModule
               "test"
