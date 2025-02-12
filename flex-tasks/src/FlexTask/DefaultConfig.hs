@@ -16,7 +16,7 @@ defaultConfig :: FlexConf
 defaultConfig =
   FlexConf {
     taskDataModule = dTaskData,
-    commonModules = CommonModules dGlobalDefs dDescription dParse
+    commonModules = CommonModules dGlobalDefs dDescription dParse []
   }
 
 

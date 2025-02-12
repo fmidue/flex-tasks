@@ -19,11 +19,12 @@ module FlexTask.Types
 
 
 import Control.Monad                     (void)
-import Data.List                         (intercalate)
+import Data.List.Extra                   (breakOn, headDef, intercalate)
 import Data.Map                          (Map)
 import Data.Text                         (Text)
 import GHC.Generics                      (Generic)
 import Text.Parsec (
+    (<|>),
     anyChar,
     char,
     many,
@@ -70,7 +71,8 @@ They are propagated to the generated task instance.
 data CommonModules = CommonModules {
     globalModule      ::  String, -- ^ Global code module available in all interpreter runs.
     descriptionModule ::  String, -- ^ Module for producing the task description.
-    parseModule       ::  String  -- ^ Module containing the Parser for the submission type.
+    parseModule       ::  String, -- ^ Module containing the Parser for the submission type.
+    extraModules      :: [(String,String)] -- ^ User defined additional modules with format (Name,Code)
   } deriving (Eq,Generic,Ord,Show)
 
 
@@ -98,12 +100,13 @@ Module2 where
 -}
 showFlexConfig :: FlexConf -> String
 showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
-    intercalate delimiter
+    intercalate delimiter $
       [ globalModule
       , taskDataModule
       , descriptionModule
       , parseModule
       ]
+      ++ map snd extraModules
 
 
 
@@ -120,14 +123,20 @@ parseFlexConfig = do
       globalModule <- untilSep
       taskDataModule <- untilSep
       descriptionModule <- untilSep
-      parseModule <- many anyChar
+      parseModule <- try untilSep <|> many anyChar
+      extra <- many untilSep
+      lastExtra <- many anyChar
+      let modules = lastExtra : extra
+          names = map (headDef "" . words . snd . breakOn "module") modules
+          extraModules = if null lastExtra then [] else zip names modules
       pure $
         FlexConf {
           taskDataModule,
           commonModules = CommonModules {
             globalModule,
             descriptionModule,
-            parseModule
+            parseModule,
+            extraModules
           }
         }
     where
