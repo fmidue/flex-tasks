@@ -35,7 +35,9 @@ import Language.Haskell.Interpreter (
     loadModules,
     parens,
     setImports,
-    setTopLevelModules
+    setTopLevelModules,
+    reset,
+    runStmt,
     )
 import Language.Haskell.Interpreter.Unsafe (
     unsafeRunInterpreterWithArgs
@@ -75,12 +77,17 @@ genFlexInst
   -> a                                 -- ^ Generator seed
   -> IO FlexInst
 genFlexInst
-  FlexConf{commonModules = commonModules@CommonModules{globalModule}, ..}
+  FlexConf{ commonModules = commonModules@CommonModules{
+    globalModule,
+    settingsModule
+    },
+    ..}
   genMethod
   seed
   = do
       filePaths <- writeUncachedAndGetPaths
         [ ("Global", globalModule)
+        , ("Settings", settingsModule)
         , ("TaskData", taskDataModule)
         ]
       taskAndFormResult <- runWithPackageDB $
@@ -97,7 +104,7 @@ genFlexInst
     where
       tfInter :: Interpreter (Gen GenOutput)
       tfInter = do
-        setTopLevelModules ["TaskData", "Global"]
+        setTopLevelModules ["TaskData", "Global", "Settings"]
         setImports [
             "Data.Generics.Text"
           , "Data.Map"
@@ -113,17 +120,19 @@ makeDescription
   => String
   -> String
   -> String
+  -> String
   -> FilePath
   -> IO (Either InterpreterError (LangM m))
-makeDescription taskData global description picPath = do
+makeDescription taskData global settings description picPath = do
     filePaths <- writeUncachedAndGetPaths
           [ ("Global", global)
+          , ("Settings", settings)
           , ("Description", description)
           ]
     runWithPackageDB $ loadModules filePaths >> descInter
   where
     descInter = do
-      setTopLevelModules ["Description", "Global"]
+      setTopLevelModules ["Description", "Global", "Settings"]
       setImports ["Control.OutputCapable.Blocks.Generic.Type"]
       interpret ("description " ++ show picPath ++ parens taskData) infer
 
@@ -142,11 +151,17 @@ validDescription
   :: OutputCapable m
   => String       -- ^ Data available for making the description
   -> String       -- ^ Additional code module
+  -> String       -- ^ Settings module
   -> String       -- ^ Module containing the /description/ function
   -> FilePath     -- ^ Path images will be stored in
   -> IO (LangM m) -- ^ `OutputCapable` representation of task description
-validDescription taskData globalModule descModule picPath = do
-  let fileName = hash $ descModule ++ taskData ++ globalModule
+validDescription taskData globalModule settingsModule descModule picPath = do
+  let fileName = hash $ concat [
+          descModule
+        , taskData
+        , globalModule
+        , settingsModule
+        ]
   cDir <- cacheDir
   let path = cDir </> fileName
   isThere <- doesFileExist path
@@ -164,7 +179,7 @@ validDescription taskData globalModule descModule picPath = do
       makeDescAndWrite Nothing path
   where
     makeDescAndWrite mOldOutput p = do
-      res <- makeDescription taskData globalModule descModule picPath
+      res <- makeDescription taskData globalModule settingsModule descModule picPath
       output <- getOutputSequence $ extract res
       unless (mOldOutput == Just output) $ writeFile p $ show output
       return $ toOutputCapable output
@@ -193,27 +208,35 @@ Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 checkSolution
   :: String   -- ^ Data made available to checker functions
   -> String   -- ^ Additional code module
+  -> String   -- ^ Module containing settings constants
   -> String   -- ^ Module containing /parseSubmission/
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
   -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
-checkSolution taskData globalCode parseCode checkCode submission picPath = do
+checkSolution taskData globalCode settingsCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
       , ("Helper", helper)
+      , ("Settings", settingsCode)
       ]
     runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
-    runCheck = do
+    runCheck= do
+      setImports
+        [ "Control.OutputCapable.Blocks.Generic.Type"
+        ]
+      setTopLevelModules ["Parse", "Global", "Settings"]
+      runStmt ("let res = parseSubmission " ++ input)
+      reset
       setImports
         [ "Control.OutputCapable.Blocks.Generic.Type"
         , "Data.Ratio"
         ]
-      setTopLevelModules ["Check", "Parse", "Global", "Helper"]
-      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
+      setTopLevelModules ["Check", "Global", "Helper"]
+      interpret ("syntaxAndSemantics checkSyntax checkSemantics res" ++ path ++ tData) infer
 
     tData = parens taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)

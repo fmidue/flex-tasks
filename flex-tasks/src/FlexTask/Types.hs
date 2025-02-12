@@ -69,6 +69,7 @@ They are propagated to the generated task instance.
 -}
 data CommonModules = CommonModules {
     globalModule      ::  String, -- ^ Global code module available in all interpreter runs.
+    settingsModule    ::  String, -- ^ Module for task configuration constants.
     descriptionModule ::  String, -- ^ Module for producing the task description.
     parseModule       ::  String  -- ^ Module containing the Parser for the submission type.
   } deriving (Eq,Generic,Ord,Show)
@@ -100,6 +101,7 @@ showFlexConfig :: FlexConf -> String
 showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
     intercalate delimiter
       [ globalModule
+      , settingsModule
       , taskDataModule
       , descriptionModule
       , parseModule
@@ -118,6 +120,7 @@ __and interpret everything following the last separator as part of the fourth mo
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
       globalModule <- untilSep
+      settingsModule <- untilSep
       taskDataModule <- untilSep
       descriptionModule <- untilSep
       parseModule <- many anyChar
@@ -126,6 +129,7 @@ parseFlexConfig = do
           taskDataModule,
           commonModules = CommonModules {
             globalModule,
+            settingsModule,
             descriptionModule,
             parseModule
           }
