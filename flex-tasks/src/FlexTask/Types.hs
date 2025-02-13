@@ -19,18 +19,22 @@ module FlexTask.Types
 
 
 import Control.Monad                     (void)
-import Data.List.Extra                   (breakOn, headDef, intercalate)
+import Data.List.Extra                   (headDef, intercalate, stripInfix)
 import Data.Map                          (Map)
+import Data.Maybe                        (mapMaybe)
 import Data.Text                         (Text)
 import GHC.Generics                      (Generic)
 import Text.Parsec (
     (<|>),
     anyChar,
     char,
+    eof,
+    lookAhead,
     many,
     manyTill,
     string,
-    try
+    try,
+    sepBy,
     )
 import Text.Parsec.String                (Parser)
 import Yesod                             (Lang)
@@ -120,27 +124,31 @@ __and interpret everything following the last separator as part of the fourth mo
 -}
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
-      globalModule <- untilSep
-      taskDataModule <- untilSep
-      descriptionModule <- untilSep
-      parseModule <- try untilSep <|> many anyChar
-      extra <- many untilSep
-      lastExtra <- many anyChar
-      let modules = lastExtra : extra
-          names = map (headDef "" . words . snd . breakOn "module") modules
-          extraModules = if null lastExtra then [] else zip names modules
-      pure $
-        FlexConf {
-          taskDataModule,
-          commonModules = CommonModules {
-            globalModule,
-            descriptionModule,
-            parseModule,
-            extraModules
-          }
-        }
+      modules <- betweenEquals
+      case take 4 modules of
+        [globalModule,taskDataModule,descriptionModule,parseModule] -> do
+          let extra = drop 4 modules
+          let extraModules = mapMaybe getModNames extra
+          pure $
+            FlexConf {
+              taskDataModule,
+              commonModules = CommonModules {
+                globalModule,
+                descriptionModule,
+                parseModule,
+                extraModules
+              }
+            }
+        _ -> fail $
+               "Unexpected end of file. " ++
+               "Provide atleast the following Modules (in this order): " ++
+               "Global, TaskData, Description, Parse"
     where
       atLeastThree = do
         void $ string "==="
-        many $ char '='
-      untilSep = manyTill anyChar $ try atLeastThree
+        void $ many $ char '='
+      betweenEquals =
+        manyTill anyChar (try $ lookAhead $ eof <|> atLeastThree) `sepBy`
+        atLeastThree
+      getModNames code = (\x -> (headDef "" $ words $ snd x, code)) <$>
+        stripInfix "module" code
