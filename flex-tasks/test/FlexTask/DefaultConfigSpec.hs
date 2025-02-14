@@ -56,6 +56,7 @@ spec = do
               globalModule
               settingsModule
               descriptionModule
+              extraModules
               ""
             `shouldNotThrow` anyErrorCall
         it "and it can be used to validate a submission" $
@@ -63,8 +64,10 @@ spec = do
             checkSolution
               taskData
               globalModule
+              settingsModule
               parseModule
               checkModule
+              extraModules
               "test"
               ""
             `shouldNotReturnLeft` interpreterError

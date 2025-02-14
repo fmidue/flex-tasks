@@ -35,7 +35,7 @@ import Language.Haskell.Interpreter (
     loadModules,
     parens,
     setImports,
-    setTopLevelModules,
+    setTopLevelModules
     )
 import Language.Haskell.Interpreter.Unsafe (
     unsafeRunInterpreterWithArgs
@@ -77,17 +77,18 @@ genFlexInst
 genFlexInst
   FlexConf{ commonModules = commonModules@CommonModules{
     globalModule,
-    settingsModule
+    settingsModule,
+    extraModules
     },
     ..}
   genMethod
   seed
   = do
-      filePaths <- writeUncachedAndGetPaths
+      filePaths <- writeUncachedAndGetPaths $
         [ ("Global", globalModule)
         , ("TaskSettings", settingsModule)
         , ("TaskData", taskDataModule)
-        ]
+        ] ++ extraModules
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
       let gen = extract taskAndFormResult
@@ -119,14 +120,15 @@ makeDescription
   -> String
   -> String
   -> String
+  -> [(String,String)]
   -> FilePath
   -> IO (Either InterpreterError (LangM m))
-makeDescription taskData global settings description picPath = do
-    filePaths <- writeUncachedAndGetPaths
+makeDescription taskData global settings description extras picPath = do
+    filePaths <- writeUncachedAndGetPaths $
           [ ("Global", global)
           , ("TaskSettings", settings)
           , ("Description", description)
-          ]
+          ] ++ extras
     runWithPackageDB $ loadModules filePaths >> descInter
   where
     descInter = do
@@ -151,15 +153,16 @@ validDescription
   -> String       -- ^ Additional code module
   -> String       -- ^ Settings module
   -> String       -- ^ Module containing the /description/ function
+  -> [(String,String)]
   -> FilePath     -- ^ Path images will be stored in
   -> IO (LangM m) -- ^ `OutputCapable` representation of task description
-validDescription taskData globalModule settingsModule descModule picPath = do
-  let fileName = hash $ concat [
+validDescription taskData globalModule settingsModule descModule extras picPath = do
+  let fileName = hash $ concat $ [
           descModule
         , taskData
         , globalModule
         , settingsModule
-        ]
+        ] ++ map snd extras
   cDir <- cacheDir
   let path = cDir </> fileName
   isThere <- doesFileExist path
@@ -177,7 +180,7 @@ validDescription taskData globalModule settingsModule descModule picPath = do
       makeDescAndWrite Nothing path
   where
     makeDescAndWrite mOldOutput p = do
-      res <- makeDescription taskData globalModule settingsModule descModule picPath
+      res <- makeDescription taskData globalModule settingsModule descModule extras picPath
       output <- getOutputSequence $ extract res
       unless (mOldOutput == Just output) $ writeFile p $ show output
       return $ toOutputCapable output
@@ -209,17 +212,18 @@ checkSolution
   -> String   -- ^ Module containing configuration options
   -> String   -- ^ Module containing /parseSubmission/
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
+  -> [(String,String)]
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
   -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
-checkSolution taskData globalCode settingsCode parseCode checkCode submission picPath = do
-    filePaths <- writeUncachedAndGetPaths
+checkSolution taskData globalCode settingsCode parseCode checkCode extraCode submission picPath = do
+    filePaths <- writeUncachedAndGetPaths $
       [ ("Global", globalCode)
       , ("TaskSettings", settingsCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
       , ("Helper", helper)
-      ]
+      ] ++ extraCode
     runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
   where
     runCheck = do

@@ -9,7 +9,7 @@ import Data.List                        (intercalate)
 import Test.Hspec                       (Spec, describe, xit, shouldBe)
 import Test.Hspec.Parsec                (shouldParse)
 import Test.Hspec.QuickCheck            (prop, xprop)
-import Test.QuickCheck                  (forAll, vectorOf)
+import Test.QuickCheck                  (chooseInt, forAll, vectorOf)
 import Test.QuickCheck.Arbitrary        (Arbitrary(..))
 import Text.Parsec                      (parse)
 
@@ -19,18 +19,18 @@ import FlexTask.Types
 spec :: Spec
 spec = do
   describe "showFlexConfig" $
-    prop "segments the modules with 3 sequences of delimiters" $
+    prop "segments the modules with delimiters correctly" $
       \fConf@FlexConf{commonModules = CommonModules{..},..} ->
-      showFlexConfig fConf `shouldBe` intercalate delimiter
+      showFlexConfig fConf `shouldBe` intercalate delimiter (
         [ globalModule
         ,settingsModule
         ,taskDataModule
         ,descriptionModule
         ,parseModule
-        ]
+        ] ++ map snd extraModules)
 
   describe "parseFlexConfig" $
-    xit "always successfully parses when encountering 3 delimiters" $
+    xit "always successfully parses when encountering 3 delimiters and no additional modules" $
       forAll (vectorOf 4 arbitrary) $ \xs ->
         parse parseFlexConfig "" (intercalate delimiter xs) `shouldParse` conf xs
 
@@ -46,7 +46,8 @@ spec = do
             globalModule,
             settingsModule,
             descriptionModule,
-            parseModule
+            parseModule,
+            extraModules = []
           }
         }
       conf _ = error "not possible"
@@ -58,11 +59,14 @@ instance Arbitrary CommonModules where
     settingsModule <- arbitrary
     descriptionModule <- arbitrary
     parseModule <- arbitrary
+    amount <- chooseInt (1,5)
+    extraModules <- filter ((/="") . snd) <$> vectorOf amount arbitrary
     pure (CommonModules {
       globalModule,
       settingsModule,
       descriptionModule,
-      parseModule
+      parseModule,
+      extraModules
       })
 
 

@@ -15,21 +15,28 @@ module FlexTask.Types
 
   , parseFlexConfig
   , showFlexConfig
+  , validateFlexConfig
   ) where
 
 
 import Control.Monad                     (void)
-import Data.List                         (intercalate)
+import Control.OutputCapable.Blocks      (LangM, OutputCapable, indent, refuse, translate, german, english)
+import Data.List.Extra                   (headDef, intercalate, isPrefixOf, nubOrd, stripInfix)
 import Data.Map                          (Map)
+import Data.Maybe                        (mapMaybe)
 import Data.Text                         (Text)
 import GHC.Generics                      (Generic)
 import Text.Parsec (
+    (<|>),
     anyChar,
     char,
+    eof,
+    lookAhead,
     many,
     manyTill,
     string,
-    try
+    try,
+    sepBy,
     )
 import Text.Parsec.String                (Parser)
 import Yesod                             (Lang)
@@ -71,7 +78,8 @@ data CommonModules = CommonModules {
     globalModule      ::  String, -- ^ Global code module available in all interpreter runs.
     settingsModule    ::  String, -- ^ Module for task configuration constants.
     descriptionModule ::  String, -- ^ Module for producing the task description.
-    parseModule       ::  String  -- ^ Module containing the Parser for the submission type.
+    parseModule       ::  String, -- ^ Module containing the Parser for the submission type.
+    extraModules      :: [(String,String)] -- ^ User defined additional modules with format (Name,Code)
   } deriving (Eq,Generic,Ord,Show)
 
 
@@ -99,13 +107,14 @@ Module2 where
 -}
 showFlexConfig :: FlexConf -> String
 showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
-    intercalate delimiter
+    intercalate delimiter $
       [ globalModule
       , settingsModule
       , taskDataModule
       , descriptionModule
       , parseModule
       ]
+      ++ map snd extraModules
 
 
 
@@ -119,23 +128,66 @@ __and interpret everything following the last separator as part of the fourth mo
 -}
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
-      globalModule <- untilSep
-      settingsModule <- untilSep
-      taskDataModule <- untilSep
-      descriptionModule <- untilSep
-      parseModule <- many anyChar
-      pure $
-        FlexConf {
-          taskDataModule,
-          commonModules = CommonModules {
-            globalModule,
-            settingsModule,
-            descriptionModule,
-            parseModule
-          }
-        }
+      modules <- betweenEquals
+      case take 5 modules of
+        [globalModule,settingsModule,taskDataModule,descriptionModule,parseModule] -> do
+          let extra = drop 5 modules
+          let extraModules = mapMaybe getModNames extra
+          pure $
+            FlexConf {
+              taskDataModule,
+              commonModules = CommonModules {
+                globalModule,
+                settingsModule,
+                descriptionModule,
+                parseModule,
+                extraModules
+              }
+            }
+        _ -> fail $
+               "Unexpected end of file. " ++
+               "Provide at least the following Modules (in this order): " ++
+               "Global, TaskSettings, TaskData, Description, Parse"
     where
       atLeastThree = do
         void $ string "==="
-        many $ char '='
-      untilSep = manyTill anyChar $ try atLeastThree
+        void $ many $ char '='
+      betweenEquals =
+        manyTill anyChar (try $ lookAhead $ eof <|> atLeastThree) `sepBy`
+        atLeastThree
+      getModNames code = do
+        b <- stripInfix "module" $ removeComments code
+        Just (headDef "" $ words $ snd b, code)
+
+
+removeComments :: String -> String
+removeComments = unlines . filter (not . ("--" `isPrefixOf`)) . lines . runRemove
+  where
+    runRemove xs = case stripInfix "{-" xs of
+      Nothing -> xs
+      Just (a,b) -> a ++ case stripInfix "-}" b of
+        Nothing -> xs
+        Just (_,rest) -> runRemove rest
+
+
+-- | Check a configuration for inconsistencies
+validateFlexConfig :: OutputCapable m => FlexConf -> LangM m
+validateFlexConfig FlexConf{commonModules = CommonModules{..}}
+  | "Helper" `elem` moduleNames = reject $ do
+    german $
+      "Eines der zusätzlichen Module wurde mit Namen \"Helper\" definiert. " ++
+      "Dieser Name ist für ein internes Modul reserviert."
+    english $
+      "An additional Module was defined as \"Helper\". " ++
+      "This name is reserved for internal use."
+  | any (`elem` required) moduleNames = reject $ do
+    german "Eines der Zusatzmodule wurde wie ein festes Modul benannt."
+    english "An additional module has the same name as a required one."
+  | nubOrd moduleNames /= moduleNames = reject $ do
+    german "Mindestens zwei Zusatzmodule haben den gleichen Namen."
+    english "At least two additional modules use the same name."
+  | otherwise = pure ()
+  where
+    reject = refuse . indent . translate
+    moduleNames = map fst extraModules
+    required = ["Global","TaskData","Description","Parse","Check"]
