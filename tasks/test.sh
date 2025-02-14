@@ -15,7 +15,7 @@ pkg_path=$PWD/$2/pkgdb
 script_path="$(realpath "$(dirname "$0")")"
 expect_script="${script_path}/runGhci.expect"
 mapfile -t files \
-  < <(awk '/^\s*module/ && !/^\s*module\ +Check\ +/ {sub(/module /,"")sub(/ (where|\().*/,".hs"); print}' "$1")
+  < <(awk '/^\s*module/ && !/^\s*module +Check +/ {sub(/module /,"")sub(/ (where|\().*/,".hs"); print}' "$1")
 files=("${files[@]/#/$base_name/}")
 CYAN='\033[0;36m'
 NC='\033[0m'

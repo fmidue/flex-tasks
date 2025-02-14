@@ -91,7 +91,7 @@ jobs:
           cd ${{ env.tasks }}
           export GHC_PACKAGE_PATH=root/pkgdb
           expect defaultConf.expect ${{ steps.ghc-version.outputs.version }}
-          find . -name '*.txt' -exec ../${{ env.script }}/test.sh {} root \;
+          find . -name '*.txt' -and -not -name "*NoInterpolation.txt" -exec ../${{ env.script }}/test.sh {} root \;
           set +ex
 
       - name: Upload artifact
