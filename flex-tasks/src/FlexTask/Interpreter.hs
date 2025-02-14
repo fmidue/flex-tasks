@@ -150,10 +150,10 @@ the description is interpreted again to regenerate the missing files.
 validDescription
   :: OutputCapable m
   => String       -- ^ Data available for making the description
-  -> String       -- ^ Additional code module
+  -> String       -- ^ Global module
   -> String       -- ^ Settings module
   -> String       -- ^ Module containing the /description/ function
-  -> [(String,String)]
+  -> [(String,String)] -- ^ Additional code modules
   -> FilePath     -- ^ Path images will be stored in
   -> IO (LangM m) -- ^ `OutputCapable` representation of task description
 validDescription taskData globalModule settingsModule descModule extras picPath = do
@@ -208,11 +208,11 @@ Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 -}
 checkSolution
   :: String   -- ^ Data made available to checker functions
-  -> String   -- ^ Additional code module
+  -> String   -- ^ Global module
   -> String   -- ^ Module containing configuration options
   -> String   -- ^ Module containing /parseSubmission/
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
-  -> [(String,String)]
+  -> [(String,String)] -- ^ Additional code modules
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
   -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
