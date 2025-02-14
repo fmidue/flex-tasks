@@ -206,14 +206,16 @@ Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 checkSolution
   :: String   -- ^ Data made available to checker functions
   -> String   -- ^ Additional code module
+  -> String   -- ^ Module containing configuration options
   -> String   -- ^ Module containing /parseSubmission/
   -> String   -- ^ Module containing /checkSyntax/ and /checkSemantics/
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
   -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
-checkSolution taskData globalCode parseCode checkCode submission picPath = do
+checkSolution taskData globalCode settingsCode parseCode checkCode submission picPath = do
     filePaths <- writeUncachedAndGetPaths
       [ ("Global", globalCode)
+      , ("TaskSettings", settingsCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
       , ("Helper", helper)
