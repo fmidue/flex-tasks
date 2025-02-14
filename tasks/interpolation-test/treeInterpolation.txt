@@ -41,6 +41,10 @@ type TaskData = Tree
 
 =============================================
 
+module TaskSettings where
+
+=============================================
+
 {-# language DeriveGeneric #-}
 {-# Language FlexibleContexts #-}
 {-# language OverloadedStrings #-}

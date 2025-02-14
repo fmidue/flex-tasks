@@ -2,22 +2,28 @@
 
 module Global where
 
-import Data.Map                         (Map)
-import Tasks.ComposeFormula.Config (
-  ComposeFormulaConfig(..),
-  ComposeFormulaInst(..),
-  TreeDisplayMode (TreeDisplay),
-  )
-import Tasks.SynTree.Config             (SynTreeConfig(..))
+
+import Tasks.ComposeFormula.Config      (ComposeFormulaInst(..))
 import Trees.Types                      (BinOp(..), SynTree(..), TreeFormulaAnswer)
-import qualified Data.Map               as Map (fromList)
 
 
 type Submission = [TreeFormulaAnswer]
 type TaskData = ComposeFormulaInst
 
-listToFM :: Ord k => [(k, a)] -> Map k a
-listToFM = Map.fromList
+=============================================
+
+module TaskSettings where
+
+
+import Data.Map                         (Map)
+import Tasks.ComposeFormula.Config (
+  ComposeFormulaConfig(..),
+  TreeDisplayMode (TreeDisplay),
+  )
+import Tasks.SynTree.Config             (SynTreeConfig(..))
+import Trees.Types                      (BinOp(..))
+import qualified Data.Map               as Map (fromList)
+
 
 -- 2024: Weight 0.33
 task03 :: ComposeFormulaConfig
@@ -47,6 +53,10 @@ task03 = ComposeFormulaConfig
   , offerUnicodeInput = True
   }
 
+
+listToFM :: Ord k => [(k, a)] -> Map k a
+listToFM = Map.fromList
+
 =============================================
 
 {-# language OverloadedStrings #-}
@@ -64,7 +74,8 @@ import Tasks.ComposeFormula.Quiz        (generateComposeFormulaInst)
 import Test.QuickCheck.Gen              (Gen)
 import Yesod                            (RenderMessage(..), fieldSettingsLabel)
 
-import Global
+import Global                           (TaskData)
+import TaskSettings                     (task03)
 
 
 data InputLabel = First | Second
@@ -100,7 +111,7 @@ import Control.OutputCapable.Blocks
 import Data.Functor                     (($>))
 import LogicTasks.Syntax.ComposeFormula (partialGrade', completeGrade')
 
-import Global
+import Global                           (TaskData, Submission)
 
 
 checkSyntax
@@ -128,7 +139,7 @@ checkSemantics path inst try = completeGrade' path inst try $> 1.0
 
 module Description (description) where
 
-import Global
+import Global                           (TaskData)
 
 import Control.Monad.IO.Class           (MonadIO)
 import Control.OutputCapable.Blocks
@@ -179,10 +190,10 @@ import FlexTask.Generic.Parse (
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
   )
-import LogicTasks.Parsing (formulaSymbolParser, parser)
+import LogicTasks.Parsing      (formulaSymbolParser, parser)
 import ParsingHelpers          (fully)
 
-import Global
+import Global                  (Submission)
 
 
 parseSubmission ::

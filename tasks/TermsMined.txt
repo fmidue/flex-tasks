@@ -4,38 +4,33 @@ module Global where
 
 
 import TermTasks.Records (
-  Certain(..),
   SigInstance(..),
-  Base(..),
   )
 
 import TermTasks.DataType (
-  Error(..),
-  Signature(..),
   Symbol(..),
   Term(..),
   Type(..),
-  toSignature,
   )
 
 
 type Submission = [Int]
 type TaskData = SigInstance
 
+=============================================
 
--- Making the config to use for this task. Signatures will be randomly picked out of a pool of options.
-makeConfig :: Signature -> Certain
-makeConfig sig = Certain {
-  signatures = sig,
-  root = Nothing,
-  baseConf = Base {
-    termSizeRange = ( 6, 10 ),
-    wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
-    properTerms = 5,
-    extraFeedback = True,
-    printSolution = True
-  }
-}
+module TaskSettings where
+
+
+import TermTasks.Records (
+  Certain(..),
+  Base(..),
+  )
+import TermTasks.DataType (
+  Error(..),
+  Signature(..),
+  toSignature,
+  )
 
 
 -- Possible signatures to roll for the task
@@ -179,6 +174,21 @@ sigList = [
       ]
   ]
 
+
+-- Making the config to use for this task. Signatures will be randomly picked out of a pool of options.
+makeConfig :: Signature -> Certain
+makeConfig sig = Certain {
+  signatures = sig,
+  root = Nothing,
+  baseConf = Base {
+    termSizeRange = ( 6, 10 ),
+    wrongTerms = [(1, Swap), (1, TypeChange), (1, OneMore), (1, OneLess)],
+    properTerms = 5,
+    extraFeedback = True,
+    printSolution = True
+  }
+}
+
 =============================================
 
 {-# language OverloadedStrings #-}
@@ -203,8 +213,8 @@ import TermTasks.Records (
 import Test.QuickCheck.Gen              (Gen, elements)
 import Yesod                            (RenderMessage(..), fieldSettingsLabel)
 
-import Global
-
+import Global                           (TaskData)
+import TaskSettings                     (makeConfig, sigList)
 
 
 data HeaderLabel = HeaderLabel
@@ -246,7 +256,7 @@ import Control.Applicative              (Alternative)
 import Control.OutputCapable.Blocks
 import TermTasks.Direct                 (completeGrade, partialGrade)
 
-import Global
+import Global                           (Submission, TaskData)
 
 
 
@@ -276,7 +286,7 @@ module Description (description) where
 import Control.OutputCapable.Blocks
 import qualified TermTasks.Direct       as TD
 
-import Global
+import Global                           (TaskData)
 
 
 
@@ -295,7 +305,7 @@ import Control.OutputCapable.Blocks (
   )
 import FlexTask.Generic.Parse  (formParser, parseWithOrReport, reportWithFieldNumber)
 
-import Global
+import Global                  (Submission)
 
 
 

@@ -6,6 +6,10 @@ type TaskData = [Int]
 
 =============================================
 
+module TaskSettings where
+
+=============================================
+
 {-# language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
 module TaskData (getTask) where
