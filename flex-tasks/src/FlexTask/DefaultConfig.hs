@@ -45,9 +45,16 @@ type TaskData = (DescData,Submission)
 dSettings :: String
 dSettings = [rQ|
 
+{-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Module for configuration constants. Can be imported in any other segment.
+It is not recommended to import this in the check template.
+Instead, use interpolation to directly embed the used values.
+See the section on `Check` for more information.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-}
 module TaskSettings where
 
-test = 1
 |]
 
 dTaskData :: String
@@ -370,4 +377,14 @@ parseSubmission ::
   -> LangM' (ReportT o m) Submission
 parseSubmission = parseWithOrReport formParser reportWithFieldNumber
 
+
+{-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+You can add arbitrarily many additional modules after this point.
+They must be delimited by at least three `=` as before.
+These modules can be imported freely.
+Make sure their names do not overlap with those above.
+Also avoid the name `Helper`, which is already used internally.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+-}
 |]
