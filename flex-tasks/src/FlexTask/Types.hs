@@ -19,7 +19,7 @@ module FlexTask.Types
 
 
 import Control.Monad                     (void)
-import Data.List.Extra                   (headDef, intercalate, stripInfix)
+import Data.List.Extra                   (headDef, intercalate, isPrefixOf, stripInfix)
 import Data.Map                          (Map)
 import Data.Maybe                        (mapMaybe)
 import Data.Text                         (Text)
@@ -150,5 +150,16 @@ parseFlexConfig = do
       betweenEquals =
         manyTill anyChar (try $ lookAhead $ eof <|> atLeastThree) `sepBy`
         atLeastThree
-      getModNames code = (\x -> (headDef "" $ words $ snd x, code)) <$>
-        stripInfix "module" code
+      getModNames code = do
+        b <- stripInfix "module" $ removeComments code
+        Just (headDef "" $ words $ snd b, code)
+
+
+removeComments :: String -> String
+removeComments = unlines . filter (not . ("--" `isPrefixOf`)) . lines . runRemove
+  where
+    runRemove xs = case stripInfix "{-" xs of
+      Nothing -> xs
+      Just (a,b) -> a ++ case stripInfix "-}" b of
+        Nothing -> xs
+        Just (_,rest) -> runRemove rest
