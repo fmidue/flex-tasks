@@ -15,11 +15,13 @@ module FlexTask.Types
 
   , parseFlexConfig
   , showFlexConfig
+  , validateFlexConfig
   ) where
 
 
 import Control.Monad                     (void)
-import Data.List.Extra                   (headDef, intercalate, isPrefixOf, stripInfix)
+import Control.OutputCapable.Blocks      (LangM, OutputCapable, indent, refuse, translate, german, english)
+import Data.List.Extra                   (headDef, intercalate, isPrefixOf, nubOrd, stripInfix)
 import Data.Map                          (Map)
 import Data.Maybe                        (mapMaybe)
 import Data.Text                         (Text)
@@ -163,3 +165,26 @@ removeComments = unlines . filter (not . ("--" `isPrefixOf`)) . lines . runRemov
       Just (a,b) -> a ++ case stripInfix "-}" b of
         Nothing -> xs
         Just (_,rest) -> runRemove rest
+
+
+-- | Check a configuration for inconsistencies
+validateFlexConfig :: OutputCapable m => FlexConf -> LangM m
+validateFlexConfig FlexConf{commonModules = CommonModules{..}}
+  | "Helper" `elem` moduleNames = reject $ do
+    german $
+      "Eines der zusätzlichen Module wurde mit Namen \"Helper\" definiert. " ++
+      "Dieser Name ist für ein internes Modul reserviert."
+    english $
+      "An additional Module was defined as \"Helper\". " ++
+      "This name is reserved for internal use."
+  | any (`elem` required) moduleNames = reject $ do
+    german "Eines der Zusatzmodule wurde wie ein festes Modul benannt."
+    english "An additional module has the same name as a required one."
+  | nubOrd moduleNames /= moduleNames = reject $ do
+    german "Mindestens zwei Zusatzmodule haben den gleichen Namen."
+    english "At least two additional modules use the same name."
+  | otherwise = pure ()
+  where
+    reject = refuse . indent . translate
+    moduleNames = map fst extraModules
+    required = ["Global","TaskData","Description","Parse","Check"]
