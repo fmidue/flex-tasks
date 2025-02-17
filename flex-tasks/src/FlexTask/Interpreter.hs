@@ -12,6 +12,7 @@ module FlexTask.Interpreter
   , genFlexInst
   , prettyError
   , runWithPackageDB
+  , validateSettings
   , validDescription
   ) where
 
@@ -32,6 +33,7 @@ import Language.Haskell.Interpreter (
     InterpreterError(..),
     infer,
     interpret,
+    lift,
     loadModules,
     parens,
     setImports,
@@ -63,6 +65,30 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 type GenOutput = (String, String, IO ([Text],HtmlDict))
 
+
+{- |
+-}
+validateSettings
+  :: String   -- ^ Global module
+  -> String   -- ^ Module containing configuration options
+  -> [(String,String)] -- ^ Additional code modules
+  -> IO (Either InterpreterError [Output])
+validateSettings globalCode settingsCode extraCode = do
+    filePaths <- writeUncachedAndGetPaths $
+      [ ("Global", globalCode)
+      , ("TaskSettings", settingsCode)
+      ] ++ extraCode
+    runWithPackageDB (loadModules filePaths >> validate)
+  where
+    validate = do
+      setImports
+        [ "Control.OutputCapable.Blocks.Type"
+        , "Control.OutputCapable.Blocks"
+        , "Data.Text"
+        ]
+      setTopLevelModules ["TaskSettings", "Global"]
+      a <- interpret "validateSettings" infer
+      lift $ getOutputSequence a
 
 {- |
 Use a `FlexConf` to generate a `FlexInst`.
