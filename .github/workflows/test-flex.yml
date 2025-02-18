@@ -7,16 +7,8 @@ env:
   script: tasks
 
 on:
-  push:
-    branches: ['*']
-    paths:
-      - "tasks/*.txt"
-      - "pkgdb-config/*.yaml"
-      - ".github/workflows/test-flex.yml"
-      - "tasks/test.sh"
-      - "tasks/runGhci.expect"
-      - "tasks/.hlint.yaml"
-      - "flex-tasks/src/FlexTask/DefaultConfig.hs"
+  repository_dispatch:
+    types: [CI-Completed]
 
 permissions: read-all
 
@@ -27,6 +19,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.sha }}
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -38,9 +32,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.tasks }}/root
-          key: ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}-${{ hashFiles(format('{0}/package.yaml', env.config)) }}
-          restore-keys: |
-            ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}
+          key:
+            ${{ hashFiles(format('{0}/stack.yaml', env.config), format('{0}/package.yaml', env.config)) }}-${{ hashFiles('*/src/**/*hs') }}
 
       - uses: actions/checkout@v4
         if: steps.restore-cache-db.outputs.cache-hit != 'true'
@@ -60,7 +53,7 @@ jobs:
           sudo mv -f new_stack.yaml stack.yaml
           insert='\'\
           "  - git: https://github.com/${{ github.repository }}\n"\
-          "    commit: ${{ github.sha }}\n"\
+          "    commit: ${{ github.event.client_payload.sha }}\n"\
           '    subdirs:\n'\
           '      - flex-tasks\n'\
           '      - flex-tasks-processing'
@@ -107,6 +100,7 @@ jobs:
       - name: Link Comment
         uses: peter-evans/commit-comment@v3
         with:
+          sha: ${{ github.event.client_payload.sha }}
           body: |
             Changes in task folder or test-flex workflow. You may review the test results:
 

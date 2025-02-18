@@ -321,15 +321,15 @@ The final result is passed to the check functions to generate feedback.
 The parsers used throughout are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
 
-To implement parseSubmission, you will typically invoke 'parseWithOrReport'
+To implement parseSubmission, you will typically invoke `parseInfallibly` or 'parseWithOrReport'
 and 'reportWithFieldNumber', and possibly also 'parseWithFallback', all
-supplied by 'FlexTask.Generic.Parse'. In simple situations, '<&>' may suffice.
-Simply using `parseWithOrReport formParser reportWithFieldNumber` directly
+supplied by 'FlexTask.Generic.Parse'. Simply using `parseInfallibly formParser`
+or `parseWithOrReport formParser reportWithFieldNumber` directly
 reads the form inputs and embeds the result directly into 'OutputCapable'.
-It is enough if you do not need additional processing of the input.
-The 'parseWithFallback' function can be used to additionally parse/process
+That is enough if you do not need additional processing of the input.
+If you do, '<&>' may suffice in simple situations, or else use additional
+calls to 'parseWithOrReport' or 'parseWithFallback' to additionally parse/process
 Strings from among the form result, that is, individual input fields.
-It should be used after 'parseWithOrReport formParser', instead of on its own.
 'parseWithFallback' takes a parser, messaging function, fallback parser and the input.
 The secondary parser is used as a simpler sanity check on the input in case
 of an error with the primary parser.

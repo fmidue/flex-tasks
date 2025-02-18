@@ -129,9 +129,8 @@ __and interpret everything following the last separator as part of the fourth mo
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
     modules <- betweenEquals
-    case take 5 modules of
-      [globalModule,settingsModule,taskDataModule,descriptionModule,parseModule] -> do
-        let extra = drop 5 modules
+    case splitAt 5 modules of
+      ([globalModule,settingsModule,taskDataModule,descriptionModule,parseModule], extra) -> do
         let extraModules = mapMaybe getModNames extra
         pure $
           FlexConf {

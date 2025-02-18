@@ -17,13 +17,13 @@ type FormType = (String,[Namen])
 type TaskData = ((String, [String]),[Namen])
 type Submission = (Table,PropFormula Char,[Namen])
 
--- 2024: Weight 1.0 (in Logik)
 
 
 ============================================
 
 module TaskSettings where
 
+-- 2024: Weight 1.0 (in Logik, Task13)
 
 import Control.OutputCapable.Blocks     (LangM, OutputCapable)
 

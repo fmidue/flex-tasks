@@ -7,7 +7,8 @@ on:
   pull_request:
     branches: [main]
 
-permissions: read-all
+permissions:
+  contents: write
 
 jobs:
   build_and_test:
@@ -60,3 +61,9 @@ jobs:
           set +ex
         env:
           BUILD: ${{ matrix.plan.build }}
+
+      - name: Trigger Test-Flex
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: CI-Completed
+          client-payload: '{"sha": "${{ github.sha }}"}'

@@ -11,6 +11,7 @@ module FlexTask.Generic.ParseInternal
   , escaped
   , parseWithOrReport
   , reportWithFieldNumber
+  , parseInfallibly
   , parseWithFallback
   , displayInputAnd
   ) where
@@ -277,6 +278,22 @@ parseWithOrReport ::
 parseWithOrReport parser errorMsg answer =
   case parse parser "" answer of
     Left failure  -> toAbort $ errorMsg answer failure
+    Right success -> pure success
+
+
+{- |
+Parses a String with the given parser and embeds the result into the `OutputCapable` interface.
+Use when you know that there will be no error (e.g., when the parser used is `formParser` and
+the input form is "infallible" since only constructed from String text fields, single, multiple choice).
+-}
+parseInfallibly ::
+  OutputCapable m
+  => Parser a
+  -> String
+  -> LangM' m a
+parseInfallibly parser answer =
+  case parse parser "" answer of
+    Left failure  -> error $ "The impossible happened: " ++ show failure
     Right success -> pure success
 
 

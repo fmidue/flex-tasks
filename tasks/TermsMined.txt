@@ -34,6 +34,18 @@ import TermTasks.DataType (
   Signature(..),
   toSignature,
   )
+import Data.Functor (
+  (<&>),
+  )
+import Test.QuickCheck.Gen (
+  Gen,
+  elements,
+  )
+
+
+-- 2024: Weight 0.15 (in Modellierung)
+task04 :: Gen Certain
+task04 = elements sigList <&> makeConfig
 
 
 -- Possible signatures to roll for the task
@@ -221,7 +233,6 @@ validateSettings = traverse_ (verifyCertain . makeConfig) sigList
 
 module TaskData where
 
-import Data.Functor                     ((<&>))
 import Data.String                      (fromString)
 import Data.String.Interpolate          (i)
 import Data.Text                        (Text)
@@ -231,14 +242,13 @@ import FlexTask.Types                   (HtmlDict)
 import FlexTask.YesodConfig             (Rendered, Widget)
 import TermTasks.Direct                 (genInst)
 import TermTasks.Records (
-  Certain,
   SigInstance(..),
   )
-import Test.QuickCheck.Gen              (Gen, elements)
+import Test.QuickCheck.Gen              (Gen)
 import Yesod                            (RenderMessage(..), fieldSettingsLabel)
 
 import Global                           (TaskData)
-import TaskSettings                     (makeConfig, sigList)
+import TaskSettings                     (task04)
 
 
 data HeaderLabel = HeaderLabel
@@ -264,11 +274,6 @@ form :: Int -> Rendered Widget
 form amount = formify
   (Nothing :: Maybe MultipleChoiceSelection)
   [[buttons Vertical (fieldSettingsLabel HeaderLabel) $ map (fromString . (++ ".") . show) [1..amount]]]
-
-
--- 2024: Weight 0.15 (in Modellierung)
-task04 :: Gen Certain
-task04 = elements sigList <&> makeConfig
 
 
 checkers :: String
@@ -328,14 +333,14 @@ import Control.OutputCapable.Blocks (
   OutputCapable,
   ReportT,
   )
-import FlexTask.Generic.Parse  (formParser, parseWithOrReport, reportWithFieldNumber)
+import FlexTask.Generic.Parse  (formParser, parseInfallibly)
 
 import Global                  (Submission)
 
 
 
 parseSubmission ::
-  (Monad m, OutputCapable (ReportT o m))
+  OutputCapable m
   => String
-  -> LangM' (ReportT o m) Submission
-parseSubmission = parseWithOrReport formParser reportWithFieldNumber
+  -> LangM' m Submission
+parseSubmission = parseInfallibly formParser

@@ -190,8 +190,7 @@ import FlexTask.Generic.Parse (
   displayInputAnd,
   formParser,
   parseWithFallback,
-  parseWithOrReport,
-  reportWithFieldNumber,
+  parseInfallibly,
   )
 import Formula.Parsing.Delayed (
   complainAboutMissingParenthesesIfNotFailingOn,
@@ -206,7 +205,7 @@ parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
   => String
   -> LangM' (ReportT o m) Submission
-parseSubmission input = parseWithOrReport formParser reportWithFieldNumber input $>>= \(input1,input2) ->
+parseSubmission input = parseInfallibly formParser input $>>= \(input1,input2) ->
   parseIt input1 $>>= \formula1 ->
     parseIt input2 $>>= \formula2 ->
       pure [formula1,formula2]
