@@ -25,9 +25,20 @@ module TaskSettings where
 
 -- 2024: Weight 1.0 (in Logik, Task13)
 
+import Control.OutputCapable.Blocks (
+  LangM,
+  OutputCapable,
+  indent,
+  refuse,
+  text,
+  )
+
+import Global                           (Namen)
+
+
 emptyColumns, staticColumns, totalColumns, rows :: Int
 emptyColumns  = 13
-staticColumns = 4
+staticColumns = length [minBound .. maxBound :: Namen]
 totalColumns  = staticColumns + emptyColumns
 rows          = 2^staticColumns
 
@@ -35,6 +46,15 @@ tableRequired, showSolution :: Bool
 tableRequired = False
 showSolution  = True
 
+
+validateSettings :: OutputCapable m => LangM m
+validateSettings
+  | emptyColumns < 5 = refuse $ indent $ text
+      "Die Anzahl der leeren Spalten ist kleiner als die Anzahl der Hinweise."
+  | totalColumns > 18 = refuse $ indent $ text $
+      "Die Tabelle enthält zu viele Spalten. " ++
+      "Das Eingabeformular kann bei über 18 Spalten nicht mehr korrekt angezeigt werden."
+  | otherwise = pure ()
 
 =============================================
 

@@ -12,11 +12,13 @@ module FlexTask.Interpreter
   , genFlexInst
   , prettyError
   , runWithPackageDB
+  , validateSettings
   , validDescription
   ) where
 
 
 import Control.Monad                (unless, void)
+import Control.Monad.Identity       (runIdentity)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
@@ -63,6 +65,31 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 type GenOutput = (String, String, IO ([Text],HtmlDict))
 
+
+{- |
+-}
+validateSettings
+  :: String   -- ^ Global module
+  -> String   -- ^ Module containing configuration options
+  -> [(String,String)] -- ^ Additional code modules
+  -> IO (Either InterpreterError [Output])
+validateSettings globalCode settingsCode extraCode = do
+    filePaths <- writeUncachedAndGetPaths $
+      [ ("Global", globalCode)
+      , ("TaskSettings", settingsCode)
+      ] ++ extraCode
+    runWithPackageDB (loadModules filePaths >> validate)
+  where
+    validate = do
+      setImports
+        [ "Control.Monad.Identity"
+        , "Control.OutputCapable.Blocks.Generic.Type"
+        , "Control.OutputCapable.Blocks"
+        , "Data.Text"
+        ]
+      setTopLevelModules ["TaskSettings", "Global"]
+      out <- interpret "validateSettings" infer
+      pure $ runIdentity $ getOutputSequence out
 
 {- |
 Use a `FlexConf` to generate a `FlexInst`.

@@ -15,10 +15,12 @@ type TaskData = ComposeFormulaInst
 module TaskSettings where
 
 
+import Control.OutputCapable.Blocks     (LangM, OutputCapable)
 import Data.Map                         (Map)
 import Tasks.ComposeFormula.Config (
   ComposeFormulaConfig(..),
   TreeDisplayMode (TreeDisplay),
+  checkComposeFormulaConfig,
   )
 import Tasks.SynTree.Config             (SynTreeConfig(..))
 import Trees.Types                      (BinOp(..))
@@ -56,6 +58,10 @@ task03 = ComposeFormulaConfig
 
 listToFM :: Ord k => [(k, a)] -> Map k a
 listToFM = Map.fromList
+
+
+validateSettings :: OutputCapable m => LangM m
+validateSettings = checkComposeFormulaConfig task03
 
 =============================================
 

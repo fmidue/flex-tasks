@@ -22,6 +22,9 @@ type TaskData = SigInstance
 module TaskSettings where
 
 
+import Control.OutputCapable.Blocks
+import Data.Foldable                    (traverse_)
+import TermTasks.Direct                 (verifyCertain)
 import TermTasks.Records (
   Certain(..),
   Base(..),
@@ -217,6 +220,10 @@ makeConfig sig = Certain {
     printSolution = True
   }
 }
+
+
+validateSettings :: OutputCapable m => LangM m
+validateSettings = traverse_ (verifyCertain . makeConfig) sigList
 
 =============================================
 
