@@ -25,6 +25,9 @@ type Submission = (Table,PropFormula Char,[Namen])
 module TaskSettings where
 
 
+import Control.OutputCapable.Blocks     (LangM, OutputCapable)
+
+
 emptyColumns, staticColumns, totalColumns, rows :: Int
 emptyColumns  = 13
 staticColumns = 4
@@ -35,6 +38,9 @@ tableRequired, showSolution :: Bool
 tableRequired = False
 showSolution  = True
 
+
+validateSettings :: OutputCapable m => LangM m
+validateSettings = pure ()
 
 =============================================
 
