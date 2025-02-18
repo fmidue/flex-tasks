@@ -52,8 +52,10 @@ It is not recommended to import this in the check template.
 Instead, use interpolation to directly embed the used values.
 See the section on `Check` for more information.
 
-Define a constant validateSettings which checks the values defined in this module for validity.
-It can be defined as 'pure ()' if no checks are required.
+Define a constant `validateSettings` which checks the values defined in this module for validity.
+It can be defined as `pure ()` if no checks are required.
+`validateSettings` is executed upon uploading the task configuration to Autotool.
+The validated properties are then guaranteed to hold when students access the task.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 module TaskSettings where
