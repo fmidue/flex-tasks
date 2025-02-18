@@ -341,7 +341,7 @@ reportWithFieldNumber input e = do
     indent $ text errors
     pure ()
   where
-    fieldNum = show $ length (filter (`elem` ['\a','\b']) consumed) `div` 2 + 1
+    fieldNum = show $ length (filter isDelimiter consumed) `div` 2 + 1
     errors = showErrorMessages
       "or"
       "unknown parse error"
@@ -349,9 +349,11 @@ reportWithFieldNumber input e = do
       "unexpected"
       "end of input"
       $ errorMessages e
+    isDelimiter = flip elem ['\a','\b']
     consumed = take (sourceColumn $ errorPos e) input
-    causedError = takeWhileEnd (/='\a') consumed
-    errorInfo = " " ++ fieldNum ++ ", " ++ causedError ++ ":"
+    restOfField = takeWhile (not . isDelimiter) $ drop (length consumed) input
+    causedError = takeWhileEnd (not . isDelimiter) consumed ++ restOfField
+    errorInfo = " " ++ fieldNum ++ ", " ++ causedError ++ causedError ++ ":"
 
 
 displayInputAnd ::
