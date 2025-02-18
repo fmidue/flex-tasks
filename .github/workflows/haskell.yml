@@ -3,7 +3,7 @@ name: Haskell CI
 
 on:
   push:
-    branches: [main]
+    branches: [88-flex-test-code-changes]
   pull_request:
     branches: [main]
 
