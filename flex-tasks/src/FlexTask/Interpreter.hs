@@ -82,7 +82,7 @@ validateSettings globalCode settingsCode extraCode = do
   where
     validate = do
       setImports
-        [ "Control.OutputCapable.Blocks.Type"
+        [ "Control.OutputCapable.Blocks.Generic.Type"
         , "Control.OutputCapable.Blocks"
         , "Data.Text"
         ]

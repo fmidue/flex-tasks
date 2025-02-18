@@ -51,9 +51,19 @@ Module for configuration constants. Can be imported in any other segment.
 It is not recommended to import this in the check template.
 Instead, use interpolation to directly embed the used values.
 See the section on `Check` for more information.
+
+Define a constant validateSettings which checks the values defined in this module for validity.
+It can be defined as 'pure ()' if no checks are required.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 module TaskSettings where
+
+
+import Control.OutputCapable.Blocks (LangM, OutputCapable)
+
+
+validateSettings :: OutputCapable m => LangM m
+validateSettings = pure ()
 
 |]
 
