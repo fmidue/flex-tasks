@@ -38,8 +38,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.tasks }}/root
-          key: ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}-${{ hashFiles(format('{0}/package.yaml', env.config)) }}
+          key: ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}-${{ hashFiles(format('{0}/package.yaml', env.config)) }}-${{ hashFiles('*/src/**/*hs') }}
           restore-keys: |
+            ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}-${{ hashFiles(format('{0}/package.yaml', env.config)) }}
             ${{ hashFiles(format('{0}/stack.yaml', env.config)) }}
 
       - uses: actions/checkout@v4
