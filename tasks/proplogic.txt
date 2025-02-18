@@ -50,7 +50,7 @@ showSolution  = True
 validateSettings :: OutputCapable m => LangM m
 validateSettings
   | emptyColumns < 5 = refuse $ indent $ text
-      "Anzahl der leeren Spalten ist kleiner als Anzahl der Hinweise"
+      "Die Anzahl der leeren Spalten ist kleiner als die Anzahl der Hinweise."
   | totalColumns > 18 = refuse $ indent $ text $
       "Die Tabelle enthält zu viele Spalten. " ++
       "Das Eingabeformular kann bei über 18 Spalten nicht mehr korrekt angezeigt werden."
