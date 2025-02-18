@@ -18,6 +18,7 @@ module FlexTask.Interpreter
 
 
 import Control.Monad                (unless, void)
+import Control.Monad.Identity       (runIdentity)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
@@ -33,7 +34,6 @@ import Language.Haskell.Interpreter (
     InterpreterError(..),
     infer,
     interpret,
-    lift,
     loadModules,
     parens,
     setImports,
@@ -82,13 +82,14 @@ validateSettings globalCode settingsCode extraCode = do
   where
     validate = do
       setImports
-        [ "Control.OutputCapable.Blocks.Generic.Type"
+        [ "Control.Monad.Identity"
+        , "Control.OutputCapable.Blocks.Generic.Type"
         , "Control.OutputCapable.Blocks"
         , "Data.Text"
         ]
       setTopLevelModules ["TaskSettings", "Global"]
-      a <- interpret "validateSettings" infer
-      lift $ getOutputSequence a
+      out <- interpret "validateSettings" infer
+      pure $ runIdentity $ getOutputSequence out
 
 {- |
 Use a `FlexConf` to generate a `FlexInst`.
