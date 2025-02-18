@@ -32,7 +32,7 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   toAbort,
   )
-import Data.List.Extra    (takeWhileEnd)
+import Data.List.Extra    (dropEnd, takeWhileEnd)
 import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -350,11 +350,12 @@ reportWithFieldNumber input e = do
       "end of input"
       $ errorMessages e
     isDelimiter = flip elem ['\a','\b']
-    consumed = take (sourceColumn $ errorPos e) input
-    restOfField = takeWhile (not . isDelimiter) $ drop (length consumed) input
+    errorAt = sourceColumn $ errorPos e
+    consumed = take errorAt input
+    restOfField = takeWhile (not . isDelimiter) $ drop errorAt input
     fieldUntilError = takeWhileEnd (not . isDelimiter) consumed
-    causedError = filter (/='\"') $ fieldUntilError ++ restOfField
-    errorInfo = " " ++ fieldNum ++ ", " ++ "\"" ++ causedError ++ "\"" ++ ":"
+    causedError = drop 1 $ dropEnd 1 $ fieldUntilError ++ restOfField
+    errorInfo = " " ++ fieldNum ++ ", " ++ causedError ++ ":"
 
 
 displayInputAnd ::
