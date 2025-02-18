@@ -352,8 +352,9 @@ reportWithFieldNumber input e = do
     isDelimiter = flip elem ['\a','\b']
     consumed = take (sourceColumn $ errorPos e) input
     restOfField = takeWhile (not . isDelimiter) $ drop (length consumed) input
-    causedError = takeWhileEnd (not . isDelimiter) consumed ++ restOfField
-    errorInfo = " " ++ fieldNum ++ ", " ++ causedError ++ ":"
+    fieldUntilError = takeWhileEnd (not . isDelimiter) consumed
+    causedError = filter (/='\"') $ fieldUntilError ++ restOfField
+    errorInfo = " " ++ fieldNum ++ ", " ++ "\"" ++ causedError ++ "\"" ++ ":"
 
 
 displayInputAnd ::
