@@ -353,7 +353,7 @@ reportWithFieldNumber input e = do
     consumed = take (sourceColumn $ errorPos e) input
     restOfField = takeWhile (not . isDelimiter) $ drop (length consumed) input
     causedError = takeWhileEnd (not . isDelimiter) consumed ++ restOfField
-    errorInfo = " " ++ fieldNum ++ ", " ++ causedError ++ causedError ++ ":"
+    errorInfo = " " ++ fieldNum ++ ", " ++ causedError ++ ":"
 
 
 displayInputAnd ::
