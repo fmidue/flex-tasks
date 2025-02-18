@@ -7,16 +7,8 @@ env:
   script: tasks
 
 on:
-  push:
-    branches: ['*']
-    paths:
-      - "tasks/*.txt"
-      - "pkgdb-config/*.yaml"
-      - ".github/workflows/test-flex.yml"
-      - "tasks/test.sh"
-      - "tasks/runGhci.expect"
-      - "tasks/.hlint.yaml"
-      - "flex-tasks/src/FlexTask/DefaultConfig.hs"
+  repository_dispatch:
+    types: [CI-Completed]
 
 permissions: read-all
 
@@ -27,6 +19,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref }}
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -105,6 +99,7 @@ jobs:
       - name: Link Comment
         uses: peter-evans/commit-comment@v3
         with:
+          sha: ${{ github.event.client_payload.ref }}
           body: |
             Changes in task folder or test-flex workflow. You may review the test results:
 
