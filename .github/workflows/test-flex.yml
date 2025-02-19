@@ -93,7 +93,9 @@ jobs:
         id: upload-artifact
         with:
           name: reports
-          path: ${{ env.tasks }}/*/*.html
+          path: |
+            ${{ env.tasks }}/*/*.html
+            ${{ env.tasks }}/*/Check.hs
           if-no-files-found: error
           overwrite: true
 
