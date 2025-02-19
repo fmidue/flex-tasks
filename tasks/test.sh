@@ -21,6 +21,8 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 current_file=0
 
+mkdir -p "/tmp/flex-test"
+
 echo -e "${CYAN}Writing .hs files...${NC}"
 
 mkdir -p "${base_name}"
