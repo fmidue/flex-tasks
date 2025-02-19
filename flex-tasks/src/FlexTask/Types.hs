@@ -21,7 +21,7 @@ module FlexTask.Types
 
 import Control.Monad                     (void)
 import Control.OutputCapable.Blocks      (LangM, OutputCapable, indent, refuse, translate, german, english)
-import Data.List.Extra                   (headDef, intercalate, isPrefixOf, nubOrd, stripInfix)
+import Data.List.Extra                   (dropEnd1, intercalate, isPrefixOf, nubOrd, stripInfix, word1)
 import Data.Map                          (Map)
 import Data.Maybe                        (mapMaybe)
 import Data.Text                         (Text)
@@ -131,7 +131,7 @@ parseFlexConfig = do
     modules <- betweenEquals
     case splitAt 5 modules of
       ([globalModule,settingsModule,taskDataModule,descriptionModule,parseModule], extra) -> do
-        let extraModules = mapMaybe getModNames extra
+        let extraModules = mapMaybe getModName extra
         pure $
           FlexConf {
             taskDataModule,
@@ -154,9 +154,12 @@ parseFlexConfig = do
     betweenEquals =
       manyTill anyChar (try $ lookAhead $ eof <|> atLeastThree) `sepBy`
       atLeastThree
-    getModNames code = do
-      b <- stripInfix "module" $ removeComments code
-      Just (headDef "" $ words $ snd b, code)
+
+
+getModName :: String -> Maybe (String, String)
+getModName code = do
+  (_,nameAtFront) <- stripInfix "module" $ removeComments code
+  Just (fst $ word1 nameAtFront, code)
 
 
 removeComments :: String -> String
@@ -171,7 +174,17 @@ removeComments = unlines . filter (not . ("--" `isPrefixOf`)) . lines . runRemov
 
 -- | Check a configuration for inconsistencies
 validateFlexConfig :: OutputCapable m => FlexConf -> LangM m
-validateFlexConfig FlexConf{commonModules = CommonModules{..}}
+validateFlexConfig FlexConf{commonModules = CommonModules{..},..}
+  | requiredNames /= requiredConfig = reject $ do
+    german $
+      "Die festen Module wurden in Reihenfolge oder Namen verändert. " ++
+      "Sie müssen exakt mit folgender Reihenfolge und " ++
+      "folgenden Bezeichnern definiert werden: " ++
+      listRequired
+    english $
+      "The names or order of required modules was changed. " ++
+      "They have to be defined with exactly the following names and order: " ++
+      listRequired
   | "Helper" `elem` moduleNames = reject $ do
     german $
       "Eines der zusätzlichen Module wurde mit Namen \"Helper\" definiert. " ++
@@ -190,3 +203,12 @@ validateFlexConfig FlexConf{commonModules = CommonModules{..}}
     reject = refuse . indent . translate
     moduleNames = map fst extraModules
     required = ["Global","TaskSettings","TaskData","Description","Parse","Check"]
+    requiredConfig = dropEnd1 required
+    listRequired = intercalate ", " requiredConfig
+    requiredNames = mapMaybe (fmap fst . getModName)
+      [ globalModule
+      , settingsModule
+      , taskDataModule
+      , descriptionModule
+      , parseModule
+      ]
