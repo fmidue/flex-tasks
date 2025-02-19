@@ -38,6 +38,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   echo "${line//$'\r'/}" >>"${files[$current_file]}"
 done <"$1"
 
+cp "$1" "$base_name/config.txt"
+
 echo -e "${CYAN}Interpreting the code files...${NC}"
 
 export GHC_PACKAGE_PATH=$pkg_path
