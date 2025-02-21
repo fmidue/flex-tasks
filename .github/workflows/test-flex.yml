@@ -89,7 +89,22 @@ jobs:
           cd ${{ env.tasks }}
           export GHC_PACKAGE_PATH=root/pkgdb
           expect defaultConf.expect ${{ steps.ghc-version.outputs.version }}
-          find . -name '*.txt' -and -not -name "*NoInterpolation.txt" -exec bash ../${{ env.script }}/test.sh {} root \;
+          mapfile -t files \
+            < <( find . -name '*.txt' -and -not -name "*NoInterpolation.txt")
+          for name in "${files[@]}"; do
+            bash ../${{ env.script }}/test.sh "$name" root
+            folder="$(basename "$name" .txt)"
+            if grep -q "No hints" "$folder/hlint.html"; then
+              rm "$folder/hlint.html"
+              hlint_removed=true
+            fi
+            if [ $(grep -vw "Compiling" -c "$folder/ghc.html") -eq 51 ]; then
+              rm "$folder/ghc.html"
+              if $hlint_removed; then
+                rm "$folder/Check.hs"
+              fi
+            fi
+          done
           set +ex
 
       - name: Upload artifact
@@ -100,10 +115,11 @@ jobs:
           path: |
             ${{ env.tasks }}/*/*.html
             ${{ env.tasks }}/*/Check.hs
-          if-no-files-found: error
+          if-no-files-found: ignore
           overwrite: true
 
       - name: Link Comment
+        if: ${{ steps.upload-artifact.outputs.artifact-url != '' }}
         uses: peter-evans/commit-comment@v3
         with:
           sha: ${{ github.event.client_payload.sha }}
