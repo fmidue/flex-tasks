@@ -71,7 +71,6 @@ jobs:
         id: ghc-version
         run: |
           set -ex
-          echo "$TERM"
           cd ${{ env.tasks }}
           ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
           temp="${ghc_file##*/ghci-}"
