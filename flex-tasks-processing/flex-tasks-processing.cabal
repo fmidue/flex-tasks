@@ -11,6 +11,7 @@ build-type:     Simple
 library
   exposed-modules:
       FlexTask.Processing.Text
+      FlexTask.Processing.JavaScript
   other-modules:
       Paths_flex_tasks_processing
   hs-source-dirs:
@@ -28,6 +29,7 @@ library
   ghc-options: -Wall -Widentities -Werror
   build-depends:
       base
+    , shakespeare
     , text
   default-language: Haskell2010
 
@@ -56,5 +58,6 @@ test-suite flex-tasks-test
     , flex-tasks-processing
     , hspec
     , quickcheck-instances
+    , shakespeare
     , text
   default-language: Haskell2010

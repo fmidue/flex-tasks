@@ -25,7 +25,6 @@ module FlexTask.FormUtil
   , newFlexId
   , newFlexName
   , repeatFlexName
-  , standaloneDefaultsJS
   ) where
 
 
@@ -33,12 +32,11 @@ import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
 import Data.Map                        (fromList)
 import Data.Text                       (Text, pack)
-import Data.Text.Lazy                  (toStrict)
 import Data.Tuple.Extra                (second)
 import System.Log.FastLogger           (defaultBufSize, newStdoutLoggerSet)
 import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Cassius                    (Css)
-import Text.Julius                     (Javascript, RawJS(..))
+import Text.Julius                     (Javascript)
 import Yesod
 import Yesod.Core.Types                (HandlerData(..), HandlerFor(..), RY)
 import Yesod.Default.Config2           (makeYesodLogger)
@@ -177,48 +175,6 @@ newFlexName :: MForm Handler Text
 newFlexName = T.replace "f" "flex" <$> newFormIdent
 
 
-standaloneDefaultsJS :: [Text] -> Text
-standaloneDefaultsJS ts =
-  "<script>" <>
-  toStrict (renderJavascriptUrl (\_ _ -> undefined) $ setDefaultsJS ts) <>
-  "</script>"
-
-
-setDefaultsJS :: [Text] -> JavascriptUrl url
-setDefaultsJS names = [julius|
-function setDefaults(values){
-  for(let i = 0; i < fieldNames.length; i++){
-    var input = values[i];
-    var fields = document.getElementsByName(fieldNames[i]);
-
-    for(let j = 0; j < fields.length; j++) {
-      var field = fields[j];
-      var fieldType = field.getAttribute("type");
-      var maybeDropdown = field.tagName;
-
-      if(fieldType != null && fieldType.toLowerCase() === "radio"){
-        field.checked = field.value == input;
-      }
-      else if(maybeDropdown != null && maybeDropdown.toLowerCase() === "select"){
-        for(const opt of Array.from(field.options)){
-          opt.selected = input.includes(opt.getAttribute("value"));
-        }
-      }
-      else if(fieldType != null && fieldType.toLowerCase() === "checkbox"){
-        field.checked = input.includes(field.getAttribute("value"));
-      }
-      else if(fieldType != null && fieldType.toLowerCase() !== "hidden"){
-        var inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
-        if(inputElem != "Missing" && inputElem != "None"){
-          field.value = inputElem;
-        }
-      }
-    }
-  }
-}
-var fieldNames = #{rawJS (show names)};|]
-
-
 -- | List of languages to cover in instances of `RenderMessage` for custom translations.
 supportedLanguages :: [Lang]
 supportedLanguages = ["de","en"]
@@ -247,8 +203,7 @@ getFormData widget = do
     withLang :: Lang -> Handler ([Text], (Lang, String))
     withLang lang = setRequestLang lang $ do
       (names,wid) <- fst <$> runFormGet (runReader widget)
-      let withJS = wid >> toWidgetBody (setDefaultsJS names)
-      content <- widgetToPageContent withJS
+      content <- widgetToPageContent wid
       html <- withUrlRenderer [hamlet|
         ^{pageHead content}
         ^{pageBody content}|]
