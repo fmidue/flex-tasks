@@ -17,37 +17,52 @@ import FlexTask.Processing.Text         (formatForJS)
 
 setDefaultsJS :: [Text] -> JavascriptUrl url
 setDefaultsJS names = [julius|
-function setDefaults(values){
-  for(let i = 0; i < fieldNames.length; i++){
-    var input = values[i];
-    var fields = document.getElementsByName(fieldNames[i]);
+  function setDefaults(values) {
+    fieldNames.forEach((fieldName, i) => {
+      const input = values[i];
+      const fields = Array.from(document.getElementsByName(fieldName));
 
-    for(let j = 0; j < fields.length; j++) {
-      var field = fields[j];
-      var fieldType = field.getAttribute("type");
-      var maybeDropdown = field.tagName;
+      // How to handle each field type
+      const handlers = {
+        radio: field => {
+          field.checked = field.value == input;
+        },
+        select: field => {
+          Array.from(field.options).forEach(option => {
+            option.selected = input.includes(option.value);
+          });
+        },
+        checkbox: field => {
+          field.checked = input.includes(field.value);
+        },
+        default: (field, j) => {
+          const inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
+          if (inputElem !== "Missing" && inputElem !== "None") {
+            field.value = inputElem;
+          }
+        }
+      };
 
-      if(fieldType != null && fieldType.toLowerCase() === "radio"){
-        field.checked = field.value == input;
-      }
-      else if(maybeDropdown != null && maybeDropdown.toLowerCase() === "select"){
-        for(const opt of Array.from(field.options)){
-          opt.selected = input.includes(opt.getAttribute("value"));
+      // Pick a fitting handler based on field attributes
+      const getHandler = field => {
+        const type = field.getAttribute("type")?.toLowerCase();
+        const tag = field.tagName.toLowerCase();
+        if (type === "radio") return "radio";
+        if (tag === "select") return "select";
+        if (type === "checkbox") return "checkbox";
+        if (type === "hidden") return null; // Skip hidden fields
+        return "default";
+      };
+
+      fields.forEach((field, j) => {
+        const key = getHandler(field);
+        if (key && handlers[key]) {
+          handlers[key](field, j);
         }
-      }
-      else if(fieldType != null && fieldType.toLowerCase() === "checkbox"){
-        field.checked = input.includes(field.getAttribute("value"));
-      }
-      else if(fieldType != null && fieldType.toLowerCase() !== "hidden"){
-        var inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
-        if(inputElem != "Missing" && inputElem != "None"){
-          field.value = inputElem;
-        }
-      }
-    }
+      });
+    });
   }
-}
-var fieldNames = #{rawJS (show names)};|]
+  var fieldNames = #{rawJS (show names)};|]
 
 
 triggerDefaults :: Text -> JavascriptUrl url
@@ -59,11 +74,10 @@ triggerDefaults t
 lockForm :: Bool -> JavascriptUrl url
 lockForm lock
   | lock = [julius|window.onload =
-      function () {
-        for(const name of fieldNames) {
-          for(const elem of document.getElementsByName(name)){
-            elem.disabled = true;
-          }
-        }
-      };|]
+    function () {
+      fieldNames.forEach(name => {
+        Array.from(document.getElementsByName(name))
+          .forEach(elem => elem.disabled = true);
+      });
+    };|]
   | otherwise = mempty
