@@ -1,13 +1,18 @@
+{-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 
 module FlexTask.Processing.JavaScript (
   setDefaultsJS,
+  triggerDefaults,
+  lockForm,
   ) where
 
 
 import Data.Text                        (Text)
 import Text.Julius                      (JavascriptUrl, julius, rawJS)
+import qualified Data.Text as T
 
+import FlexTask.Processing.Text         (formatForJS)
 
 
 setDefaultsJS :: [Text] -> JavascriptUrl url
@@ -43,3 +48,22 @@ function setDefaults(values){
   }
 }
 var fieldNames = #{rawJS (show names)};|]
+
+
+triggerDefaults :: Text -> JavascriptUrl url
+triggerDefaults t
+  | t == "[ ]" || T.length t < 2 = mempty
+  | otherwise = [julius|window.onload = setDefaults(#{rawJS (formatForJS t)});|]
+
+
+lockForm :: Bool -> JavascriptUrl url
+lockForm lock
+  | lock = [julius|window.onload =
+      function () {
+        for(const name of fieldNames) {
+          for(const elem of document.getElementsByName(name)){
+            elem.disabled = true;
+          }
+        }
+      };|]
+  | otherwise = mempty
