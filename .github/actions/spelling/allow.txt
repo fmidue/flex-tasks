@@ -18,6 +18,7 @@ github
 Graphviz
 Hspec
 html
+mempty
 mform
 MForms
 mopt
