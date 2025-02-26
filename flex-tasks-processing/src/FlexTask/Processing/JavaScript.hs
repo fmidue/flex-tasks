@@ -1,28 +1,13 @@
-{-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 
 module FlexTask.Processing.JavaScript (
-  standaloneDefaultsJS,
   setDefaultsJS,
   ) where
 
 
 import Data.Text                        (Text)
-import Data.Text.Lazy                   (toStrict)
-import Text.Julius (
-  JavascriptUrl,
-  julius,
-  rawJS,
-  renderJavascriptUrl,
-  )
+import Text.Julius                      (JavascriptUrl, julius, rawJS)
 
-
-
-standaloneDefaultsJS :: [Text] -> Text
-standaloneDefaultsJS ts =
-  "<script>" <>
-  toStrict (renderJavascriptUrl (\_ _ -> undefined) $ setDefaultsJS ts) <>
-  "</script>"
 
 
 setDefaultsJS :: [Text] -> JavascriptUrl url
