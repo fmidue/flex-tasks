@@ -80,7 +80,7 @@ ghc_version="${temp%-*.conf*}"
 cd "$base_name" || exit 1
 expect "$script_path/mutator.expect" "$ghc_version" "../$mutator" "$config_mutations" >/dev/null
 echo "Testing a total of $(grep -c ^ settings_variants.txt) config mutations."
-for i in $(seq 1 $(grep -c ^ settings_variants.txt)); do
+for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
   echo "Config $i:"
   echo "testing with these settings: "
   settings="$(head -n 1 settings_variants.txt)"
@@ -91,7 +91,6 @@ for i in $(seq 1 $(grep -c ^ settings_variants.txt)); do
     trimmed=$(echo "$pair" | xargs)
     echo "$trimmed"
     key=$(echo "$trimmed" | cut -d'=' -f1 | xargs)
-    value=$(echo "$trimmed" | cut -d'=' -f2- | xargs)
     sed -i "s|^${key}[[:space:]]*=.*|$trimmed|" "TaskSettings.hs"
   done
 
@@ -127,7 +126,7 @@ for i in $(seq 1 $(grep -c ^ settings_variants.txt)); do
     scan_hints=true
     echo -e "${RED}Issues detected!\n${NC}"
   fi
-  if [ ! -z "$( ls -A "$settings" )" ] || $leave_check; then
+  if [ -n "$( ls -A "$settings" )" ] || $leave_check; then
     cp "Check.hs" "$settings/Check.hs"
   fi
 done

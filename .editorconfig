@@ -14,5 +14,5 @@ max_line_length = 160
 [README.md]
 max_line_length = unset
 
-[{.github/{linters,actions/spelling,workflows}/*,tasks/runGhci.expect}]
+[{.github/{linters,actions/spelling,workflows}/*,tasks/runGhci.expect,tasks/mutator.expect}]
 max_line_length = unset

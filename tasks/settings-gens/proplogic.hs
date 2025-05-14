@@ -2,7 +2,7 @@ module SettingsGen where
 
 import Test.QuickCheck.Gen
 
-  
+
 data Settings = Settings {
   emptyColumns :: Int,
   tableRequired :: Bool,
