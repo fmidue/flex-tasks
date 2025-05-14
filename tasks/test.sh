@@ -3,7 +3,6 @@
 # amount of random configs to test with
 config_mutations=10
 
-
 if [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; then
   echo "Usage: $0 input_file pkgdb_directory settings_generator [-c]"
   exit 1
@@ -84,7 +83,7 @@ for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
   echo "Config $i:"
   echo "testing with these settings: "
   settings="$(head -n 1 settings_variants.txt)"
-  IFS=',' read -ra pairs <<< "$settings"
+  IFS=',' read -ra pairs <<<"$settings"
   mkdir -p "$settings"
 
   for pair in "${pairs[@]}"; do
@@ -126,7 +125,7 @@ for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
     scan_hints=true
     echo -e "${RED}Issues detected!\n${NC}"
   fi
-  if [ -n "$( ls -A "$settings" )" ] || $leave_check; then
+  if [ -n "$(ls -A "$settings")" ] || $leave_check; then
     cp "Check.hs" "$settings/Check.hs"
   fi
 done
