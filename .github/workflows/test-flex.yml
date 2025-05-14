@@ -4,6 +4,7 @@ name: Compile and Lint Flex-Tasks
 env:
   tasks: tasks
   config: pkgdb-config
+  settings-gens: settings-gens
   script: tasks
   TERM: xterm
 
@@ -100,8 +101,9 @@ jobs:
           cd ${{ env.tasks }}
           export GHC_PACKAGE_PATH=root/pkgdb
           expect defaultConf.expect ${{ steps.ghc-version.outputs.version }}
-          find . -name '*.txt' -and -not -name "*NoInterpolation.txt" \
-                 -exec bash ../${{ env.script }}/test.sh {} root \;
+          for file in $(find . -name '*.txt' -and -not -name "*NoInterpolation.txt"); do
+            ../${{ env.script }}/test.sh file root ${{ env.settings-gens }}/$(basename file .txt).hs \;
+          done
           if [ $(find . -name "Check.hs" -or -name "ghc.html" | wc -l) -eq 0 ]; then
             rm -f stack.yaml
           fi
