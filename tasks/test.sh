@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
-if [ "$#" -ne 2 ] && [ "$#" -ne 3 ]; then
-  echo "Usage: $0 input_file pkgdb_directory [-c]"
+# amount of random configs to test with
+config_mutations=10
+
+
+if [ "$#" -ne 3 ] && [ "$#" -ne 4 ]; then
+  echo "Usage: $0 input_file pkgdb_directory settings_generator [-c]"
   exit 1
 fi
 
@@ -12,12 +16,20 @@ fi
 
 leave_check=false
 
-if [ "$#" -eq 3 ]; then
-  if [ "$3" = "-c" ]; then
+if [[ -f $3 ]]; then
+  mutator="$3"
+else
+  echo "settings generator does not exist: $3"
+  echo "Usage: $0 input_file pkgdb_directory settings_generator [-c]"
+  exit 1
+fi
+
+if [[ "$#" -eq 4 ]]; then
+  if [[ "$4" = "-c" ]]; then
     leave_check=true
   else
-    echo "Unknown flag: $3"
-    echo "Usage: $0 input_file pkgdb_directory [-c]"
+    echo "flag does not exist: $4"
+    echo "Usage: $0 input_file pkgdb_directory settings_generator [-c]"
     exit 1
   fi
 fi
@@ -35,15 +47,16 @@ LIGHT_GREEN='\033[1;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 current_file=0
-hlint_removed=false
-ghc_removed=false
-scan_removed=false
+hlint_hints=false
+ghc_hints=false
+scan_hints=false
 
 mkdir -p "/tmp/flex-test"
 
 echo -e "${CYAN}Testing $base_name!\n${NC}"
 echo -e "${CYAN}Writing .hs files...\n${NC}"
 
+rm -r -f "${base_name}"
 mkdir -p "${base_name}"
 true >"${files[0]}"
 
@@ -59,48 +72,71 @@ done <"$1"
 
 cp "$1" "$base_name/config.txt"
 
-echo -e "${CYAN}Interpreting the code files...${NC}"
-
 export GHC_PACKAGE_PATH=$pkg_path
 ghc_file=$(find "$pkg_path" -name "ghci*" -print -quit)
 temp="${ghc_file##*/ghci-}"
 ghc_version="${temp%-*.conf*}"
 
 cd "$base_name" || exit 1
-expect "$expect_script" "$ghc_version" |
-  sed -e 's/.*\*\*\*/\*\*\*/g' -e '/GHCi, version/d' -e '/ghci> /d' -e '/modules loaded./d' |
-  ansi2html >ghc.html
-if [ "$(grep -vw "Compiling" -c "ghc.html")" -eq 51 ]; then
-  rm ghc.html
-  ghc_removed=true
-  echo -e "${GREEN}No Warnings!\n${NC}"
-else
-  echo -e "${RED}GHC reported warnings!\n${NC}"
-fi
+expect "$script_path/mutator.expect" "$ghc_version" "../$mutator" "$config_mutations" >/dev/null
+echo "Testing a total of $(grep -c ^ settings_variants.txt) config mutations."
+for i in $(seq 1 $(grep -c ^ settings_variants.txt)); do
+  echo "Config $i:"
+  echo "testing with these settings: "
+  settings="$(head -n 1 settings_variants.txt)"
+  IFS=',' read -ra pairs <<< "$settings"
+  mkdir -p "$settings"
 
-echo -e "${CYAN}Writing Hlint report...${NC}"
-hlint . --report="hlint.html" -q --hint="${script_path}/.hlint.yaml"
-if grep -q "No hints" hlint.html; then
-  rm hlint.html
-  hlint_removed=true
-  echo -e "${GREEN}No Suggestions!\n${NC}"
-else
-  echo -e "${RED}Suggestions available!\n${NC}"
-fi
+  for pair in "${pairs[@]}"; do
+    trimmed=$(echo "$pair" | xargs)
+    echo "$trimmed"
+    key=$(echo "$trimmed" | cut -d'=' -f1 | xargs)
+    value=$(echo "$trimmed" | cut -d'=' -f2- | xargs)
+    sed -i "s|^${key}[[:space:]]*=.*|$trimmed|" "TaskSettings.hs"
+  done
 
-echo -e "${CYAN}Running Check.hs scan...${NC}"
-"$script_path"/scan_check.sh
-if [ "$(grep -w "class=header" -c scan_check.html)" -eq 0 ]; then
-  rm scan_check.html
-  scan_removed=true
-  echo -e "${GREEN}No Issues!\n${NC}"
-else
-  echo -e "${RED}Issues detected!\n${NC}"
-fi
+  sed -i '1d' settings_variants.txt
+  echo -e "${CYAN}\nInterpreting the code files...${NC}"
+  expect "$expect_script" "$ghc_version" |
+    sed -e 's/.*\*\*\*/\*\*\*/g' -e '/GHCi, version/d' -e '/ghci> /d' -e '/modules loaded./d' |
+    ansi2html >"$settings/ghc.html"
+  if [ "$(grep -vw "Compiling" -c "$settings/ghc.html")" -eq 51 ]; then
+    rm "$settings/ghc.html"
+    echo -e "${GREEN}No Warnings!\n${NC}"
+  else
+    echo -e "${RED}GHC reported warnings!\n${NC}"
+    ghc_hints=true
+  fi
+
+  echo -e "${CYAN}Writing Hlint report...${NC}"
+  hlint . --report="$settings/hlint.html" -q --hint="${script_path}/.hlint.yaml"
+  if grep -q "No hints" "$settings/hlint.html"; then
+    rm "$settings/hlint.html"
+    echo -e "${GREEN}No Suggestions!\n${NC}"
+  else
+    hlint_hints=true
+    echo -e "${RED}Suggestions available!\n${NC}"
+  fi
+
+  echo -e "${CYAN}Running Check.hs scan...${NC}"
+  "$script_path"/scan_check.sh "$settings"
+  if [ "$(grep -w "class=header" -c "$settings/scan_check.html")" -eq 0 ]; then
+    rm "$settings/scan_check.html"
+    echo -e "${GREEN}No Issues!\n${NC}"
+  else
+    scan_hints=true
+    echo -e "${RED}Issues detected!\n${NC}"
+  fi
+  if [ ! -z "$( ls -A "$settings" )" ] || $leave_check; then
+    cp "Check.hs" "$settings/Check.hs"
+  fi
+done
 
 echo -e "${CYAN}Deleting intermediate files...\n${NC}"
 
-if $hlint_removed && $ghc_removed && $scan_removed && ! $leave_check; then
+rm -f Check.hs
+rm -f settings_variants.txt
+if ! $hlint_hints && ! $ghc_hints && ! $scan_hints && ! $leave_check; then
   cd ..
   rm -f -r "$base_name"
 else
@@ -109,6 +145,7 @@ else
   for file in "${files[@]}"; do
     rm -f "$file"
   done
+  find . -type d -empty -delete
 fi
 
 echo -e "${LIGHT_GREEN}Done! Check the reports in ghc.html, hlint.html and scan_check.html.\n${NC}"

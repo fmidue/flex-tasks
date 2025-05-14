@@ -1,0 +1,26 @@
+#!/usr/bin/env expect
+
+# GHC version to use
+set ver [lindex $argv 0];
+set mutator [lindex $argv 1];
+set how_many [lindex $argv 2];
+set timeout 3
+
+log_user 0
+spawn ghci-$ver $mutator
+log_user 1
+expect_before timeout { exit 1 }
+
+expect "ghci> "
+send "import Test.QuickCheck.Gen\r"
+expect "ghci> "
+send "import Data.List.Extra\r"
+expect "ghci> "
+send "import System.IO\r"
+expect "ghci> "
+send "newConf <- map (dropSuffix \"}\" . dropPrefix \"Settings {\" . show) . nub <$> generate (vectorOf $how_many SettingsGen.rollSettings)\r"
+expect "ghci> "
+send "writeFile \"settings_variants.txt\"$ unlines newConf\r"
+expect "ghci> "
+send ":q\r"
+expect "Leaving GHCi.\r\n"

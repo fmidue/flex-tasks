@@ -3,7 +3,7 @@
 FILE="Check.hs"
 MAX_LENGTH=200
 MIN_CLONE=80
-REPORT="scan_check.html"
+REPORT="$1/scan_check.html"
 
 # Clear any existing report.
 true >"$REPORT"
@@ -192,4 +192,4 @@ END {
 }
 ' "$FILE"
 
-echo "</body>" >>$REPORT
+echo "</body>" >>"$REPORT"
