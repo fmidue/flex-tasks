@@ -121,11 +121,9 @@ showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
 
 {- |
 Parser for FlexTask configurations.
-Reads four code modules each separated by at least three /equals signs/ (=).
+Reads five or more code modules each separated by at least three /equals signs/ (=).
 
-__There is no terminator at the end of the fourth (last) module.__
-__The parser will simply read until EOF__
-__and interpret everything following the last separator as part of the fourth module.__
+Modules starting from the sixth will be added to `CommonModules.extraModules`.
 -}
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
