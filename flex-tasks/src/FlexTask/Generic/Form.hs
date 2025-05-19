@@ -343,7 +343,7 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b
 instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
 
 
-instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
+instance {-# Overlappable #-} Formify a => Formify [a] where
   formifyImplementation = formifyInstanceList
 
 
