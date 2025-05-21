@@ -68,12 +68,20 @@ import FlexTask.Processing.Text (
   missingMarker
   )
 import FlexTask.Generic.Form
-  ( MultipleChoiceSelection
-  , SingleChoiceSelection
-  , multipleChoiceAnswer
-  , singleChoiceAnswer
-  )
 
+
+
+instance (Parse a, Parse b) => Parse [(a,b)] where
+  formParser =
+    try (escaped parseEmpty) <|> do
+      parseOne `sepBy` parseText listDelimiter
+    where
+      parseEmpty = parseText missingMarker >> pure []
+      parseOne = do
+        a <- formParser
+        parseText listDelimiter
+        b <- formParser
+        pure (a,b)
 
 
 

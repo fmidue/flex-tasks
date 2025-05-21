@@ -246,6 +246,19 @@ instance PathPiece a => BaseForm (Hidden a) where
   baseForm = hiddenField
 
 
+instance (BaseForm a, BaseForm b) => BaseForm (a,b) where
+  baseForm = Field
+    { fieldParse = undefined
+    , fieldView = \theId name attrs val isReq ->
+        aView theId name attrs (fst <$> val) isReq >>
+        bView theId name attrs (snd <$> val) isReq
+    , fieldEnctype = UrlEncoded
+    }
+    where
+      Field _ aView _ = baseForm
+      Field _ bView _ = baseForm
+
+
 {- |
 Class for generic generation of Html input forms for a given type.
 Bodyless instances can be declared for any type instancing Generic.
@@ -343,17 +356,17 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b
 instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
 
 
-instance {-# Overlappable #-} Formify a => Formify [a] where
+instance {-# Overlappable #-} BaseForm a => Formify [a] where
   formifyImplementation = formifyInstanceList
 
 
 
-instance (BaseForm a, Formify a) => Formify (Maybe a) where
+instance BaseForm a => Formify (Maybe a) where
   formifyImplementation = formifyInstanceOptionalField
 
 
-instance Formify (Maybe a) => Formify [Maybe a] where
-  formifyImplementation = formifyInstanceList
+instance BaseForm a => Formify [Maybe a] where
+  formifyImplementation = formifyInstanceOptList
 
 
 instance Formify SingleChoiceSelection where
@@ -501,8 +514,9 @@ formifyInstanceOptionalField = renderNextField
   )
 
 
+
 formifyInstanceList
-    :: (Formify a)
+    :: (BaseForm a)
     => Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], [[Rendered Widget]])
@@ -526,12 +540,43 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
     headError [] = error "Defaults should never be empty here!"
     headError (x:_) = x
 
-    firstRender = snd $ formifyImplementation (headError defaults) [[single f]]
-    renderRest def fSettings = formifyImplementation def [[InternalListElem fSettings]]
+    firstRender = snd $ formifyInstanceBasicField (headError defaults) [[single f]]
+    renderRest def fSettings = formifyInstanceBasicField def [[InternalListElem fSettings]]
     followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
 
 formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
 
+
+formifyInstanceOptList
+    :: (BaseForm a)
+    => Maybe [Maybe a]
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], [[Rendered Widget]])
+formifyInstanceOptList _ [] = error "ran out of field names"
+formifyInstanceOptList _ ((List _ [] : _) : _) = error "List of fields without names!"
+formifyInstanceOptList mas ((List align (f:fs) : xs) : xss) =
+    ( xs:xss
+    , case align of
+        Horizontal -> [concat $ firstRender ++ followingRenders]
+        Vertical   -> firstRender ++ followingRenders
+    )
+  where
+    defaults = case mas of
+      Nothing -> repeat Nothing
+      Just ds
+        | length ds /= length fs +1
+          -> error "Not enough values in the default list!"
+        | otherwise
+          -> sequence mas
+
+    headError [] = error "Defaults should never be empty here!"
+    headError (x:_) = x
+
+    firstRender = snd $ formifyInstanceOptionalField (headError defaults) [[single f]]
+    renderRest def fSettings = formifyInstanceOptionalField def [[InternalListElem fSettings]]
+    followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
+
+formifyInstanceOptList _ _ = error "Incorrect naming scheme for a list of fields!"
 
 
 {- |
