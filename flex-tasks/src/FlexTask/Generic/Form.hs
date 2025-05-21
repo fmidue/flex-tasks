@@ -40,6 +40,7 @@ module FlexTask.Generic.Form
   , dropdownEnum
   , list
   , listWithoutLabels
+  , fieldInfoList
   , repeatFieldInfo
   , single
 
@@ -741,6 +742,10 @@ listWithoutLabels align amount attrs = List align $ replicate amount $ "" {fsAtt
 
 repeatFieldInfo :: Alignment -> Int -> FieldInfo -> FieldInfo
 repeatFieldInfo align amount = FieldInfoList align . replicate amount
+
+
+fieldInfoList :: Alignment -> [FieldInfo] -> FieldInfo
+fieldInfoList = FieldInfoList
 
 
 -- | Create FieldInfo for a standalone field.
