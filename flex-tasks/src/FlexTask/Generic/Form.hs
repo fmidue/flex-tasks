@@ -40,6 +40,7 @@ module FlexTask.Generic.Form
   , dropdownEnum
   , list
   , listWithoutLabels
+  , repeatFieldInfo
   , single
 
     -- * Formify Convenience Functions
@@ -141,6 +142,8 @@ data FieldInfo
   | ChoicesDropdown (FieldSettings FlexForm) [SomeMessage FlexForm]
   | ChoicesButtons Alignment (FieldSettings FlexForm) [SomeMessage FlexForm]
   | InternalListElem (FieldSettings FlexForm)
+  | FieldInfoList Alignment [FieldInfo]
+  | InternalFieldInfoElem FieldInfo
   deriving (Show)
 
 
@@ -246,18 +249,6 @@ instance PathPiece a => BaseForm (Hidden a) where
   baseForm = hiddenField
 
 
-instance (BaseForm a, BaseForm b) => BaseForm (a,b) where
-  baseForm = Field
-    { fieldParse = undefined
-    , fieldView = \theId name attrs val isReq ->
-        aView theId name attrs (fst <$> val) isReq >>
-        bView theId name attrs (snd <$> val) isReq
-    , fieldEnctype = UrlEncoded
-    }
-    where
-      Field _ aView _ = baseForm
-      Field _ bView _ = baseForm
-
 
 {- |
 Class for generic generation of Html input forms for a given type.
@@ -320,6 +311,8 @@ instance Formify Int where
   formifyImplementation = formifyInstanceBasicField
 
 
+
+
 instance Formify Text where
   formifyImplementation = formifyInstanceBasicField
 
@@ -356,7 +349,7 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b
 instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
 
 
-instance {-# Overlappable #-} BaseForm a => Formify [a] where
+instance {-# Overlappable #-} Formify a => Formify [a] where
   formifyImplementation = formifyInstanceList
 
 
@@ -365,8 +358,8 @@ instance BaseForm a => Formify (Maybe a) where
   formifyImplementation = formifyInstanceOptionalField
 
 
-instance BaseForm a => Formify [Maybe a] where
-  formifyImplementation = formifyInstanceOptList
+instance Formify (Maybe a) => Formify [Maybe a] where
+  formifyImplementation = formifyInstanceList
 
 
 instance Formify SingleChoiceSelection where
@@ -495,6 +488,7 @@ formifyInstanceBasicField = renderNextField
   (\case
       Single fs -> (fs, True, areq baseForm)
       InternalListElem fs -> (fs, False, areq baseForm)
+      InternalFieldInfoElem (Single fs) -> (fs, True, areq baseForm)
       _ -> error "Internal mismatch of FieldInfo and rendering function"
   )
 
@@ -510,13 +504,14 @@ formifyInstanceOptionalField = renderNextField
   (\case
       Single fs -> (fs, True, aopt baseForm)
       InternalListElem fs -> (fs, False, aopt baseForm)
+      InternalFieldInfoElem (Single fs) -> (fs, True, aopt baseForm)
       _ -> error "Internal mismatch of FieldInfo and rendering function"
   )
 
 
 
 formifyInstanceList
-    :: (BaseForm a)
+    :: (Formify a)
     => Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], [[Rendered Widget]])
@@ -540,21 +535,12 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
     headError [] = error "Defaults should never be empty here!"
     headError (x:_) = x
 
-    firstRender = snd $ formifyInstanceBasicField (headError defaults) [[single f]]
-    renderRest def fSettings = formifyInstanceBasicField def [[InternalListElem fSettings]]
+    firstRender = snd $ formifyImplementation (headError defaults) [[single f]]
+    renderRest def fSettings = formifyImplementation def [[InternalListElem fSettings]]
     followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
 
-formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
-
-
-formifyInstanceOptList
-    :: (BaseForm a)
-    => Maybe [Maybe a]
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
-formifyInstanceOptList _ [] = error "ran out of field names"
-formifyInstanceOptList _ ((List _ [] : _) : _) = error "List of fields without names!"
-formifyInstanceOptList mas ((List align (f:fs) : xs) : xss) =
+formifyInstanceList _ ((FieldInfoList _ [] : _) : _) = error "Empty FieldInfo list!"
+formifyInstanceList mas ((FieldInfoList align (f:fs) : xs) : xss) =
     ( xs:xss
     , case align of
         Horizontal -> [concat $ firstRender ++ followingRenders]
@@ -572,11 +558,11 @@ formifyInstanceOptList mas ((List align (f:fs) : xs) : xss) =
     headError [] = error "Defaults should never be empty here!"
     headError (x:_) = x
 
-    firstRender = snd $ formifyInstanceOptionalField (headError defaults) [[single f]]
-    renderRest def fSettings = formifyInstanceOptionalField def [[InternalListElem fSettings]]
+    firstRender = snd $ formifyImplementation (headError defaults) [[f]]
+    renderRest def fSettings = formifyImplementation def [[InternalFieldInfoElem fSettings]]
     followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
+formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
 
-formifyInstanceOptList _ _ = error "Incorrect naming scheme for a list of fields!"
 
 
 {- |
@@ -611,6 +597,18 @@ renderNextSingleChoiceField pairsWith =
                                             Horizontal -> horizontalRadioField
                                           $ withOptions opts
                                       )
+      InternalFieldInfoElem (ChoicesDropdown fs opts) -> ( fs
+        , True
+        , areq $ selectField $ withOptions opts
+        )
+      InternalFieldInfoElem (ChoicesButtons align fs opts) -> ( fs
+        , True
+        , areq $
+            case align of
+              Vertical -> radioField
+              Horizontal -> horizontalRadioField
+              $ withOptions opts
+          )
       _ -> error "Incorrect naming scheme for a single choice!"
   )
   where withOptions = optionsPairs . pairsWith
@@ -740,6 +738,9 @@ listWithoutLabels
   -> FieldInfo
 listWithoutLabels align amount attrs = List align $ replicate amount $ "" {fsAttrs = attrs}
 
+
+repeatFieldInfo :: Alignment -> Int -> FieldInfo -> FieldInfo
+repeatFieldInfo align amount = FieldInfoList align . replicate amount
 
 
 -- | Create FieldInfo for a standalone field.
