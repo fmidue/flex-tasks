@@ -489,7 +489,7 @@ formifyInstanceBasicField = renderNextField
   (\case
       Single fs -> (fs, True, areq baseForm)
       InternalListElem fs -> (fs, False, areq baseForm)
-      InternalFieldInfoElem (Single fs) -> (fs, True, areq baseForm)
+      InternalFieldInfoElem (Single fs) -> (fs, False, areq baseForm)
       _ -> error "Internal mismatch of FieldInfo and rendering function"
   )
 
@@ -505,7 +505,7 @@ formifyInstanceOptionalField = renderNextField
   (\case
       Single fs -> (fs, True, aopt baseForm)
       InternalListElem fs -> (fs, False, aopt baseForm)
-      InternalFieldInfoElem (Single fs) -> (fs, True, aopt baseForm)
+      InternalFieldInfoElem (Single fs) -> (fs, False, aopt baseForm)
       _ -> error "Internal mismatch of FieldInfo and rendering function"
   )
 
@@ -599,11 +599,11 @@ renderNextSingleChoiceField pairsWith =
                                           $ withOptions opts
                                       )
       InternalFieldInfoElem (ChoicesDropdown fs opts) -> ( fs
-        , True
+        , False
         , areq $ selectField $ withOptions opts
         )
       InternalFieldInfoElem (ChoicesButtons align fs opts) -> ( fs
-        , True
+        , False
         , areq $
             case align of
               Vertical -> radioField
