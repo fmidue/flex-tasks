@@ -19,47 +19,69 @@ setDefaultsJS :: [Text] -> JavascriptUrl url
 setDefaultsJS names = [julius|
   function setDefaults(values) {
     fieldNames.forEach((fieldName, i) => {
-      const input = values[i];
+      const raw = values[i];
       const fields = Array.from(document.getElementsByName(fieldName));
+      let isList = false;
+      let input = raw;
 
-      // How to handle each field type
+      try {
+        const parse = JSON.parse(raw);
+        if (Array.isArray(parse)) {
+          input = parse;
+          isList = true;
+        }
+      }
+      catch {
+        // proceed with 'input = raw' if parse fails
+      }
+
       const handlers = {
-        radio: field => {
-          field.checked = field.value == input;
+        radio: (field, val) => {
+          field.checked = field.value == val;
         },
-        select: field => {
-          Array.from(field.options).forEach(option => {
-            option.selected = input.includes(option.value);
+        checkbox:(field, val) => {
+          field.checked = Array.isArray(val)
+            ? val.includes(field.value)
+            : field.value == val;
+        },
+        select: (field, val) => {
+          Array.from(field.options).forEach(opt => {
+            opt.selected = Array.isArray(val)
+              ? val.includes(opt.value)
+              : opt.value == val;
           });
         },
-        checkbox: field => {
-          field.checked = input.includes(field.value);
-        },
-        default: (field, j) => {
-          const inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
-          if (inputElem !== "Missing" && inputElem !== "None") {
-            field.value = inputElem;
+        single: (field, val) => {
+          if (val !== "Missing" && val !== "None") {
+            field.value = val;
           }
         }
       };
 
-      // Pick a fitting handler based on field attributes
-      const getHandler = field => {
+      function pickKey(field) {
         const type = field.getAttribute("type")?.toLowerCase();
         const tag = field.tagName.toLowerCase();
         if (type === "radio") return "radio";
-        if (tag === "select") return "select";
         if (type === "checkbox") return "checkbox";
+        if (tag === "select") return "select";
         if (type === "hidden") return null; // Skip hidden fields
-        return "default";
-      };
+        return "single";
+      }
 
-      fields.forEach((field, j) => {
-        const key = getHandler(field);
-        if (key && handlers[key]) {
-          handlers[key](field, j);
-        }
-      });
+      if (isList) {
+        input.forEach((val, idx) => {
+          const field = fields[idx];
+          if (!field || val === "Missing" || val === "None") return;
+          const key = pickKey(field);
+          handlers[key](field, val);
+        });
+      }
+      else {
+        fields.forEach(field => {
+          const key = pickKey(field);
+          handlers[key](field, input);
+        });
+      }
     });
   }
   var fieldNames = #{rawJS (show names)};|]
