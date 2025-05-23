@@ -250,22 +250,8 @@ instance PathPiece a => BaseForm (Hidden a) where
   baseForm = hiddenField
 
 
-instance (BaseForm a, BaseForm b) => BaseForm (a,b) where
-  baseForm = Field
-    (\xs _ -> case xs of
-      [a,b] -> do
-        aParse <- fieldParse baseForm [a] []
-        bParse <- fieldParse baseForm [b] []
-        pure $ fmap (\(aRes,bRes) -> (,) <$> aRes <*> bRes)
-                    $ (,) <$> aParse <*> bParse
-      [] -> return $ Right Nothing
-      _ -> return $ Left "You did not supply all required inputs for a tuple field.")
-    (\theId name attrs eResult req ->
-      fieldView baseForm theId name attrs (fst <$> eResult) req >>
-      fieldView baseForm theId name attrs (snd <$> eResult) req
-    )
-    UrlEncoded
-
+instance BaseForm SingleChoiceSelection where
+  baseForm = error "never used"
 
 
 {- |
@@ -367,7 +353,7 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b
 instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
 
 
-instance {-# Overlappable #-} Formify a => Formify [a] where
+instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
   formifyImplementation = formifyInstanceList
 
 
