@@ -250,6 +250,23 @@ instance PathPiece a => BaseForm (Hidden a) where
   baseForm = hiddenField
 
 
+instance (BaseForm a, BaseForm b) => BaseForm (a,b) where
+  baseForm = Field
+    (\xs _ -> case xs of
+      [a,b] -> do
+        aParse <- fieldParse baseForm [a] []
+        bParse <- fieldParse baseForm [b] []
+        pure $ fmap (\(aRes,bRes) -> (,) <$> aRes <*> bRes)
+                    $ (,) <$> aParse <*> bParse
+      [] -> return $ Right Nothing
+      _ -> return $ Left "You did not supply all required inputs for a tuple field.")
+    (\theId name attrs eResult req ->
+      fieldView baseForm theId name attrs (fst <$> eResult) req >>
+      fieldView baseForm theId name attrs (snd <$> eResult) req
+    )
+    UrlEncoded
+
+
 
 {- |
 Class for generic generation of Html input forms for a given type.
