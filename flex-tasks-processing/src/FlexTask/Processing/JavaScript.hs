@@ -19,24 +19,24 @@ setDefaultsJS :: [[Text]] -> JavascriptUrl url
 setDefaultsJS names = [julius|
   function setDefaults(values) {
     const handlers = {
-      radio:   (field, value) => { field.checked = field.value == value; },
-      select:  (field, value) => {
-        Array.from(field.options).forEach(option => {
+      radio:    (field, value) => { field.checked   = field.value == value; },
+      select:   (field, value) => {
+        Array.from(field.options).forEach(opt => {
           if (Array.isArray(value)) {
-            option.selected = value.includes(option.value);
+            opt.selected = value.includes(opt.value);
           } else {
-            option.selected = option.value === value;
+            opt.selected = (opt.value === value);
           }
         });
       },
-      checkbox:(field, value) => {
+      checkbox: (field, value) => {
         if (Array.isArray(value)) {
           field.checked = value.includes(field.value);
         } else {
-          field.checked = field.value == value;
+          field.checked = (field.value == value);
         }
       },
-      default: (field, value) => {
+      default:  (field, value) => {
         if (value !== "Missing" && value !== "None") {
           field.value = value;
         }
@@ -44,39 +44,48 @@ setDefaultsJS names = [julius|
     };
 
     const getHandler = field => {
-      const type = field.getAttribute("type")?.toLowerCase();
-      const tag  = field.tagName.toLowerCase();
-      if (type === "radio")    return "radio";
-      if (tag  === "select")   return "select";
-      if (type === "checkbox") return "checkbox";
-      if (type === "hidden")   return null;  // skip hidden
+      const t = field.getAttribute("type")?.toLowerCase();
+      const tag = field.tagName.toLowerCase();
+      if (t === "radio")    return "radio";
+      if (tag === "select") return "select";
+      if (t === "checkbox") return "checkbox";
+      if (t === "hidden")   return null;  // skip hidden
       return "default";
     };
 
     fieldNames.forEach((names, i) => {
-      const input = values[i];
+      const raw = values[i];
 
       if (names.length > 1) {
-        names.forEach((fieldName, j) => {
-          // extract the corresponding sub-value
-          let value;
-          if (Array.isArray(input)) {
-            value = input[j];
-          } else {
-            value = JSON.parse(input)[j];
-          }
-
-          document.getElementsByName(fieldName).forEach(field => {
+        names.forEach((name, j) => {
+          let val = Array.isArray(raw) ? raw[j] : JSON.parse(raw)[j];
+          document.getElementsByName(name).forEach(field => {
             const key = getHandler(field);
-            if (key) handlers[key](field, value);
+            if (key) handlers[key](field, val);
           });
         });
-      } else {
-        const fieldName = names[0];
-        const value     = input;
-        document.getElementsByName(fieldName).forEach(field => {
+      }
+      else {
+        const name = names[0];
+        const fields = Array.from(document.getElementsByName(name));
+        const isList = Array.isArray(raw) || /^[\[\{]/.test(raw);
+
+        fields.forEach((field, j) => {
+          let val;
           const key = getHandler(field);
-          if (key) handlers[key](field, value);
+          if (isList) {
+            const arr = Array.isArray(raw) ? raw : JSON.parse(raw);
+            if (key === "checkbox" || key === "select") {
+              val = arr;
+            }
+            else {
+              val = arr[j];
+            }
+          }
+          else {
+            val = raw;
+          }
+          if (key) handlers[key](field, val);
         });
       }
     });
