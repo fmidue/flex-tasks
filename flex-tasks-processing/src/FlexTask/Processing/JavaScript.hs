@@ -15,51 +15,70 @@ import qualified Data.Text as T
 import FlexTask.Processing.Text         (formatForJS)
 
 
-setDefaultsJS :: [Text] -> JavascriptUrl url
+setDefaultsJS :: [[Text]] -> JavascriptUrl url
 setDefaultsJS names = [julius|
   function setDefaults(values) {
-    fieldNames.forEach((fieldName, i) => {
-      const input = values[i];
-      const fields = Array.from(document.getElementsByName(fieldName));
-
-      // How to handle each field type
-      const handlers = {
-        radio: field => {
-          field.checked = field.value == input;
-        },
-        select: field => {
-          Array.from(field.options).forEach(option => {
-            option.selected = input.includes(option.value);
-          });
-        },
-        checkbox: field => {
-          field.checked = input.includes(field.value);
-        },
-        default: (field, j) => {
-          const inputElem = fields.length > 1 ? JSON.parse(input)[j] : input;
-          if (inputElem !== "Missing" && inputElem !== "None") {
-            field.value = inputElem;
+    const handlers = {
+      radio:   (field, value) => { field.checked = field.value == value; },
+      select:  (field, value) => {
+        Array.from(field.options).forEach(option => {
+          if (Array.isArray(value)) {
+            option.selected = value.includes(option.value);
+          } else {
+            option.selected = option.value === value;
           }
+        });
+      },
+      checkbox:(field, value) => {
+        if (Array.isArray(value)) {
+          field.checked = value.includes(field.value);
+        } else {
+          field.checked = field.value == value;
         }
-      };
-
-      // Pick a fitting handler based on field attributes
-      const getHandler = field => {
-        const type = field.getAttribute("type")?.toLowerCase();
-        const tag = field.tagName.toLowerCase();
-        if (type === "radio") return "radio";
-        if (tag === "select") return "select";
-        if (type === "checkbox") return "checkbox";
-        if (type === "hidden") return null; // Skip hidden fields
-        return "default";
-      };
-
-      fields.forEach((field, j) => {
-        const key = getHandler(field);
-        if (key && handlers[key]) {
-          handlers[key](field, j);
+      },
+      default: (field, value) => {
+        if (value !== "Missing" && value !== "None") {
+          field.value = value;
         }
-      });
+      }
+    };
+
+    const getHandler = field => {
+      const type = field.getAttribute("type")?.toLowerCase();
+      const tag  = field.tagName.toLowerCase();
+      if (type === "radio")    return "radio";
+      if (tag  === "select")   return "select";
+      if (type === "checkbox") return "checkbox";
+      if (type === "hidden")   return null;  // skip hidden
+      return "default";
+    };
+
+    fieldNames.forEach((names, i) => {
+      const input = values[i];
+
+      if (names.length > 1) {
+        names.forEach((fieldName, j) => {
+          // extract the corresponding sub-value
+          let value;
+          if (Array.isArray(input)) {
+            value = input[j];
+          } else {
+            value = JSON.parse(input)[j];
+          }
+
+          document.getElementsByName(fieldName).forEach(field => {
+            const key = getHandler(field);
+            if (key) handlers[key](field, value);
+          });
+        });
+      } else {
+        const fieldName = names[0];
+        const value     = input;
+        document.getElementsByName(fieldName).forEach(field => {
+          const key = getHandler(field);
+          if (key) handlers[key](field, value);
+        });
+      }
     });
   }
   var fieldNames = #{rawJS (show names)};|]
