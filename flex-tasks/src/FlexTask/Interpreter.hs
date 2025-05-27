@@ -62,7 +62,7 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
-type GenOutput = (String, String, IO ([Text],HtmlDict))
+type GenOutput = (String, String, IO ([[Text]],HtmlDict))
 
 
 {- |
