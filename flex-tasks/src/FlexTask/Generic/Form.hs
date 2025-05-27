@@ -51,18 +51,18 @@ module FlexTask.Generic.Form
   ) where
 
 
-import Data.List.Extra      (intercalate, nubSort, uncons, unsnoc)
-import Data.Tuple.Extra     (first)
+import Data.List.Extra      (intercalate, nubOrd, nubSort, singleton, uncons, unsnoc)
 import Data.Maybe           (fromMaybe)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
 import Yesod
 
+import FlexTask.FormUtil    (applyToWidget)
 import FlexTask.Widgets
   ( checkboxField
   , horizontalRadioField
-  , joinRenders
+  , joinWidgets
   , renderForm
   )
 import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
@@ -138,10 +138,9 @@ list22
 -}
 data FieldInfo
   = Single (FieldSettings FlexForm)
-  | List Alignment [FieldSettings FlexForm]
+  | List Alignment [FieldInfo]
   | ChoicesDropdown (FieldSettings FlexForm) [SomeMessage FlexForm]
   | ChoicesButtons Alignment (FieldSettings FlexForm) [SomeMessage FlexForm]
-  | InternalListElem (FieldSettings FlexForm)
   deriving (Show)
 
 
@@ -274,19 +273,19 @@ class Formify a where
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
       -> [[FieldInfo]] -- ^ Structure and type of form.
-      -> ([[FieldInfo]], [[Rendered Widget]]) -- ^ remaining form structure and completed sub-renders.
+      -> ([[FieldInfo]], Rendered [[Widget]]) -- ^ remaining form structure and completed sub-renders.
 
   default formifyImplementation
       :: (Generic a, GFormify (Rep a))
       => Maybe a
       -> [[FieldInfo]]
-      -> ([[FieldInfo]], [[Rendered Widget]])
+      -> ([[FieldInfo]], Rendered [[Widget]])
   formifyImplementation mDefault = gformify $ from <$> mDefault
 
 
 
 class GFormify f where
-  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], [[Rendered Widget]])
+  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], Rendered [[Widget]])
 
 
 
@@ -299,10 +298,39 @@ instance (GFormify a, GFormify b) => GFormify (a :*: b) where
       (leftRest, leftRender) = gformify left xs
       (rightRest, rightRender) = gformify right rightFieldInfo
       (rightFieldInfo,renders) = case leftRest of
-        ([]:xss) -> (xss, leftRender ++ rightRender)
-        rest   -> (rest, ls ++ [lastRenderLeft ++ firstRenderRight] ++ rs)
-      (ls,lastRenderLeft) = fromMaybe (leftRender,[]) $ unsnoc leftRender
-      (firstRenderRight,rs) = fromMaybe ([],rightRender) $ uncons rightRender
+        ([]:xss) -> (xss, leftRender `vertically` rightRender)
+        rest   -> (rest, leftRender `horizontally` rightRender)
+
+
+
+horizontally
+  :: Rendered [[a]]
+  -> Rendered [[a]]
+  -> Rendered [[a]]
+f1 `horizontally` f2 = do
+    res1 <- f1
+    res2 <- f2
+    pure $ do
+      (names1,xss) <- res1
+      (names2,yss) <- res2
+      let
+        (leftInit, leftLast) = fromMaybe (xss,[]) $ unsnoc xss
+        (rightHead, rightTail) = fromMaybe ([],yss) $ uncons yss
+      pure (nubOrd $ names1 ++ names2, leftInit ++ [leftLast ++ rightHead] ++ rightTail)
+
+
+
+vertically
+  :: Rendered [[a]]
+  -> Rendered [[a]]
+  -> Rendered [[a]]
+f1 `vertically` f2 = do
+    res1 <- f1
+    res2 <- f2
+    pure $ do
+      (names1,xss) <- res1
+      (names2,yss) <- res2
+      pure (nubOrd $ names1 ++ names2, xss ++ yss)
 
 
 
@@ -361,7 +389,7 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b
 instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
 
 
-instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify [a] where
+instance {-# Overlappable #-} Formify a => Formify [a] where
   formifyImplementation = formifyInstanceList
 
 
@@ -428,7 +456,7 @@ formify
   => Maybe a -- ^ Optional default value for form.
   -> [[FieldInfo]] -- ^ Structure of form.
   -> Rendered Widget -- ^ Rendered form.
-formify = checkAndApply joinRenders
+formify = checkAndApply joinWidgets
 
 
 {- |
@@ -437,8 +465,7 @@ Retains the layout structure given by the `FieldInfo` list argument.
 This can be used in custom forms to incorporate generated inputs.
 -}
 formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered [[Widget]]
-formifyComponents = checkAndApply (fmap (tupleSequence . mapM sequence) . mapM sequence)
-  where tupleSequence = fmap (joinAndPart . map joinAndPart)
+formifyComponents = checkAndApply id
 
 
 {- |
@@ -446,23 +473,18 @@ like `formifyComponents`, but takes a simple list of `FieldInfo` values.
 The sub-renders will also be returned as a flat list without any additional structure.
 -}
 formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Rendered [Widget]
-formifyComponentsFlat ma = checkAndApply (fmap (tupleSequence . sequence) . sequence . concat) ma . (:[])
-  where tupleSequence = fmap joinAndPart
-
-
-joinAndPart :: [([a],b)] -> ([a],[b])
-joinAndPart = first concat . unzip
+formifyComponentsFlat ma = checkAndApply concat ma . (:[])
 
 
 checkAndApply
   :: Formify a
-  => ([[Rendered Widget]] -> b)
+  => ([[Widget]] -> b)
   -> Maybe a
   -> [[FieldInfo]]
-  -> b
+  -> Rendered b
 checkAndApply toOutput ma xs = case rest of
     ([]:ns)
-      | null ns   -> toOutput renders
+      | null ns   -> applyToWidget toOutput renders
     _ -> error $
       "The form generation did not use up all supplied FieldSettings values. " ++
       "Confirm your field type make sense with the amount of given FieldInfo values."
@@ -473,19 +495,18 @@ checkAndApply toOutput ma xs = case rest of
 renderNextField
   :: (FieldInfo ->
        ( FieldSettings FlexForm
-       , Bool
        , FieldSettings FlexForm -> Maybe a -> AForm Handler a
        )
      )
   -> Maybe a
   -> [[FieldInfo]]
-  -> ([[FieldInfo]], [[Rendered Widget]])
+  -> ([[FieldInfo]], Rendered [[Widget]])
 renderNextField _ _ [] = error "Ran out of FieldInfo values before finishing the form!"
 renderNextField h ma ((x : xs) : xss) =
   let
-    (lab, newId, g) = h x
+    (lab, g) = h x
   in
-    (xs:xss, [[renderForm newId (`g` ma) lab]])
+    (xs:xss, applyToWidget (singleton . singleton) $ renderForm (`g` ma) lab)
 renderNextField _ _ _ = error "Incorrect FieldInfo for a field or single/multi choice!"
 
 {- |
@@ -496,11 +517,10 @@ formifyInstanceBasicField
     :: BaseForm a
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
+    -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceBasicField = renderNextField
   (\case
-      Single fs -> (fs, True, areq baseForm)
-      InternalListElem fs -> (fs, False, areq baseForm)
+      Single fs -> (fs, areq baseForm)
       _ -> error "Incorrect FieldInfo for a basic field. Use 'single'!"
   )
 
@@ -511,11 +531,10 @@ formifyInstanceOptionalField
     :: BaseForm a
     => Maybe (Maybe a)
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
+    -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceOptionalField = renderNextField
   (\case
-      Single fs -> (fs, True, aopt baseForm)
-      InternalListElem fs -> (fs, False, aopt baseForm)
+      Single fs -> (fs, aopt baseForm)
       _ -> error "Incorrect FieldInfo for an optional basic field. Use 'single'!"
   )
 
@@ -524,14 +543,13 @@ formifyInstanceList
     :: (Formify a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
+    -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceList _ [] = error "Ran out of FieldInfo values before finishing the form!"
 formifyInstanceList _ ((List _ [] : _) : _) = error "List used without supplying any FieldInfo values!"
-formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
+formifyInstanceList mas ((List align fs : xs) : xss) =
     ( xs:xss
-    , case align of
-        Horizontal -> [concat $ firstRender ++ followingRenders]
-        Vertical   -> firstRender ++ followingRenders
+    , foldr1 addParams
+        [snd $ formifyImplementation d [[f]] | (d,f) <- zip defaults fs]
     )
   where
     defaults = case mas of
@@ -543,12 +561,16 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
         | otherwise
           -> sequence mas
 
-    headError [] = error "Defaults should never be empty here!"
-    headError (x:_) = x
-
-    firstRender = snd $ formifyImplementation (headError defaults) [[single f]]
-    renderRest def fSettings = formifyImplementation def [[InternalListElem fSettings]]
-    followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
+    addParams f1 f2 = do
+      res1 <- f1
+      res2 <- f2
+      pure $ do
+        (names1,wid1) <- res1
+        (names2,wid2) <- res2
+        pure ([nubOrd $ concat $ names1 ++ names2]
+             , case align of
+                 Vertical   -> wid1 ++ wid2
+                 Horizontal -> [concat (wid1 ++ wid2)])
 
 formifyInstanceList _ _ = error "Incorrect FieldInfo for a list of fields! Use one of the list builders."
 
@@ -562,7 +584,7 @@ formifyInstanceSingleChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
+    -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
 renderNextSingleChoiceField
@@ -570,16 +592,14 @@ renderNextSingleChoiceField
     => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe a
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
+    -> ([[FieldInfo]], Rendered [[Widget]])
 renderNextSingleChoiceField pairsWith =
   renderNextField
   (\case
       ChoicesDropdown fs opts -> ( fs
-                                 , True
                                  , areq $ selectField $ withOptions opts
                                  )
       ChoicesButtons align fs opts -> ( fs
-                                      , True
                                       , areq $
                                           case align of
                                             Vertical -> radioField
@@ -595,16 +615,14 @@ renderNextMultipleChoiceField
     => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
+    -> ([[FieldInfo]], Rendered [[Widget]])
 renderNextMultipleChoiceField pairsWith =
   renderNextField
   (\case
       ChoicesDropdown fs opts -> ( fs
-                                 , True
                                  , areq $ multiSelectField $ withOptions opts
                                  )
       ChoicesButtons align fs opts -> ( fs
-                                      , True
                                       , areq $
                                           case align of
                                             Vertical   -> checkboxField True
@@ -622,7 +640,7 @@ formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe [a]
     -> [[FieldInfo]]
-    -> ([[FieldInfo]], [[Rendered Widget]])
+    -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceMultiChoice = renderNextMultipleChoiceField zipWithEnum
 
 
@@ -706,7 +724,7 @@ list
   :: Alignment
   -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
   -> FieldInfo
-list = List
+list align = List align . map single
 
 
 
@@ -721,7 +739,7 @@ listWithoutLabels
   -> Int           -- ^ Amount of fields
   -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
   -> FieldInfo
-listWithoutLabels align amount attrs = List align $ replicate amount $ "" {fsAttrs = attrs}
+listWithoutLabels align amount attrs = List align $ replicate amount $ single "" {fsAttrs = attrs}
 
 
 
