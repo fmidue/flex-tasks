@@ -73,10 +73,10 @@ process s    = T.intercalate listDelimiter $ map (escape . checkEmpty) s
 
 
 -- | format a list of (nested) individual answers into a single answer String
-formatAnswer :: [[Text]] -> Maybe Text
+formatAnswer :: [[[Text]]] -> Maybe Text
 formatAnswer values
-  | all null values = Nothing
-  | otherwise = Just $ T.intercalate argDelimiter $ map process values
+  | all (all null) values = Nothing
+  | otherwise = Just $ T.intercalate argDelimiter $ map (process . concat) values
 
 
 toJSUnicode :: Char -> Text
