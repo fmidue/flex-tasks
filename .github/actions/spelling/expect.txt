@@ -4,6 +4,7 @@ Equi
 flexident
 formify
 gformify
+ghs
 gparse
 gshow
 gsub

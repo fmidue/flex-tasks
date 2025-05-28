@@ -31,8 +31,10 @@ module FlexTask.FormUtil
   ) where
 
 
+
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
+import Data.IORef                      (readIORef, writeIORef)
 import Data.Map                        (fromList)
 import Data.String                     (fromString)
 import Data.Text                       (Text, pack)
@@ -42,7 +44,7 @@ import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Cassius                    (Css)
 import Text.Julius                     (Javascript)
 import Yesod
-import Yesod.Core.Types                (HandlerData(..), HandlerFor(..), RY)
+import Yesod.Core.Types                (HandlerData(..), HandlerFor(..), RY, ghsIdent)
 import Yesod.Default.Config2           (makeYesodLogger)
 
 import qualified Control.Monad.Trans.RWS as RWS   (get)
@@ -195,6 +197,13 @@ newFlexName :: MForm Handler Text
 newFlexName = T.replace "f" "flex" <$> newFormIdent
 
 
+-- reset internal id generator to have same ids in all languages
+resetIdentGen :: Handler ()
+resetIdentGen = do
+    x <- HandlerFor $ readIORef . handlerState
+    HandlerFor $ flip writeIORef x {ghsIdent = 0} . handlerState
+
+
 {- |
 Extract a form from the environment.
 The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
@@ -217,6 +226,7 @@ getFormData widget = do
 
     withLang :: Lang -> Handler ([[Text]], (Lang, String))
     withLang lang = setRequestLang lang $ do
+      resetIdentGen
       (names,wid) <- fst <$> runFormGet (runReader widget)
       content <- widgetToPageContent wid
       html <- withUrlRenderer [hamlet|

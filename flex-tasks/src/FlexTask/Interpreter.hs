@@ -255,6 +255,7 @@ checkSolution taskData globalCode settingsCode parseCode checkCode extraCode sub
     runCheck = do
       setImports
         [ "Control.OutputCapable.Blocks.Generic.Type"
+        , "Control.OutputCapable.Blocks"
         , "Data.Ratio"
         , "Data.Text"
         ]
