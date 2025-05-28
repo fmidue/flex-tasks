@@ -64,23 +64,27 @@ setDefaultsJS names = [julius|
             if (key) handlers[key](field, val);
           });
         });
-
-      } else {
+      }
+      else {
         const name = names[0];
         const fields = Array.from(document.getElementsByName(name));
         const isList = Array.isArray(raw) || /^[\[\{]/.test(raw);
 
         fields.forEach((field, j) => {
-          // decide the one value for this element
           let val;
-          if (fields.length > 1 && isList) {
+          const key = getHandler(field);
+          if (isList) {
             const arr = Array.isArray(raw) ? raw : JSON.parse(raw);
-            val = arr[j];
-          } else {
+            if (key === "checkbox" || key === "select") {
+              val = arr;
+            }
+            else {
+              val = arr[j];
+            }
+          }
+          else {
             val = raw;
           }
-
-          const key = getHandler(field);
           if (key) handlers[key](field, val);
         });
       }
