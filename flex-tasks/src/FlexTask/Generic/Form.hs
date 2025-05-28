@@ -699,7 +699,7 @@ list
   :: Alignment
   -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
   -> FieldInfo
-list align = fieldInfoList align single
+list align = repeatBuilderOn align single
 
 
 {- |
