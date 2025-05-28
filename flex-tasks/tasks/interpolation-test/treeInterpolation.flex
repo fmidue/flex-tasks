@@ -74,7 +74,7 @@ import Global
 
 
 
-getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
+getTask :: Gen (TaskData, String, IO ([[Text]],HtmlDict))
 getTask = do
     tree <- addToTree <$> vectorOf 100 (chooseInt (-100000,100000))
     pure (tree, checkers tree, getFormData form)
