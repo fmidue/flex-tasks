@@ -40,7 +40,8 @@ module FlexTask.Generic.Form
   , dropdownEnum
   , list
   , listWithoutLabels
-  , fieldInfoList
+  , repeatFieldInfo
+  , repeatBuilderOn
   , single
 
     -- * Formify Convenience Functions
@@ -690,26 +691,15 @@ dropdown = ChoicesDropdown
 
 
 {- |
-Create FieldInfo for a number of fields.
+Create FieldInfo for a number of basic fields.
 Their result will be handled as a list of values.
+Use for lists of BaseForm fields like `Int`, `String`, `Double`.
 -}
 list
   :: Alignment
   -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
   -> FieldInfo
-list align = List align . map single
-
-
-{- |
-Create FieldInfo for a number of fields.
-Their result will be handled as a list of values.
--}
-fieldInfoList
-  :: Alignment
-  -> [FieldInfo] -- ^ FieldSettings of individual fields
-  -> FieldInfo
-fieldInfoList align = List align
-
+list align = fieldInfoList align single
 
 
 {- |
@@ -724,6 +714,34 @@ listWithoutLabels
   -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
   -> FieldInfo
 listWithoutLabels align amount attrs = List align $ replicate amount $ single "" {fsAttrs = attrs}
+
+
+{- |
+Create FieldInfo for a number of arbitrary fields.
+Takes the builder to repeatedly use for each field
+and a list of values to use it on.
+Their result will be handled as a list of values.
+Use to render lists of dropdown or button fields with different labels.
+-}
+repeatBuilderOn
+  :: Alignment
+  -> (a -> FieldInfo) -- ^ FieldInfo builder to use
+  -> [a]              -- ^ List of values to use builder on
+  -> FieldInfo
+repeatBuilderOn align builder = List align . map builder
+
+
+{- |
+Create FieldInfo for a list containing exact copies the specified field.
+The results of the copies will be handled as a list of values.
+Use to render lists of dropdown or button fields with identical labels.
+-}
+repeatFieldInfo
+  :: Alignment
+  -> Int       -- ^ How many copies
+  -> FieldInfo -- ^ The field to multiply
+  -> FieldInfo
+repeatFieldInfo alignment amount = List alignment . replicate amount
 
 
 
