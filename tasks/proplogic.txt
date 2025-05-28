@@ -115,7 +115,7 @@ getParticipants :: Gen [Bool]
 getParticipants = vectorOf 4 arbitrary `suchThat` \bs -> or bs && not (and bs)
 
 
-getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
+getTask :: Gen (TaskData, String, IO ([[Text]],HtmlDict))
 getTask = do
     [a,b,c,d] <- getParticipants
     names <- getNames

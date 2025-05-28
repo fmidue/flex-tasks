@@ -4,7 +4,7 @@
 module FlexTask.Generic.ParseSpec where
 
 
-import Data.List.Extra                  (dropEnd)
+import Data.List.Extra                  (dropEnd, singleton)
 import Data.Maybe                       (fromMaybe)
 import Data.Text                        (pack, unpack)
 import Test.Hspec (
@@ -125,11 +125,11 @@ escapedSingle = escapedList . (:[])
 
 
 escapedList :: [String] -> String
-escapedList = escapedString . (:[])
+escapedList = escapedString . singleton . singleton
 
 
-escapedString :: [[String]] -> String
-escapedString = unpack . fromMaybe "" . formatAnswer . map (map pack)
+escapedString :: [[[String]]] -> String
+escapedString = unpack . fromMaybe "" . formatAnswer . map (map $ map pack)
 
 
 stripEscape :: String -> String
