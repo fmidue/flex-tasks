@@ -40,6 +40,7 @@ module FlexTask.Generic.Form
   , dropdownEnum
   , list
   , listWithoutLabels
+  , fieldInfoList
   , single
 
     -- * Formify Convenience Functions
@@ -697,6 +698,17 @@ list
   -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
   -> FieldInfo
 list align = List align . map single
+
+
+{- |
+Create FieldInfo for a number of fields.
+Their result will be handled as a list of values.
+-}
+fieldInfoList
+  :: Alignment
+  -> [FieldInfo] -- ^ FieldSettings of individual fields
+  -> FieldInfo
+fieldInfoList align = List align
 
 
 
