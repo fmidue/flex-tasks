@@ -445,8 +445,9 @@ checkAndApply
 checkAndApply toOutput ma xs = case rest of
     ([]:ns)
       | null ns   -> toOutput renders
-      | otherwise -> error "Mismatched amount of field names and actual fields!"
-    _             -> error "Impossible: Formify failed to assemble the form."
+    _ -> error $
+      "The form generation did not use up all supplied FieldSettings values. " ++
+      "Confirm your field type make sense with the amount of given FieldInfo values."
   where
     (rest, renders) = formifyImplementation ma xs
 
@@ -461,13 +462,13 @@ renderNextField
   -> Maybe a
   -> [[FieldInfo]]
   -> ([[FieldInfo]], [[Rendered Widget]])
-renderNextField _ _ [] = error "Incorrect amount of field names"
+renderNextField _ _ [] = error "Ran out of FieldInfo values before finishing the form!"
 renderNextField h ma ((x : xs) : xss) =
   let
     (lab, newId, g) = h x
   in
     (xs:xss, [[renderForm newId (`g` ma) lab]])
-renderNextField _ _ _ = error "Incorrect naming scheme for a field or single/multi choice!"
+renderNextField _ _ _ = error "Incorrect FieldInfo for a field or single/multi choice!"
 
 {- |
 Premade `formifyImplementation` for types with `BaseForm` instances.
@@ -482,7 +483,7 @@ formifyInstanceBasicField = renderNextField
   (\case
       Single fs -> (fs, True, areq baseForm)
       InternalListElem fs -> (fs, False, areq baseForm)
-      _ -> error "Internal mismatch of FieldInfo and rendering function"
+      _ -> error "Incorrect FieldInfo for a basic field. Use 'single'!"
   )
 
 {- |
@@ -497,7 +498,7 @@ formifyInstanceOptionalField = renderNextField
   (\case
       Single fs -> (fs, True, aopt baseForm)
       InternalListElem fs -> (fs, False, aopt baseForm)
-      _ -> error "Internal mismatch of FieldInfo and rendering function"
+      _ -> error "Incorrect FieldInfo for an optional basic field. Use 'single'!"
   )
 
 
@@ -506,8 +507,8 @@ formifyInstanceList
     => Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], [[Rendered Widget]])
-formifyInstanceList _ [] = error "ran out of field names"
-formifyInstanceList _ ((List _ [] : _) : _) = error "List of fields without names!"
+formifyInstanceList _ [] = error "Ran out of FieldInfo values before finishing the form!"
+formifyInstanceList _ ((List _ [] : _) : _) = error "List used without supplying any FieldInfo values!"
 formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
     ( xs:xss
     , case align of
@@ -519,7 +520,8 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
       Nothing -> repeat Nothing
       Just ds
         | length ds /= length fs +1
-          -> error "Not enough values in the default list!"
+          -> error $ "The default value contains too many/few individual values. " ++
+                     "It does not match the amount of FieldInfo supplied."
         | otherwise
           -> sequence mas
 
@@ -530,7 +532,7 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
     renderRest def fSettings = formifyImplementation def [[InternalListElem fSettings]]
     followingRenders = concat [snd $ renderRest d fSet | (d,fSet) <- zip (drop 1 defaults) fs]
 
-formifyInstanceList _ _ = error "Incorrect naming scheme for a list of fields!"
+formifyInstanceList _ _ = error "Incorrect FieldInfo for a list of fields! Use one of the list builders."
 
 
 
@@ -566,7 +568,7 @@ renderNextSingleChoiceField pairsWith =
                                             Horizontal -> horizontalRadioField
                                           $ withOptions opts
                                       )
-      _ -> error "Incorrect naming scheme for a single choice!"
+      _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith
 
@@ -591,7 +593,7 @@ renderNextMultipleChoiceField pairsWith =
                                             Horizontal -> checkboxField False
                                           $ withOptions opts
                                       )
-      _ -> error "Incorrect naming scheme for a multi choice!"
+      _ -> error "Incorrect FieldInfo for a multiple choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith
 
