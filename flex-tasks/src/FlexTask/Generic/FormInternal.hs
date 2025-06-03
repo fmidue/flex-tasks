@@ -11,7 +11,7 @@
 Generic `Yesod` input form generation and related utility functions.
 -}
 
-module FlexTask.Generic.Form
+module FlexTask.Generic.FormInternal
   (
     -- * Data Types
     Alignment(..)
@@ -393,7 +393,6 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => F
 
 instance {-# Overlappable #-} Formify a => Formify [a] where
   formifyImplementation = formifyInstanceList
-
 
 
 instance (BaseForm a, Formify a) => Formify (Maybe a) where

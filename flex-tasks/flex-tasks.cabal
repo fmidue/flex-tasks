@@ -14,7 +14,7 @@ library
   exposed-modules:
       FlexTask.DefaultConfig
       FlexTask.FormUtil
-      FlexTask.Generic.Form
+      FlexTask.Generic.FormInternal
       FlexTask.Generic.Parse
       FlexTask.InterpreterHelper
       FlexTask.Interpreter
