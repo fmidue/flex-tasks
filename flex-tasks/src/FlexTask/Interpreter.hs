@@ -312,9 +312,8 @@ imageLinks = concatMap gatherLinks
     gatherLinks :: Output -> [FilePath]
     gatherLinks (Image l)        = [l]
     gatherLinks (Images m)       = elems m
-    gatherLinks (Assertion _ os) = imageLinks os
+    gatherLinks (YesNo _ os)     = imageLinks os
     gatherLinks (Paragraph os)   = imageLinks os
-    gatherLinks (Refuse os)      = imageLinks os
     gatherLinks (Enumerated os)  = imageLinks $ concat together
       where
         together = concatMap (\(a,b) -> [a,b]) os
