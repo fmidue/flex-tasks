@@ -4,7 +4,7 @@
 module FlexTask.Generic.ParseSpec where
 
 
-import Data.List.Extra                  (dropEnd)
+import Data.List.Extra                  (dropEnd, trim)
 import Data.Maybe                       (fromMaybe)
 import Data.Text                        (pack, unpack)
 import Test.Hspec (
@@ -105,7 +105,7 @@ spec = do
 
 
 testParsingString :: (Eq a, Parse a, Show a) => (String -> a) -> String -> IO ()
-testParsingString fromString s = escapedSingle s `parsesTo` fromString (stripEscape s)
+testParsingString fromString s = escapedSingle s `parsesTo` fromString (trim $ stripEscape s)
 
 
 testParsing :: (Eq a, Parse a, Show a) => (a -> String) -> a -> IO ()
@@ -117,7 +117,7 @@ testParsingList toString as = escapedList (map toString as) `parsesTo` as
 
 
 testParsingStringList :: (Eq a, Parse [a], Show a) => (String -> a) -> [String] -> IO ()
-testParsingStringList fromString s = escapedList s `parsesTo` map (fromString . stripEscape) s
+testParsingStringList fromString s = escapedList s `parsesTo` map (fromString . trim . stripEscape) s
 
 
 escapedSingle :: String -> String
