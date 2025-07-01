@@ -8,6 +8,7 @@ module FlexTask.Generic.ParseInternal
   ( Parse(..)
   , parseInstanceSingleChoice
   , parseInstanceMultiChoice
+  , parseInstanceSingleInputList
   , escaped
   , parseWithOrReport
   , reportWithFieldNumber
@@ -47,6 +48,7 @@ import Text.Parsec
   , parse
   , sepBy
   , sourceColumn
+  , spaces
   , try
   )
 import Text.Parsec.Char   (anyChar, char, digit, string)
@@ -70,6 +72,7 @@ import FlexTask.Processing.Text (
 import FlexTask.Generic.Form
   ( MultipleChoiceSelection
   , SingleChoiceSelection
+  , SingleInputList(..)
   , multipleChoiceAnswer
   , singleChoiceAnswer
   , singleChoiceEmpty
@@ -116,14 +119,49 @@ instance Parse a => GParse (K1 i a) where
   gparse = K1 <$> formParser
 
 
+parseInt :: Parser Integer
+parseInt = do
+  sign <- optionMaybe $ char '-'
+  ds <- many1 digit
+  pure $ read $ case sign of
+    Nothing -> ds
+    Just s  -> s : ds
+
+
+parseString :: Parser String
+parseString = manyTill anyChar $ try $ lookAhead $
+  escape >> notFollowedBy (string "\"")
+
+
+parseBool :: Parser Bool
+parseBool = do
+  val <- try (string "yes") <|> string "no"
+  pure $ case val of
+    "yes" -> True
+    _     -> False
+
+
+parseDouble :: Parser Double
+parseDouble = do
+  sign <- optionMaybe $ char '-'
+  whole <- many1 digit
+  dot <- optionMaybe (char '.' <|> char ',')
+  frac <- case dot of
+    Nothing -> pure []
+    Just _  -> ('.':) <$> do
+      num <- many1 digit
+      maybe num (num ++) <$> optionMaybe eParser
+  pure $ read $ case sign of
+    Nothing ->     whole
+    Just s  -> s : whole
+    ++ frac
+  where
+    eParser = (++) <$> string "e-" <*> many1 digit
+
+
 
 instance Parse Integer where
-  formParser = escaped $ do
-    sign <- optionMaybe $ char '-'
-    ds <- many1 digit
-    pure $ read $ case sign of
-      Nothing -> ds
-      Just s  -> s : ds
+  formParser = escaped parseInt
 
 
 
@@ -133,8 +171,7 @@ instance Parse Int where
 
 
 instance Parse String where
-  formParser = escaped $ manyTill anyChar $ try $ lookAhead $
-      escape >> notFollowedBy (string "\"")
+  formParser = escaped parseString
 
 
 
@@ -149,30 +186,12 @@ instance Parse Textarea where
 
 
 instance Parse Bool where
-  formParser = escaped $ do
-    val <- try (string "yes") <|> string "no"
-    pure $ case val of
-            "yes" -> True
-            _     -> False
+  formParser = escaped parseBool
 
 
 
 instance Parse Double where
-  formParser = escaped $ do
-    sign <- optionMaybe $ char '-'
-    whole <- many1 digit
-    dot <- optionMaybe (char '.' <|> char ',')
-    frac <- case dot of
-      Nothing -> pure []
-      Just _  -> ('.':) <$> do
-        num <- many1 digit
-        maybe num (num ++) <$> optionMaybe eParser
-    pure $ read $ case sign of
-      Nothing ->     whole
-      Just s  -> s : whole
-      ++ frac
-    where
-      eParser = (++) <$> string "e-" <*> many1 digit
+  formParser = escaped parseDouble
 
 
 instance (Parse a, Parse b) => Parse (a,b)
@@ -218,6 +237,33 @@ instance Parse MultipleChoiceSelection where
   formParser = multipleChoiceAnswer <$> parseWithEmptyMarker
 
 
+instance Parse (SingleInputList Integer) where
+  formParser = parseInstanceSingleInputList parseInt
+
+
+instance Parse (SingleInputList Int) where
+  formParser = parseInstanceSingleInputList $ fromIntegral <$> parseInt
+
+
+instance Parse (SingleInputList String) where
+  formParser = parseInstanceSingleInputList parseString
+
+
+instance Parse (SingleInputList Text) where
+  formParser = parseInstanceSingleInputList $ T.pack <$> parseString
+
+
+instance Parse (SingleInputList Textarea) where
+  formParser = parseInstanceSingleInputList $ Textarea . T.pack <$> parseString
+
+
+instance Parse (SingleInputList Bool) where
+  formParser = parseInstanceSingleInputList parseBool
+
+
+instance Parse (SingleInputList Double) where
+  formParser = parseInstanceSingleInputList parseDouble
+
 
 {- |
 Parser for single choice answer of Enum types. Use as implementation of `formParser` for manual `Parse` instances.
@@ -237,6 +283,21 @@ parseInstanceSingleChoice = toEnum . subtract 1 <$> formParser
 -- | Same as `parseInstanceSingleChoice`, but for parsing a List of the given type, i.e. a multiple choice version.
 parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser [a]
 parseInstanceMultiChoice = map (toEnum . subtract 1) <$> parseWithEmptyMarker
+
+
+
+{- |
+Parser for a list of values inside a single input field.
+Takes a parser for individual list values.
+__Please note that it must not use the `escape` function found in this module.__
+Use as implementation of `formParser` for manual `Parse` instances.
+These instances are already provided for standard types as is.
+-}
+parseInstanceSingleInputList :: Parser a -> Parser (SingleInputList a)
+parseInstanceSingleInputList parser = escaped $ withSpaces contents
+    where
+      contents = SingleInputList <$> withSpaces parser `sepBy` withSpaces (char ',')
+      withSpaces = (spaces *>)
 
 
 

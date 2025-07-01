@@ -19,6 +19,7 @@ module FlexTask.Generic.Form
   , SingleChoiceSelection
   , MultipleChoiceSelection
   , Hidden(..)
+  , SingleInputList(..)
     -- * Type Classes
   , BaseForm(..)
   , Formify(..)
@@ -165,6 +166,9 @@ data Alignment = Horizontal | Vertical deriving (Eq,Show)
 newtype Hidden a = Hidden {getHidden :: a} deriving (Eq,Show)
 
 
+-- | Wrapper type for lists. Use for a single field list input.
+newtype SingleInputList a = SingleInputList {getList :: [a]} deriving (Eq,Show)
+
 {- |
 Generic single choice answer type.
 Use if you want a 'choose one of multiple' style input
@@ -246,6 +250,12 @@ instance PathPiece a => PathPiece (Hidden a) where
 
 instance PathPiece a => BaseForm (Hidden a) where
   baseForm = hiddenField
+
+
+-- This indicates I should probably change this class to something more succinct.
+-- The first function is never used, since it normally handles the parsing.
+instance Show a => BaseForm (SingleInputList a) where
+  baseForm = convertField undefined (pack . intercalate ", " . map show . getList) textField
 
 
 {- |
@@ -333,6 +343,10 @@ instance Formify Double where
 
 
 instance PathPiece a => Formify (Hidden a) where
+  formifyImplementation = formifyInstanceBasicField
+
+
+instance Show a => Formify (SingleInputList a) where
   formifyImplementation = formifyInstanceBasicField
 
 
