@@ -7,10 +7,6 @@ env:
 on:
   workflow_call:
     inputs:
-      repository:
-        required: false
-        type: string
-        default: ${{ github.repository }}
       tasks:
         required: true
         type: string
@@ -31,6 +27,10 @@ on:
         required: false
         type: boolean
         default: false
+      commit:
+        required: true
+        type: string
+
 
 permissions: read-all
 
@@ -91,7 +91,7 @@ jobs:
           sudo mv -f new_stack.yaml stack.yaml
           insert='\'\
           "  - git: https://github.com/${{ github.repository }}\n"\
-          "    commit: ${{ github.event.client_payload.sha }}\n"\
+          "    commit: ${{ inputs.commit }}\n"\
           '    subdirs:\n'\
           '      - flex-tasks\n'\
           '      - flex-tasks-processing'
