@@ -25,7 +25,7 @@ on:
         default: 'tasks'
       latex-setup:
         required: false
-        type: bool
+        type: boolean
         default: false
 
 permissions: read-all
