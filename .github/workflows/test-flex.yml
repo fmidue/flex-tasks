@@ -19,10 +19,6 @@ on:
         required: true
         type: string
         default: 'settings-gens'
-      script:
-        required: true
-        type: string
-        default: 'tasks'
       latex-setup:
         required: false
         type: boolean
@@ -127,10 +123,15 @@ jobs:
           set -ex
           sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
           cd ${{ inputs.tasks }}
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/runGhci.expect -o runGhci.expect
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/mutator.expect -o mutator.expect
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/defaultConf.expect -o defaultConf.expect
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/test.sh -o test.sh
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/scan_check.sh -o scan_check.sh
           export GHC_PACKAGE_PATH=root/pkgdb
           expect defaultConf.expect ${{ steps.ghc-version.outputs.version }}
           for file in $(find . -name '*.txt' -and -not -name "*NoInterpolation.txt" -and -not -path "./root/*"); do
-            ../${{ inputs.script }}/test.sh $file root ${{ inputs.settings-gens }}/$(basename $file .txt).hs
+            ./test.sh $file root ${{ inputs.settings-gens }}/$(basename $file .txt).hs
           done
           if [ $(find . -name "Check.hs" -or -name "ghc.html" | wc -l) -eq 0 ]; then
             rm -f stack.yaml
