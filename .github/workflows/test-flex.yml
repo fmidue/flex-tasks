@@ -90,10 +90,9 @@ jobs:
           sudo mv -f new_stack.yaml stack.yaml
           insert='\'\
           "  - git: https://github.com/${{ github.repository }}\n"\
-          "    commit: ${{ inputs.commit }}\n"
-#          '    subdirs:\n'\
-#          '      - flex-tasks\n'\
-#          '      - flex-tasks-processing'
+          "    commit: ${{ inputs.commit }}\n"\
+          '    subdirs:\n'\
+          '      - .'
           sed -i "/extra-deps/a $insert" stack.yaml
           sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
           eval "$(ssh-agent -s)"
