@@ -7,6 +7,8 @@ cabal-version: 1.12
 name:           flex-tasks
 version:        0.0.0
 build-type:     Simple
+extra-source-files:
+    tasks/defaultConfig.flex
 
 library
   exposed-modules:
@@ -41,10 +43,12 @@ library
     , SHA
     , base
     , blaze-html
+    , bytestring
     , containers
     , directory
     , extra
     , fast-logger
+    , file-embed
     , filepath
     , flex-tasks-processing
     , ghc
@@ -90,10 +94,12 @@ test-suite flex-tasks-test
     , SHA
     , base
     , blaze-html
+    , bytestring
     , containers
     , directory
     , extra
     , fast-logger
+    , file-embed
     , filepath
     , flex-tasks
     , flex-tasks-processing

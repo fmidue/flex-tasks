@@ -2,17 +2,43 @@
 name: Compile and Lint Flex-Tasks
 
 env:
-  tasks: tasks
-  config: pkgdb-config
-  settings-gens: settings-gens
-  script: tasks
   TERM: xterm
 
 on:
-  repository_dispatch:
-    types: [CI-Completed]
+  workflow_call:
+    inputs:
+      tasks:
+        required: true
+        type: string
+        default: 'tasks'
+      config:
+        required: true
+        type: string
+        default: 'pkgdb-config'
+      settings-gens:
+        required: true
+        type: string
+        default: 'settings-gens'
+      package-locations:
+        required: false
+        type: string
+        default: '.'
+      latex-setup:
+        required: false
+        type: boolean
+        default: false
+      subdirs:
+        required: false
+        type: string
+        default: "[.]"
+      commit:
+        required: false
+        type: string
+        default: ${{ github.sha }}
+    secrets:
+      SSH_PRIVATE_KEY:
+        required: true
 
-permissions: read-all
 
 jobs:
   test_flex:
@@ -26,13 +52,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.client_payload.sha }}
+          repository: ${{ inputs.repository }}
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: zsh hlint expect colorized-logs
           version: 1.0
 
-      - uses: TeX-Live/setup-texlive-action@v3
+      - name: Setup LaTeX
+        if: ${{ inputs.latex-setup }}
+        uses: TeX-Live/setup-texlive-action@v3
         with:
           packages: |
             scheme-basic
@@ -45,10 +74,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ${{ env.tasks }}/root
+            ${{ inputs.tasks }}/root
             haskell-template-setup/stack.yaml
           key:
-            ${{ hashFiles(format('{0}/stack.yaml', env.config), format('{0}/package.yaml', env.config)) }}-${{ hashFiles('*/src/**/*hs') }}
+            ${{ hashFiles(format('{0}/stack.yaml', inputs.config), format('{0}/package.yaml', inputs.config)) }}-${{ hashFiles(format('{0}/src/**/*hs', inputs.package-locations)) }}
 
       - uses: actions/checkout@v4
         if: steps.restore-cache-db.outputs.cache-hit != 'true'
@@ -60,31 +89,47 @@ jobs:
         if: steps.restore-cache-db.outputs.cache-hit != 'true'
         run: |
           set -ex
-          sudo mv -f ./${{ env.config }}/stack.yaml ./haskell-template-setup
-          sudo mv -f ./${{ env.config }}/package.yaml ./haskell-template-setup
+          sudo mv -f ./${{ inputs.config }}/stack.yaml ./haskell-template-setup
+          sudo mv -f ./${{ inputs.config }}/package.yaml ./haskell-template-setup
           cd haskell-template-setup
           awk '/extra-deps/ {f=1; next} f' ../stack.yaml |
             awk 'NR==FNR {buffer=buffer $0 RS; next} /extra-deps/ {print; printf buffer; next}1' - stack.yaml > new_stack.yaml
           sudo mv -f new_stack.yaml stack.yaml
+
+          raw="${{ inputs.subdirs }}"
+          trimmed="${raw#[}"
+          trimmed="${trimmed%]}"
+          IFS=',' read -ra ARR <<< "${trimmed}"
+          yaml="    subdirs:"
+          for item in "${ARR[@]}"; do
+            clean="$(echo "${item}" | xargs)"
+            yaml="${yaml}"$'\n'"      - ${clean}"
+          done
+
           insert='\'\
           "  - git: https://github.com/${{ github.repository }}\n"\
-          "    commit: ${{ github.event.client_payload.sha }}\n"\
-          '    subdirs:\n'\
-          '      - flex-tasks\n'\
-          '      - flex-tasks-processing'
-          sed -i "/extra-deps/a $insert" stack.yaml
-          sed -i "s@/autotool/default@$(realpath $PWD/../${{ env.tasks }}/root)@" env
+          "    commit: ${{ inputs.commit }}\n"\
+          "${yaml}"
+          awk -v insert="$insert" '
+            /extra-deps/ {
+              print
+              print insert
+              next
+            }
+            { print }
+          ' stack.yaml > stack.yaml.new && mv stack.yaml.new stack.yaml
+          sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
           eval "$(ssh-agent -s)"
-          ssh-add <(echo "${{ secrets.SSH_PRIVATE_KEY }}")
+          ssh-add <(echo "${{ secrets.SSH_PRIVATE_KEY}}")
           ./create.sh
-          sudo mv root ../${{ env.tasks }}
+          sudo mv root ../${{ inputs.tasks }}
           set +ex
 
       - name: Determine GHC-Version
         id: ghc-version
         run: |
           set -ex
-          cd ${{ env.tasks }}
+          cd ${{ inputs.tasks }}
           ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
           temp="${ghc_file##*/ghci-}"
           ghc_version="${temp%-*.conf*}"
@@ -99,12 +144,17 @@ jobs:
       - name: Run Test Script
         run: |
           set -ex
-          sudo cp haskell-template-setup/stack.yaml ${{ env.tasks }}
-          cd ${{ env.tasks }}
+          sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
+          cd ${{ inputs.tasks }}
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/runGhci.expect -o runGhci.expect
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/mutator.expect -o mutator.expect
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/workflow-reusable/flex-tasks/tasks/test.sh -o test.sh
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/scan_check.sh -o scan_check.sh
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/.hlint.yaml -o .hlint.yaml
+          chmod +x scan_check.sh
           export GHC_PACKAGE_PATH=root/pkgdb
-          expect defaultConf.expect ${{ steps.ghc-version.outputs.version }}
-          for file in $(find . -name '*.txt' -and -not -name "*NoInterpolation.txt" -and -not -path "./root/*"); do
-            ../${{ env.script }}/test.sh $file root ${{ env.settings-gens }}/$(basename $file .txt).hs
+          for file in $(find . -name '*.flex'); do
+            bash test.sh $file root "${{ github.workspace }}/${{ inputs.settings-gens }}/$(basename $file .flex).hs"
           done
           if [ $(find . -name "Check.hs" -or -name "ghc.html" | wc -l) -eq 0 ]; then
             rm -f stack.yaml
@@ -117,11 +167,11 @@ jobs:
         with:
           name: reports
           path: |
-            ${{ env.tasks }}/*/*/*.html
-            ${{ env.tasks }}/*/*/settings.txt
-            ${{ env.tasks }}/*/*/Check.hs
-            ${{ env.tasks }}/stack.yaml
-            ${{ env.tasks }}/*/hlint.html
+            ${{ inputs.tasks }}/*/*/*.html
+            ${{ inputs.tasks }}/*/*/settings.txt
+            ${{ inputs.tasks }}/*/*/Check.hs
+            ${{ inputs.tasks }}/stack.yaml
+            ${{ inputs.tasks }}/*/hlint.html
           if-no-files-found: ignore
           overwrite: true
 

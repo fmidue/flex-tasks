@@ -7,7 +7,7 @@ Also automatic HTML form and parser generation for input data types.
 ## Contents
 
 The repository includes two packages.
-Directory `tasks` includes a collection of sample tasks and a test script.
+Directory `flex-tasks/tasks` includes a collection of sample tasks and a test script.
 
 [Haddock Documentation](https://fmidue.github.io/flex-tasks/)
 
@@ -29,7 +29,7 @@ Includes text processing necessary for the Autotool frontend. It is split off fr
 
 The package is incorporated into Autotool. The task evaluation is currently not intended to be used on its own.
 In Autotool, you can select the task type `Flex` to input a task configuration. A default is given, which can be edited or completely overwritten by one of the sample tasks in this repository (or your own).
-For task development, consider using the provided test script in `tasks`. Please refer to its own readme file.
+For task development, consider using the provided test script in `flex-tasks/tasks`. Please refer to its own readme file.
 
 The generic parsers and input forms can be used as a standalone feature, independently from Autotool.
 

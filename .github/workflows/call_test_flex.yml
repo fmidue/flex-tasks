@@ -1,0 +1,22 @@
+---
+name: Call Flex Workflow
+
+
+on:
+  push:
+    branches: [workflow-reusable]
+
+permissions:
+  contents: write
+
+jobs:
+  call:
+    uses: ./.github/workflows/test-flex.yml
+    secrets: inherit
+    with:
+      tasks: flex-tasks/tasks
+      config: pkgdb-config
+      settings-gens: flex-tasks/tasks/settings-gens
+      package-locations: '*'
+      subdirs: '[flex-tasks, flex-tasks-processing]'
+      latex-setup: true

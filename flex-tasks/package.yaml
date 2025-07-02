@@ -1,9 +1,11 @@
 ---
 name: flex-tasks
-extra-source-files: [ ]
+extra-source-files:
+  - tasks/defaultConfig.flex
 dependencies:
   - base
   - blaze-html
+  - bytestring
   - containers
   - directory
   - extra
@@ -11,6 +13,7 @@ dependencies:
   - filepath
   - ghc
   - hint
+  - file-embed
   - flex-tasks-processing
   - mtl
   - output-blocks

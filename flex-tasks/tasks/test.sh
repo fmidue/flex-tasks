@@ -16,7 +16,7 @@ fi
 leave_check=false
 
 if [[ -f $3 ]]; then
-  mutator="$3"
+  mutator="$(realpath $3)"
 else
   echo "settings generator does not exist: $3"
   echo "Usage: $0 input_file pkgdb_directory settings_generator [-c]"
@@ -87,8 +87,7 @@ else
   hlint_hints=true
   echo -e "${RED}Suggestions available!\n${NC}"
 fi
-
-expect "$script_path/mutator.expect" "$ghc_version" "../$mutator" "$config_mutations" >/dev/null
+expect "$script_path/mutator.expect" "$ghc_version" "$mutator" "$config_mutations" >/dev/null
 echo "Testing a total of $(grep -c ^ settings_variants.txt) config mutations."
 sed -i "s/,\ /;/g" "settings_variants.txt"
 for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
@@ -130,7 +129,7 @@ for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
   fi
 
   echo -e "${CYAN}Running Check.hs scan...${NC}"
-  "$script_path"/scan_check.sh "$i"
+  bash "$script_path"/scan_check.sh "$i"
   if [ "$(grep -w "class=header" -c "$i/scan_check.html")" -eq 0 ]; then
     rm "$i/scan_check.html"
     echo -e "${GREEN}No Issues!\n${NC}"
