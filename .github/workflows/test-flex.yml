@@ -30,7 +30,7 @@ on:
       commit:
         required: true
         type: string
-    secrets: inherit
+
 
 
 permissions: read-all
