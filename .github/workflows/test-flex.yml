@@ -23,6 +23,10 @@ on:
         required: true
         type: string
         default: 'tasks'
+      latex-setup:
+        required: false
+        type: bool
+        default: false
 
 permissions: read-all
 
@@ -44,6 +48,8 @@ jobs:
           packages: zsh hlint expect colorized-logs
           version: 1.0
 
+      - name: Setup LaTeX
+        if: ${{ inputs.latex-setup }}
       - uses: TeX-Live/setup-texlive-action@v3
         with:
           packages: |
@@ -57,10 +63,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ${{ env.tasks }}/root
+            ${{ inputs.tasks }}/root
             haskell-template-setup/stack.yaml
           key:
-            ${{ hashFiles(format('{0}/stack.yaml', env.config), format('{0}/package.yaml', env.config)) }}-${{ hashFiles('*/src/**/*hs') }}
+            ${{ hashFiles(format('{0}/stack.yaml', inputs.config), format('{0}/package.yaml', inputs.config)) }}-${{ hashFiles('*/src/**/*hs') }}
 
       - uses: actions/checkout@v4
         if: steps.restore-cache-db.outputs.cache-hit != 'true'
@@ -72,8 +78,8 @@ jobs:
         if: steps.restore-cache-db.outputs.cache-hit != 'true'
         run: |
           set -ex
-          sudo mv -f ./${{ env.config }}/stack.yaml ./haskell-template-setup
-          sudo mv -f ./${{ env.config }}/package.yaml ./haskell-template-setup
+          sudo mv -f ./${{ inputs.config }}/stack.yaml ./haskell-template-setup
+          sudo mv -f ./${{ inputs.config }}/package.yaml ./haskell-template-setup
           cd haskell-template-setup
           awk '/extra-deps/ {f=1; next} f' ../stack.yaml |
             awk 'NR==FNR {buffer=buffer $0 RS; next} /extra-deps/ {print; printf buffer; next}1' - stack.yaml > new_stack.yaml
@@ -85,18 +91,18 @@ jobs:
           '      - flex-tasks\n'\
           '      - flex-tasks-processing'
           sed -i "/extra-deps/a $insert" stack.yaml
-          sed -i "s@/autotool/default@$(realpath $PWD/../${{ env.tasks }}/root)@" env
+          sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
           eval "$(ssh-agent -s)"
           ssh-add <(echo "${{ secrets.SSH_PRIVATE_KEY }}")
           ./create.sh
-          sudo mv root ../${{ env.tasks }}
+          sudo mv root ../${{ inputs.tasks }}
           set +ex
 
       - name: Determine GHC-Version
         id: ghc-version
         run: |
           set -ex
-          cd ${{ env.tasks }}
+          cd ${{ inputs.tasks }}
           ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
           temp="${ghc_file##*/ghci-}"
           ghc_version="${temp%-*.conf*}"
@@ -111,12 +117,12 @@ jobs:
       - name: Run Test Script
         run: |
           set -ex
-          sudo cp haskell-template-setup/stack.yaml ${{ env.tasks }}
-          cd ${{ env.tasks }}
+          sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
+          cd ${{ inputs.tasks }}
           export GHC_PACKAGE_PATH=root/pkgdb
           expect defaultConf.expect ${{ steps.ghc-version.outputs.version }}
           for file in $(find . -name '*.txt' -and -not -name "*NoInterpolation.txt" -and -not -path "./root/*"); do
-            ../${{ env.script }}/test.sh $file root ${{ env.settings-gens }}/$(basename $file .txt).hs
+            ../${{ inputs.script }}/test.sh $file root ${{ inputs.settings-gens }}/$(basename $file .txt).hs
           done
           if [ $(find . -name "Check.hs" -or -name "ghc.html" | wc -l) -eq 0 ]; then
             rm -f stack.yaml
@@ -129,11 +135,11 @@ jobs:
         with:
           name: reports
           path: |
-            ${{ env.tasks }}/*/*/*.html
-            ${{ env.tasks }}/*/*/settings.txt
-            ${{ env.tasks }}/*/*/Check.hs
-            ${{ env.tasks }}/stack.yaml
-            ${{ env.tasks }}/*/hlint.html
+            ${{ inputs.tasks }}/*/*/*.html
+            ${{ inputs.tasks }}/*/*/settings.txt
+            ${{ inputs.tasks }}/*/*/Check.hs
+            ${{ inputs.tasks }}/stack.yaml
+            ${{ inputs.tasks }}/*/hlint.html
           if-no-files-found: ignore
           overwrite: true
 
