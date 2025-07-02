@@ -9,6 +9,7 @@ on:
     inputs:
       repository:
         required: false
+        type: string
         default: ${{ github.repository }}
       tasks:
         required: true
