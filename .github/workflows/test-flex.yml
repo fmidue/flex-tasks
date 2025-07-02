@@ -2,15 +2,27 @@
 name: Compile and Lint Flex-Tasks
 
 env:
-  tasks: tasks
-  config: pkgdb-config
-  settings-gens: settings-gens
-  script: tasks
   TERM: xterm
 
 on:
-  repository_dispatch:
-    types: [CI-Completed]
+  workflow_call:
+    inputs:
+      tasks:
+        required: true
+        type: string
+        default: 'tasks'
+      config:
+        required: true
+        type: string
+        default: 'pkgdb-config'
+      settings-gens:
+        required: true
+        type: string
+        default: 'settings-gens'
+      script:
+        required: true
+        type: string
+        default: 'tasks'
 
 permissions: read-all
 
