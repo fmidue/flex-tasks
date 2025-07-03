@@ -54,7 +54,7 @@ jobs:
 
 #      - name: Setup LaTeX
 #        if: ${{ inputs.latex-setup }}
-#      - uses: TeX-Live/setup-texlive-action@v3
+#        uses: TeX-Live/setup-texlive-action@v3
 #        with:
 #          packages: |
 #            scheme-basic
