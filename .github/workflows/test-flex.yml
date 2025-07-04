@@ -108,8 +108,14 @@ jobs:
           "    commit: ${{ inputs.commit }}\n"\
           "${yaml}"
           echo "$insert"
-          sed -i "/extra-deps/a\
-          $insert" stack.yaml
+          awk -v insert="$insert" '
+            /extra-deps/ {
+              print
+              print insert
+              next
+            }
+            { print }
+          ' stack.yaml > stack.yaml.new && mv stack.yaml.new stack.yaml
           sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
           eval "$(ssh-agent -s)"
           ssh-add <(echo "${{ secrets.SSH_PRIVATE_KEY}}")
