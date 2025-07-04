@@ -93,7 +93,7 @@ jobs:
             awk 'NR==FNR {buffer=buffer $0 RS; next} /extra-deps/ {print; printf buffer; next}1' - stack.yaml > new_stack.yaml
           sudo mv -f new_stack.yaml stack.yaml
 
-          raw="${{ github.event.inputs.subdirs }}"
+          raw="${{ inputs.subdirs }}"
           trimmed="${raw#[}"
           trimmed="${trimmed%]}"
           IFS=',' read -ra ARR <<< "${trimmed}"
