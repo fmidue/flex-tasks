@@ -149,7 +149,7 @@ jobs:
           curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/scan_check.sh -o scan_check.sh
           export GHC_PACKAGE_PATH=root/pkgdb
           for file in $(find . -name '*.txt' -and -not -name "*NoInterpolation.txt" -and -not -path "./root/*"); do
-            bash test.sh $file root ${{ inputs.settings-gens }}/$(basename $file .txt).hs
+            bash test.sh $file root ../${{ inputs.settings-gens }}/$(basename $file .txt).hs
           done
           if [ $(find . -name "Check.hs" -or -name "ghc.html" | wc -l) -eq 0 ]; then
             rm -f stack.yaml
