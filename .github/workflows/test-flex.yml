@@ -145,7 +145,6 @@ jobs:
           cd ${{ inputs.tasks }}
           curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/runGhci.expect -o runGhci.expect
           curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/mutator.expect -o mutator.expect
-#          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/defaultConf.expect -o defaultConf.expect
           curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/test.sh -o test.sh
           curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/scan_check.sh -o scan_check.sh
           export GHC_PACKAGE_PATH=root/pkgdb
