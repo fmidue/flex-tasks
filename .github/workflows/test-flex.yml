@@ -107,6 +107,7 @@ jobs:
           "  - git: https://github.com/${{ github.repository }}\n"\
           "    commit: ${{ inputs.commit }}\n"\
           "${yaml}"
+          echo "$insert"
           sed -i "/extra-deps/a $insert" stack.yaml
           sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
           eval "$(ssh-agent -s)"
