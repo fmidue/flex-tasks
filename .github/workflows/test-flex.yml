@@ -26,6 +26,10 @@ on:
       commit:
         required: true
         type: string
+      subdirs:
+        required: false
+        type: string
+        default: "[.]"
     secrets:
       SSH_PRIVATE_KEY:
         required: true
@@ -88,11 +92,21 @@ jobs:
           awk '/extra-deps/ {f=1; next} f' ../stack.yaml |
             awk 'NR==FNR {buffer=buffer $0 RS; next} /extra-deps/ {print; printf buffer; next}1' - stack.yaml > new_stack.yaml
           sudo mv -f new_stack.yaml stack.yaml
+
+          raw="${{ github.event.inputs.subdirs }}"
+          trimmed="${raw#[}"
+          trimmed="${trimmed%]}"
+          IFS=',' read -ra ARR <<< "${trimmed}"
+          yaml="    subdirs:"
+          for item in "${ARR[@]}"; do
+            clean="$(echo "${item}" | xargs)"
+            yaml="${yaml}"$'\n'"      - ${clean}"
+          done
+
           insert='\'\
           "  - git: https://github.com/${{ github.repository }}\n"\
           "    commit: ${{ inputs.commit }}\n"\
-          '    subdirs:\n'\
-          '      - .'
+          "${yaml}"
           sed -i "/extra-deps/a $insert" stack.yaml
           sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
           eval "$(ssh-agent -s)"
@@ -130,7 +144,7 @@ jobs:
           export GHC_PACKAGE_PATH=root/pkgdb
           expect defaultConf.expect ${{ steps.ghc-version.outputs.version }}
           for file in $(find . -name '*.txt' -and -not -name "*NoInterpolation.txt" -and -not -path "./root/*"); do
-            ./test.sh $file root ${{ inputs.settings-gens }}/$(basename $file .txt).hs
+            bash test.sh $file root ${{ inputs.settings-gens }}/$(basename $file .txt).hs
           done
           if [ $(find . -name "Check.hs" -or -name "ghc.html" | wc -l) -eq 0 ]; then
             rm -f stack.yaml
