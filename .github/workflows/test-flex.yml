@@ -100,7 +100,7 @@ jobs:
           yaml="    subdirs:"
           for item in "${ARR[@]}"; do
             clean="$(echo "${item}" | xargs)"
-            yaml="${yaml}"$'\n'"      \- ${clean}"
+            yaml="${yaml}"$'\n'"      - ${clean}"
           done
 
           insert='\'\
@@ -108,7 +108,8 @@ jobs:
           "    commit: ${{ inputs.commit }}\n"\
           "${yaml}"
           echo "$insert"
-          sed -i "/extra-deps/a $insert" stack.yaml
+          sed -i "/extra-deps/a\\
+          $insert" stack.yaml
           sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
           eval "$(ssh-agent -s)"
           ssh-add <(echo "${{ secrets.SSH_PRIVATE_KEY}}")
