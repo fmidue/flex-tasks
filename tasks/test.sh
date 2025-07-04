@@ -130,7 +130,7 @@ for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
   fi
 
   echo -e "${CYAN}Running Check.hs scan...${NC}"
-  "$script_path"/scan_check.sh "$i"
+  bash "$script_path"/scan_check.sh "$i"
   if [ "$(grep -w "class=header" -c "$i/scan_check.html")" -eq 0 ]; then
     rm "$i/scan_check.html"
     echo -e "${GREEN}No Issues!\n${NC}"
