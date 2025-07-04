@@ -100,7 +100,7 @@ jobs:
           yaml="    subdirs:"
           for item in "${ARR[@]}"; do
             clean="$(echo "${item}" | xargs)"
-            yaml="${yaml}"$'\n'"      - ${clean}"
+            yaml="${yaml}"$'\n'"      \- ${clean}"
           done
 
           insert='\'\
