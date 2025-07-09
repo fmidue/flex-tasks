@@ -3,8 +3,8 @@ name: Call Flex Workflow
 
 
 on:
-  push:
-    branches: [workflow-reusable]
+  repository_dispatch:
+    types: [CI-Completed]
 
 permissions:
   contents: write
@@ -20,4 +20,5 @@ jobs:
       settings-gens: flex-tasks/tasks/settings-gens
       package-locations: '*'
       subdirs: '[flex-tasks, flex-tasks-processing]'
+      commit: ${{ github.event.client_payload.sha }}
       latex-setup: true
