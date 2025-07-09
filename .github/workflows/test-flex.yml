@@ -146,11 +146,11 @@ jobs:
           set -ex
           sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
           cd ${{ inputs.tasks }}
-          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/runGhci.expect -o runGhci.expect
-          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/mutator.expect -o mutator.expect
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/workflow-reusable/flex-tasks/tasks/runGhci.expect -o runGhci.expect
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/workflow-reusable/flex-tasks/tasks/mutator.expect -o mutator.expect
           curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/workflow-reusable/flex-tasks/tasks/test.sh -o test.sh
-          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/scan_check.sh -o scan_check.sh
-          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/tasks/.hlint.yaml -o .hlint.yaml
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/workflow-reusable/flex-tasks/tasks/scan_check.sh -o scan_check.sh
+          curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/workflow-reusable/flex-tasks/tasks/.hlint.yaml -o .hlint.yaml
           chmod +x scan_check.sh
           export GHC_PACKAGE_PATH=root/pkgdb
           for file in $(find . -name '*.flex'); do
