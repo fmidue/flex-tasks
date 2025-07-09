@@ -1,1 +1,1 @@
-*.flex linguist-language=Haskell
+*.flex text diff=haskell
