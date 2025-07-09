@@ -15,7 +15,7 @@ If there are no suggestions, the folder won't be created.
 
 ### example
 
-`./test.sh proplogic.txt flex-pkgdb settings-gens/proplogic.hs`
+`./test.sh defaultConfig.flex flex-pkgdb ./settings-gens/defaultConfig.hs`
 
 ## Requirements
 
@@ -38,5 +38,5 @@ This Haskell file need to satisfy the following:
 ## Notes
 
 - Generate a package database using [our tool](https://github.com/fmidue/haskell-template-setup)
-- Both `TASK_PATH` and `PKG_DB_PATH` are given as relative paths (have to be in this folder)
+- Both `TASK_PATH` and `PKG_DB_PATH` are given as paths originating from the script's location, while `TASK_SETTINGS_GENERATOR_PATH` must be a complete path
 - The `-c` flag can optionally be supplied to preserve the generated `Check.hs` file even if no reports were generated
