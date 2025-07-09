@@ -152,7 +152,13 @@ getTask = do
         margin-bottom: 0.5em
     |]
 
-formulaAndHints :: Bool -> Bool -> Bool -> Bool -> (String,String,String,String) -> Gen (SynTree BinOp Char, String, [String])
+formulaAndHints
+  :: Bool
+  -> Bool
+  -> Bool
+  -> Bool
+  -> (String,String,String,String)
+  -> Gen (SynTree BinOp Char, String, [String])
 formulaAndHints a b c d (aN,bN,cN,dN) = do
     shuffled <- shuffle (zip [part1,part2,part3,part4,part5] [hint1,hint2,hint3,hint4,hint5])
     let (parts,hints) = unzip shuffled

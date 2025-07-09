@@ -16,7 +16,7 @@ fi
 leave_check=false
 
 if [[ -f $3 ]]; then
-  mutator="$(realpath $3)"
+  mutator="$(realpath "$3")"
 else
   echo "settings generator does not exist: $3"
   echo "Usage: $0 input_file pkgdb_directory settings_generator [-c]"

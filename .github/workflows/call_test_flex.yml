@@ -6,11 +6,12 @@ on:
   push:
     branches: [workflow-reusable]
 
-permissions:
-  contents: write
+permissions: read-all
 
 jobs:
   call:
+    permissions:
+      contents: write
     uses: ./.github/workflows/test-flex.yml
     secrets: inherit
     with:
