@@ -36,7 +36,8 @@ on:
       SSH_PRIVATE_KEY:
         required: true
 
-permissions: read-all
+permissions:
+  actions: read
 
 jobs:
   test_flex:
