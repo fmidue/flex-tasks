@@ -98,7 +98,7 @@ instance RenderMessage app HeaderLabel where
   renderMessage _ _        HeaderLabel  = "Korrekte Terme"
 
 
-getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
+getTask :: Gen (TaskData, String, IO ([[Text]],HtmlDict))
 getTask = do
     config <- task04
     inst <- genInst config
