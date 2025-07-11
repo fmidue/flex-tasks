@@ -7,7 +7,14 @@ extra-deps:
     commit: 79baa6175bcb83ce74484906b53898ab600a0182
   - git: https://github.com/fmidue/term-tasks
     commit: cb2bfac5e0145c01fbbab7e4f995d624db72dcad
+  - git: https://github.com/fmidue/autotool-capabilities.git
+    commit: fa712df18cba66ce45acfbd3c2a5fbf7ba756dbb
+    subdirs:
+      - autotool-capabilities
+      - autotool-capabilities-io-instances
   - latex-svg-image-0.2@sha256:b282a74a96724037ec3d24b664118e51170c8152aff12f363ddb715a38ef053a,1830
+  - call-alloy-0.6.0.2@sha256:f7ecb0f4b8f7cc804d6d8ace7c323b48e3aa03994a2d09c4b7ee66cc4bf15abd,3850
+  - diagrams-graphviz-1.4.1.1@sha256:9a2bf7b7c9c86ab28228d36017c70cf1b53c95dae4004fc71e81fbc702098e9f,1495
 
 allow-newer: true
 allow-newer-deps:
