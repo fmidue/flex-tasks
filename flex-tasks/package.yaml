@@ -65,6 +65,8 @@ tests:
       - -Widentities
       - -Werror
     dependencies:
+      - autotool-capabilities
+      - autotool-capabilities-io-instances
       - flex-tasks
       - flex-tasks-processing
       - hspec
