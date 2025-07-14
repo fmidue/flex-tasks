@@ -1,0 +1,172 @@
+---
+name: Compile and Lint Flex-Tasks
+
+inputs:
+  tasks:
+    required: true
+    type: string
+  config:
+    required: true
+    type: string
+  settings-gens:
+    required: true
+    type: string
+  package-locations:
+    required: false
+    type: string
+    default: '.'
+  latex-setup:
+    required: false
+    type: boolean
+    default: false
+  subdirs:
+    required: false
+    type: string
+    default: "[.]"
+  commit:
+    required: false
+    type: string
+    default: ${{ github.sha }}
+  ssh-key:
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: zsh hlint expect colorized-logs
+        version: 1.0
+
+    - name: Setup LaTeX
+      if: ${{ inputs.latex-setup }}
+      uses: TeX-Live/setup-texlive-action@v3
+      with:
+        packages: |
+          scheme-basic
+          forest
+          preview
+          dvisvgm
+
+    - name: Cache DB
+      id: restore-cache-db
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ inputs.tasks }}/root
+          haskell-template-setup/stack.yaml
+        key: >-
+          ${{ hashFiles(format('{0}/stack.yaml', inputs.config), format('{0}/package.yaml', inputs.config)) }}-${{
+              hashFiles(format('{0}/src/**/*hs', inputs.package-locations)) }}
+
+    - uses: actions/checkout@v4
+      if: steps.restore-cache-db.outputs.cache-hit != 'true'
+      with:
+        repository: fmidue/haskell-template-setup
+        path: haskell-template-setup
+
+    - name: Setup DB
+      if: steps.restore-cache-db.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -ex
+        sudo mv -f ./${{ inputs.config }}/stack.yaml ./haskell-template-setup
+        sudo mv -f ./${{ inputs.config }}/package.yaml ./haskell-template-setup
+        cd haskell-template-setup
+        awk '/extra-deps/ {f=1; next} f' ../stack.yaml |
+          awk 'NR==FNR {buffer=buffer $0 RS; next} /extra-deps/ {print; printf buffer; next}1' - stack.yaml > new_stack.yaml
+        sudo mv -f new_stack.yaml stack.yaml
+
+        raw="${{ inputs.subdirs }}"
+        trimmed="${raw#[}"
+        trimmed="${trimmed%]}"
+        IFS=',' read -ra ARR <<< "${trimmed}"
+        yaml="    subdirs:"
+        for item in "${ARR[@]}"; do
+          clean="$(echo "${item}" | xargs)"
+          yaml="${yaml}"$'\n'"      - ${clean}"
+        done
+
+        insert='\'\
+        "  - git: https://github.com/${{ github.repository }}\n"\
+        "    commit: ${{ inputs.commit }}\n"\
+        "${yaml}"
+        awk -v insert="$insert" '
+          /extra-deps/ {
+            print
+            print insert
+            next
+          }
+          { print }
+        ' stack.yaml > stack.yaml.new && mv stack.yaml.new stack.yaml
+        sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
+        eval "$(ssh-agent -s)"
+        ssh-add <(echo "${{ inputs.ssh-key}}")
+        ./create.sh
+        sudo mv root ../${{ inputs.tasks }}
+        set +ex
+
+    - name: Determine GHC-Version
+      id: ghc-version
+      shell: bash
+      run: |
+        set -ex
+        cd ${{ inputs.tasks }}
+        ghc_file=$(find root/pkgdb -name "ghci*" -print -quit)
+        temp="${ghc_file##*/ghci-}"
+        ghc_version="${temp%-*.conf*}"
+        echo "version=$ghc_version" >> $GITHUB_OUTPUT
+        set +ex
+
+    - name: Install GHC
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: ${{steps.ghc-version.outputs.version}}
+
+    - name: Run Test Script
+      shell: bash
+      env:
+        TERM: xterm
+      run: |
+        set -ex
+        sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
+        cd ${{ inputs.tasks }}
+        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/runGhci.expect -o runGhci.expect
+        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/mutator.expect -o mutator.expect
+        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/test.sh -o test.sh
+        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/scan_check.sh -o scan_check.sh
+        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/.hlint.yaml -o .hlint.yaml
+        chmod +x scan_check.sh
+        export GHC_PACKAGE_PATH=root/pkgdb
+        for file in $(find . -name '*.flex'); do
+          bash test.sh $file root "${{ github.workspace }}/${{ inputs.settings-gens }}/$(basename $file .flex).hs"
+        done
+        if [ $(find . -name "Check.hs" -or -name "ghc.html" | wc -l) -eq 0 ]; then
+          rm -f stack.yaml
+        fi
+        set +ex
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      id: upload-artifact
+      with:
+        name: reports
+        path: |
+          ${{ inputs.tasks }}/*/*/*.html
+          ${{ inputs.tasks }}/*/*/settings.txt
+          ${{ inputs.tasks }}/*/*/Check.hs
+          ${{ inputs.tasks }}/stack.yaml
+          ${{ inputs.tasks }}/*/hlint.html
+        if-no-files-found: ignore
+        overwrite: true
+
+    - name: Link Comment
+      if: ${{ steps.upload-artifact.outputs.artifact-url != '' }}
+      uses: peter-evans/commit-comment@v3
+      with:
+        sha: ${{ inputs.commit }}
+        body: |
+          The flex-task test workflow reported issues or suggestions for the following commit:
+          __${{ github.event.client_payload.message }}__
+          [Download Reports](${{ steps.upload-artifact.outputs.artifact-url }})
