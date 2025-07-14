@@ -1,5 +1,5 @@
 ---
-name: Call Flex Workflow
+name: Test Flex Tasks
 
 
 on:
@@ -11,14 +11,17 @@ permissions:
   actions: read
 
 jobs:
-  call:
-    uses: ./.github/workflows/test-flex.yml
-    secrets: inherit
-    with:
-      tasks: flex-tasks/tasks
-      config: pkgdb-config
-      settings-gens: flex-tasks/tasks/settings-gens
-      package-locations: '*'
-      subdirs: '[flex-tasks, flex-tasks-processing]'
-      commit: ${{ github.event.client_payload.sha }}
-      latex-setup: true
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: fmidue/flex-tasks/.github/actions/test-flex@main
+        with:
+          tasks: flex-tasks/tasks
+          config: pkgdb-config
+          settings-gens: flex-tasks/tasks/settings-gens
+          package-locations: '*'
+          subdirs: '[flex-tasks, flex-tasks-processing]'
+          latex-setup: true
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}

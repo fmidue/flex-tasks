@@ -13,7 +13,7 @@ Directory `flex-tasks/tasks` includes a collection of sample tasks and a test sc
 
 ### flex-tasks
 
-Supplies both a way to run tasks, as well as utilities to simplify the creation of said tasks.
+Supplies both a way to run tasks and utilities to simplify the creation of said tasks.
 * `FlexTask.Types` defines task configurations and instances.
 * `FlexTask.Interpreter` contains functions to evaluate such tasks at runtime.
 * The remaining modules implement various utility functions and automations for creating tasks, for example:
@@ -31,9 +31,11 @@ The package is incorporated into Autotool. The task evaluation is currently not 
 In Autotool, you can select the task type `Flex` to input a task configuration. A default is given, which can be edited or completely overwritten by one of the sample tasks in this repository (or your own).
 For task development, consider using the provided test script in `flex-tasks/tasks`. Please refer to its own readme file.
 
-The generic parsers and input forms can be used as a standalone feature, independently from Autotool.
+The generic parsers and input forms can be used as a standalone feature, independently of Autotool.
 
 
-## Running tests
+## Running local tests
 
 The test suite for flex-tasks needs a specified external package database. Its path has to be set via the environment variable `FLEX_PKGDB` before running the tests. You can use the default database of the package by setting `FLEX_PKGDB` to `$(stack path --local-pkg-db)`.
+The test-suite also requires additional dependencies not needed for compiling the library.
+To execute the tests use the provided config file `stack-test.yaml` via `stack test --stack-yaml stack-test.yaml` instead.

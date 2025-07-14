@@ -93,6 +93,8 @@ test-suite flex-tasks-test
   build-depends:
       QuickCheck
     , SHA
+    , autotool-capabilities
+    , autotool-capabilities-io-instances
     , base
     , blaze-html
     , bytestring

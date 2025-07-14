@@ -23,10 +23,12 @@ import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (replace)
 import Data.Map                     (elems)
+import Data.Maybe                   (isJust)
 import Data.Text                    (Text)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Data.Typeable                (Typeable)
+import Data.Tuple.Extra             (first)
 import Language.Haskell.Interpreter (
     GhcError(errMsg),
     Interpreter,
@@ -71,7 +73,7 @@ validateSettings
   :: String   -- ^ Global module
   -> String   -- ^ Module containing configuration options
   -> [(String,String)] -- ^ Additional code modules
-  -> IO (Either InterpreterError [Output])
+  -> IO (Either InterpreterError (Bool,[Output]))
 validateSettings globalCode settingsCode extraCode = do
     filePaths <- writeUncachedAndGetPaths $
       [ ("Global", globalCode)
@@ -88,7 +90,7 @@ validateSettings globalCode settingsCode extraCode = do
         ]
       setTopLevelModules ["TaskSettings", "Global"]
       out <- interpret "validateSettings" infer
-      pure $ runIdentity $ getOutputSequence out
+      pure $ first (isJust @()) $ runIdentity $ getOutputSequenceWithResult out
 
 {- |
 Use a `FlexConf` to generate a `FlexInst`.
@@ -159,7 +161,13 @@ makeDescription taskData global settings description extras picPath = do
   where
     descInter = do
       setTopLevelModules ["Description", "Global", "TaskSettings"]
-      setImports ["Control.OutputCapable.Blocks.Generic.Type", "Data.Text"]
+      setImports
+        [ "Capabilities.Graphviz.IO"
+        , "Capabilities.Cache.IO"
+        , "Capabilities.Diagrams.IO"
+        , "Control.OutputCapable.Blocks.Generic.Type"
+        , "Data.Text"
+        ]
       interpret ("description " ++ show picPath ++ parens taskData) infer
 
 
@@ -254,7 +262,10 @@ checkSolution taskData globalCode settingsCode parseCode checkCode extraCode sub
   where
     runCheck = do
       setImports
-        [ "Control.OutputCapable.Blocks.Generic.Type"
+        [ "Capabilities.Cache.IO"
+        , "Capabilities.Diagrams.IO"
+        , "Capabilities.Graphviz.IO"
+        , "Control.OutputCapable.Blocks.Generic.Type"
         , "Control.OutputCapable.Blocks"
         , "Data.Ratio"
         , "Data.Text"
@@ -319,6 +330,7 @@ imageLinks = concatMap gatherLinks
         together = concatMap (\(a,b) -> [a,b]) os
     gatherLinks (Itemized oss)   = imageLinks $ concat oss
     gatherLinks (Indented os)    = imageLinks os
+    gatherLinks (Folded _ _ os)  = imageLinks os
     gatherLinks _                = []
 
 
