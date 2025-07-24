@@ -22,7 +22,7 @@ import Control.Monad.Identity       (runIdentity)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
-import Data.List.Extra              (replace)
+import Data.List.Extra              (intercalate, replace)
 import Data.Map                     (elems)
 import Data.Maybe                   (isJust)
 import Data.Text                    (Text)
@@ -193,12 +193,12 @@ validDescription
   -> FilePath     -- ^ Path images will be stored in
   -> IO (LangM m) -- ^ `OutputCapable` representation of task description
 validDescription taskData globalModule settingsModule descModule extras picPath = do
-  let fileName = hash $ concat $ [
-          descModule
-        , taskData
-        , globalModule
-        , settingsModule
-        ] ++ map snd extras
+  let (firstHalf,secondHalf) = splitAt (length extras `div` 2) $ map snd extras
+  let fileName = intercalate "-" $ "DescriptionCache" : map hash
+        [ descModule ++ concat firstHalf
+        , taskData ++ concat secondHalf
+        , globalModule ++ settingsModule
+        ]
   cDir <- cacheDir
   let path = cDir </> fileName
   isThere <- doesFileExist path
