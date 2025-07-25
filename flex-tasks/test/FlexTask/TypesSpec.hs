@@ -22,11 +22,12 @@ spec = do
     prop "segments the modules with delimiters correctly" $
       \fConf@FlexConf{commonModules = CommonModules{..},..} ->
       showFlexConfig fConf `shouldBe` intercalate delimiter (
-        [ globalModule
-        ,settingsModule
-        ,taskDataModule
-        ,descriptionModule
-        ,parseModule
+        [ "taskName: " ++ taskName ++ "\r\n"
+        , globalModule
+        , settingsModule
+        , taskDataModule
+        , descriptionModule
+        , parseModule
         ] ++ map snd extraModules)
 
   describe "parseFlexConfig" $
@@ -39,8 +40,9 @@ spec = do
       parse parseFlexConfig "" (showFlexConfig fConf) `shouldParse` fConf
 
     where
-      conf [globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] =
+      conf [taskName, globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] =
         FlexConf {
+          taskName,
           taskDataModule,
           commonModules = CommonModules {
             globalModule,
@@ -72,6 +74,7 @@ instance Arbitrary CommonModules where
 
 instance Arbitrary FlexConf where
   arbitrary = do
+    taskName <- arbitrary
     taskDataModule <- arbitrary
     commonModules <- arbitrary
-    pure $ FlexConf {taskDataModule, commonModules}
+    pure $ FlexConf {taskName, taskDataModule, commonModules}

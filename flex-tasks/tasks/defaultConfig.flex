@@ -1,3 +1,19 @@
+
+taskName: DefaultConfig
+=============================================
+{-
+^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^
+The above section allows for specifying a task identifier.
+It will serve as a directory name for caching on the file system.
+By using unique identifiers, you reduce the risk of cache collisions between different flex-tasks.
+Only ASCII letters (A–Z, a–z) are permitted in this name.
+
+The identifier can optionally be omitted.
+In that case, all cache files for this task will be stored in a shared global directory.
+^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^
+-}
+
+
 {-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Module for shared definitions. Can be imported in any other segment.
