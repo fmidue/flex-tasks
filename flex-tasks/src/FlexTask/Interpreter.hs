@@ -71,12 +71,13 @@ type GenOutput = (String, String, IO ([Text],HtmlDict))
 {- |
 -}
 validateSettings
-  :: String   -- ^ Global module
+  :: String   -- ^ The task identifier used for caching
+  -> String   -- ^ Global module
   -> String   -- ^ Module containing configuration options
   -> [(String,String)] -- ^ Additional code modules
   -> IO (Either InterpreterError (Bool,[Output]))
-validateSettings globalCode settingsCode extraCode = do
-    filePaths <- writeUncachedAndGetPaths $
+validateSettings taskName globalCode settingsCode extraCode = do
+    filePaths <- writeUncachedAndGetPaths taskName $
       [ ("Global", globalCode)
       , ("TaskSettings", settingsCode)
       ] ++ extraCode
@@ -113,7 +114,7 @@ genFlexInst
   genMethod
   seed
   = do
-      filePaths <- writeUncachedAndGetPaths $
+      filePaths <- writeUncachedAndGetPaths taskName $
         [ ("Global", globalModule)
         , ("TaskSettings", settingsModule)
         , ("TaskData", taskDataModule)
@@ -124,6 +125,7 @@ genFlexInst
       let (taskData, checkModule, io) = genMethod gen seed
       form <- io
       pure $ FlexInst {
+        identifier = taskName,
         form,
         taskData,
         checkModule,
@@ -149,11 +151,12 @@ makeDescription
   -> String
   -> String
   -> String
+  -> String
   -> [(String,String)]
   -> FilePath
   -> IO (Either InterpreterError (LangM m))
-makeDescription taskData global settings description extras picPath = do
-    filePaths <- writeUncachedAndGetPaths $
+makeDescription taskName taskData global settings description extras picPath = do
+    filePaths <- writeUncachedAndGetPaths taskName $
           [ ("Global", global)
           , ("TaskSettings", settings)
           , ("Description", description)
@@ -185,21 +188,22 @@ the description is interpreted again to regenerate the missing files.
 -}
 validDescription
   :: OutputCapable m
-  => String       -- ^ Data available for making the description
+  => String       -- ^ The task identifier used for caching
+  -> String       -- ^ Data available for making the description
   -> String       -- ^ Global module
   -> String       -- ^ Settings module
   -> String       -- ^ Module containing the /description/ function
   -> [(String,String)] -- ^ Additional code modules
   -> FilePath     -- ^ Path images will be stored in
   -> IO (LangM m) -- ^ `OutputCapable` representation of task description
-validDescription taskData globalModule settingsModule descModule extras picPath = do
+validDescription taskName taskData globalModule settingsModule descModule extras picPath = do
   let (firstHalf,secondHalf) = splitAt (length extras `div` 2) $ map snd extras
   let fileName = intercalate "-" $ "DescriptionCache" : map hash
         [ descModule ++ concat firstHalf
         , taskData ++ concat secondHalf
         , globalModule ++ settingsModule
         ]
-  cDir <- cacheDir
+  cDir <- cacheDir taskName
   let path = cDir </> fileName
   isThere <- doesFileExist path
   if isThere
@@ -216,7 +220,7 @@ validDescription taskData globalModule settingsModule descModule extras picPath 
       makeDescAndWrite Nothing path
   where
     makeDescAndWrite mOldOutput p = do
-      res <- makeDescription taskData globalModule settingsModule descModule extras picPath
+      res <- makeDescription taskName taskData globalModule settingsModule descModule extras picPath
       output <- getOutputSequence $ extract res
       unless (mOldOutput == Just output) $ writeFile p $ show output
       return $ toOutputCapable output
@@ -243,7 +247,8 @@ If the syntax check fails, then no semantics feedback is provided.
 Semantics feedback is coupled with a rating given as a Rational (0 to 1).
 -}
 checkSolution
-  :: String   -- ^ Data made available to checker functions
+  :: String   -- ^ The task identifier used for caching
+  -> String   -- ^ Data made available to checker functions
   -> String   -- ^ Global module
   -> String   -- ^ Module containing configuration options
   -> String   -- ^ Module containing /parseSubmission/
@@ -252,8 +257,8 @@ checkSolution
   -> String   -- ^ Student solution
   -> FilePath -- ^ Path images will be stored in
   -> IO (Either InterpreterError ([Output], Maybe (Maybe Rational, [Output])))
-checkSolution taskData globalCode settingsCode parseCode checkCode extraCode submission picPath = do
-    filePaths <- writeUncachedAndGetPaths $
+checkSolution taskName taskData globalCode settingsCode parseCode checkCode extraCode submission picPath = do
+    filePaths <- writeUncachedAndGetPaths taskName $
       [ ("Global", globalCode)
       , ("TaskSettings", settingsCode)
       , ("Parse", parseCode)
@@ -284,15 +289,15 @@ checkSolution taskData globalCode settingsCode parseCode checkCode extraCode sub
 
 
 
-writeUncachedAndGetPaths :: [(String, String)] -> IO [FilePath]
-writeUncachedAndGetPaths xs = do
+writeUncachedAndGetPaths :: FilePath -> [(String, String)] -> IO [FilePath]
+writeUncachedAndGetPaths cachePrefix xs = do
     paths <- getCachePaths xs
     writeUncachedFiles paths
     pure $ map fst paths
   where
     getCachePaths :: [(String,String)] -> IO [(FilePath,String)]
     getCachePaths files = do
-      dir <- cacheDir
+      dir <- cacheDir cachePrefix
       pure $ map (\(prefix, content) ->
                  (dir </> prefix <> "-" <> hash content <.> "hs",content)) files
 
@@ -311,11 +316,11 @@ hash = showDigest . sha256 . encodeUtf8 . pack . show
 
 
 
-cacheDir :: IO FilePath
-cacheDir = do
+cacheDir :: FilePath -> IO FilePath
+cacheDir prefix = do
   temporary <- getTemporaryDirectory
-  let dir = temporary </> "FlexCache"
-  createDirectoryIfMissing False dir
+  let dir = temporary </> "FlexCache" </> prefix
+  createDirectoryIfMissing True dir
   pure dir
 
 
