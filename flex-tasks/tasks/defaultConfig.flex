@@ -91,8 +91,10 @@ Apply 'getFormData' to your finished form to obtain the data for the generator.
 module TaskData (getTask) where
 
 
+import Control.Monad.Random    (MonadRandom)
 import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
+import FlexTask.GenUtil        (fromGen)
 import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Data.String.Interpolate (i)
@@ -117,8 +119,8 @@ instance RenderMessage a Label where
 
 
 
-getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
-getTask = do
+getTask :: MonadRandom m => m (TaskData, String, IO ([Text],HtmlDict))
+getTask = fromGen $ do
     numbers@(n1,n2,n3) <- (,,) <$> intInRange <*> intInRange <*> intInRange
     let checkData = (product [n1,n2,n3], sum [n1,n2,n3])
     pure ((numbers,checkData), checkers, getFormData form)
