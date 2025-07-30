@@ -71,6 +71,7 @@ runs:
       with:
         repository: fmidue/haskell-template-setup
         path: haskell-template-setup
+        ref: mult-key
 
     - name: Setup DB
       if: steps.restore-cache-db.outputs.cache-hit != 'true'
@@ -94,8 +95,25 @@ runs:
           yaml="${yaml}"$'\n'"      - ${clean}"
         done
 
+        gh_reference='https://github.com/'
+
+        if [[ -n "${{ inputs.ssh-key }}" ]]; then
+          config=$(cat <<'EOF'
+        Host github-self
+          HostName github.com
+          User git
+          IdentityFile key_self
+          IdentitiesOnly yes
+        EOF
+        )
+          echo "$config" >>ssh-config
+          echo "${{ inputs.ssh-key }}" >>key_self
+          chmod 600 key_self
+          gh_reference='git@github-self:'
+        fi
+
         insert='\'\
-        "  - git: git@github.com:${{ github.repository }}.git\n"\
+        "  - git: ${gh_reference}${{ github.repository }}.git\n"\
         "    commit: ${{ inputs.commit }}\n"\
         "${yaml}"
         awk -v insert="$insert" '
@@ -108,9 +126,6 @@ runs:
         ' stack.yaml > stack.yaml.new && mv stack.yaml.new stack.yaml
         sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
         eval "$(ssh-agent -s)"
-        if [[ -n "${{ inputs.ssh-key }}" ]]; then
-          ssh-add <(echo "${{ inputs.ssh-key }}")
-        fi
         if [[ -n "${{ inputs.ssh-key2 }}" ]]; then
           ssh-add <(echo "${{ inputs.ssh-key2 }}")
         fi
