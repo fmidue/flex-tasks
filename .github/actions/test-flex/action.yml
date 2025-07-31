@@ -41,7 +41,7 @@ runs:
   steps:
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: zsh hlint expect colorized-logs
+        packages: zsh hlint expect colorized-logs graphviz
         version: 1.0
 
     - name: Setup LaTeX
