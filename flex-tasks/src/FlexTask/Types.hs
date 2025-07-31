@@ -21,6 +21,7 @@ module FlexTask.Types
 
 import Control.Monad                     (void)
 import Control.OutputCapable.Blocks      (LangM, OutputCapable, indent, refuse, translate, german, english)
+import Data.Char                         (isAscii, isLetter)
 import Data.List.Extra                   (dropEnd1, intercalate, isPrefixOf, nubOrd, stripInfix, word1)
 import Data.Map                          (Map)
 import Data.Maybe                        (mapMaybe)
@@ -32,11 +33,15 @@ import Text.Parsec (
     char,
     eof,
     lookAhead,
+    many,
     manyTill,
+    satisfy,
     string,
     skipMany,
     try,
     sepBy,
+    space,
+    spaces,
     )
 import Text.Parsec.Char                  (endOfLine, oneOf)
 import Text.Parsec.String                (Parser)
@@ -53,6 +58,7 @@ Concrete Task instance.
 Contained Haskell code is runtime interpreted to produce needed components of a task.
 -}
 data FlexInst = FlexInst {
+    identifier      ::  String,           -- ^ A task identifier used as a label for file caching
     form            :: ([Text],HtmlDict), -- ^ Field IDs of input elements and Html code.
     taskData        ::  String,           -- ^ Flexible task data used by task description and checker functions.
     commonModules   ::  CommonModules,    -- ^ Modules shared between config and instance.
@@ -66,6 +72,7 @@ Configuration to use for random generation of concrete `FlexInst`.
 The other Haskell modules are propagated to the generated task instance.
 -}
 data FlexConf = FlexConf {
+    taskName :: String,             -- ^ A task identifier used as a label for file caching
     taskDataModule :: String,       -- ^ Module for generating the form, as well as `CheckModule`.
     commonModules  :: CommonModules -- ^ Modules shared between config and instance.
   } deriving (Eq,Generic,Ord,Show)
@@ -109,7 +116,8 @@ Module2 where
 showFlexConfig :: FlexConf -> String
 showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
     intercalate delimiter $
-      [ globalModule
+      [ "taskName: " ++ taskName ++ "\r\n"
+      , globalModule
       , settingsModule
       , taskDataModule
       , descriptionModule
@@ -127,12 +135,21 @@ Modules starting from the sixth will be added to `CommonModules.extraModules`.
 -}
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
+    spaces
+    taskName <- parsePathSegment
+    atLeastThree
     modules <- betweenEquals
     case splitAt 5 modules of
-      ([globalModule,settingsModule,taskDataModule,descriptionModule,parseModule], extra) -> do
+      ( [ globalModule
+        , settingsModule
+        , taskDataModule
+        , descriptionModule
+        , parseModule
+        ], extra) -> do
         let extraModules = mapMaybe getModName extra
         pure $
           FlexConf {
+            taskName,
             taskDataModule,
             commonModules = CommonModules {
               globalModule,
@@ -148,18 +165,26 @@ parseFlexConfig = do
              "Global, TaskSettings, TaskData (Check), Description, Parse"
   where
     atLeastThree = do
+      discard endOfLine
+      lexeme $ string "===" >> skipMany (char '=')
       void endOfLine
-      whiteSpace
-      void $ string "==="
-      skipMany $ char '='
-      whiteSpace
-      void endOfLine
-
-    whiteSpace = skipMany $ oneOf [' ', '\t']
 
     betweenEquals =
       manyTill anyChar (try $ lookAhead $ eof <|> atLeastThree) `sepBy`
       atLeastThree
+
+    parsePathSegment = do
+      discardString "taskName"
+      discardString ":"
+      path <- lexeme $ many $ satisfy $ liftA2 (&&) isAscii isLetter
+      void $ manyTill space $ try $ lookAhead atLeastThree
+      pure path
+
+    -- the Parsec provided 'spaces' parser also parses newline characters
+    parseSpace = skipMany $ oneOf [' ', '\t']
+    lexeme = (<* parseSpace)
+    discard = void . lexeme
+    discardString = discard . string
 
 
 getModName :: String -> Maybe (String, String)
