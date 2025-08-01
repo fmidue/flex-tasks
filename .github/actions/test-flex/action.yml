@@ -158,11 +158,11 @@ runs:
         set -ex
         sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
         cd ${{ inputs.tasks }}
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/runGhci.expect -o runGhci.expect
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/mutator.expect -o mutator.expect
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/test.sh -o test.sh
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/scan_check.sh -o scan_check.sh
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/.hlint.yaml -o .hlint.yaml
+        cp "${{ github.action_path }}/flex-tasks/tasks/runGhci.expect" runGhci.expect
+        cp "${{ github.action_path }}/flex-tasks/tasks/mutator.expect" mutator.expect
+        cp "${{ github.action_path }}/flex-tasks/tasks/test.sh" test.sh
+        cp "${{ github.action_path }}/flex-tasks/tasks/scan_check.sh" scan_check.sh
+        cp "${{ github.action_path }}/flex-tasks/tasks/.hlint.yaml" .hlint.yaml
         chmod +x scan_check.sh
         export GHC_PACKAGE_PATH=root/pkgdb
         for file in $(find . -name '*.flex'); do
