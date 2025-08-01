@@ -15,6 +15,7 @@ dependencies:
   - file-embed
   - flex-tasks-processing
   - mtl
+  - MonadRandom
   - output-blocks
   - parsec
   - parsec-numbers
@@ -44,6 +45,7 @@ library:
     - FlexTask.FormUtil
     - FlexTask.Generic.Form
     - FlexTask.Generic.Parse
+    - FlexTask.GenUtil
     - FlexTask.InterpreterHelper
     - FlexTask.Interpreter
     - FlexTask.Types

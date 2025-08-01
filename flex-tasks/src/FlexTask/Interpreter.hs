@@ -19,6 +19,7 @@ module FlexTask.Interpreter
 
 import Control.Monad                (unless, void)
 import Control.Monad.Identity       (runIdentity)
+import Control.Monad.Random         (RandT, StdGen, evalRandT, mkStdGen)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
@@ -51,7 +52,6 @@ import System.Directory (
     )
 import System.Environment          (getEnv)
 import System.FilePath             ((</>), (<.>))
-import Test.QuickCheck.Gen         (Gen)
 import Text.RawString.QQ (rQ)
 
 import FlexTask.Types (
@@ -100,8 +100,7 @@ Apply the given method to run the generator with a seed.
 -}
 genFlexInst
   :: FlexConf
-  -> (Gen GenOutput -> a -> GenOutput) -- ^ Method of running the random generator
-  -> a                                 -- ^ Generator seed
+  -> Int          -- ^ Generator seed
   -> IO FlexInst
 genFlexInst
   FlexConf{ commonModules = commonModules@CommonModules{
@@ -110,7 +109,6 @@ genFlexInst
     extraModules
     },
     ..}
-  genMethod
   seed
   = do
       filePaths <- writeUncachedAndGetPaths $
@@ -121,7 +119,7 @@ genFlexInst
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
       let gen = extract taskAndFormResult
-      let (taskData, checkModule, io) = genMethod gen seed
+      (taskData, checkModule, io) <- evalRandT gen $ mkStdGen seed
       form <- io
       pure $ FlexInst {
         form,
@@ -130,11 +128,12 @@ genFlexInst
         commonModules
       }
     where
-      tfInter :: Interpreter (Gen GenOutput)
+      tfInter :: Interpreter (RandT StdGen IO GenOutput)
       tfInter = do
         setTopLevelModules ["TaskData", "Global", "TaskSettings"]
         setImports [
-            "Data.Generics.Text"
+            "Control.Monad.Random"
+          , "Data.Generics.Text"
           , "Data.Map"
           , "Data.Text"
           , "Data.Tuple.Extra"
