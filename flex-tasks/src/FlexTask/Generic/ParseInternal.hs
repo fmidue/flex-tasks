@@ -74,7 +74,7 @@ import FlexTask.Processing.Text (
   listDelimiter,
   missingMarker
   )
-import FlexTask.Generic.Form
+import FlexTask.Generic.FormInternal
   ( MultipleChoiceSelection
   , SingleChoiceSelection
   , SingleInputList(..)
