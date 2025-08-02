@@ -14,13 +14,14 @@ library
   exposed-modules:
       FlexTask.DefaultConfig
       FlexTask.FormUtil
-      FlexTask.Generic.FormInternal
+      FlexTask.Generic.Form
       FlexTask.Generic.Parse
       FlexTask.InterpreterHelper
       FlexTask.Interpreter
       FlexTask.Types
       FlexTask.YesodConfig
   other-modules:
+      FlexTask.Generic.FormInternal
       FlexTask.Generic.ParseInternal
       FlexTask.Styling
       FlexTask.Widgets

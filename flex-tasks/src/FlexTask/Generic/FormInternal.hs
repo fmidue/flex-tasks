@@ -7,10 +7,6 @@
 {-# language StandaloneDeriving #-}
 {-# language TypeOperators #-}
 
-{- |
-Generic `Yesod` input form generation and related utility functions.
--}
-
 module FlexTask.Generic.FormInternal
   (
     -- * Data Types
@@ -392,6 +388,9 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => F
 
 
 instance {-# Overlappable #-} Formify a => Formify [a] where
+  formifyImplementation = formifyInstanceList
+
+instance Formify [String] where
   formifyImplementation = formifyInstanceList
 
 
