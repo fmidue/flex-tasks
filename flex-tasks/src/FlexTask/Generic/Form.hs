@@ -149,13 +149,13 @@ data FieldInfo
 deriving instance Show (FieldSettings FlexForm)
 
 instance Show (SomeMessage FlexForm) where
-  show m = '(': intercalate ", " (map unpack
+  show m = '(': intercalate ", "
       [ "German: " <> inLang "de"
       , "English: " <> inLang "en"
       ]
-      ) ++ ")"
+      ++ ")"
     where
-      inLang l = renderMessage FlexForm{} [l] m
+      inLang l = show $ renderMessage FlexForm{} [l] m
 
 
 -- | Inner alignment of input field elements.
