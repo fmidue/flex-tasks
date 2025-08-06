@@ -63,6 +63,12 @@ import FlexTask.YesodConfig (
 
 
 
+{- $setup
+>>> :set -XOverloadedStrings
+>>> import FlexTask.Generic.Form
+>>> let myForm = formify (Nothing :: Maybe Int) [[single "input"]]
+-}
+
 
 {- |
 Compose two forms sequentially.
@@ -85,6 +91,12 @@ f1 $$> f2 = do
 
 {- |
 Apply some function to the embedded widget of a `Rendered` value.
+
+==== Example
+
+>>> :set -XQuasiQuotes
+>>> getFormData $ applyToWidget ([whamlet| <h1>Insert me at once!|] >>) myForm
+...[("de","<h1>Insert me at once!</h1>..."),("en","<h1>Insert me at once!</h1>...")]...
 -}
 applyToWidget :: Functor m => (w -> w') -> Rendered' m w -> Rendered' m w'
 applyToWidget f form = fmap (second f) <$> form
@@ -100,7 +112,13 @@ addContent content = applyToWidget (<* toWidget content)
 
 {- |
 Add CSS to a form.
-Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters or hosted files.
+Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters.
+
+==== Example
+
+>>> :set -XQuasiQuotes
+>>> getFormData $ addCss [lucius| myClass {margin: 2px}|] $ myForm
+...[("de","<style>myClass{margin:2px}</style>..."),("en","<style>myClass{margin:2px}</style>...")]...
 -}
 addCss
   :: (render ~ RY FlexForm, Functor m)
@@ -112,7 +130,14 @@ addCss = addContent
 
 {- |
 Add JavaScript to a form.
-Use with `Yesod` Julius Shakespeare quasi quoters or hosted files.
+Use with `Yesod` Julius Shakespeare quasi quoters.
+
+==== Example
+
+>>> :set -XQuasiQuotes
+>>> getFormData $ addJs [julius| myFunc(){ console.log("Hi"); }|] $ myForm
+...[("de","...<script> myFunc(){ console.log(\"Hi\"); }</script>"),("en","...</div><script> myFunc(){ console.log(\"Hi\"); }</script>")]...
+
 -}
 addJs
   :: (render ~ RY FlexForm, Functor m)
@@ -136,6 +161,11 @@ addCssAndJs css js = applyToWidget ((<* toWidget css) . (<* toWidget js))
 
 {- |
 Convenience function to directly create a Yesod FieldSetting with this name and CSS Class.
+
+==== __Example__
+
+>>> addNameAndCssClass "testSettings" "nav" :: FieldSettings FlexForm
+FieldSettings {fsLabel = (German: "testSettings", English: "testSettings"), ..., fsName = Just "testSettings", fsAttrs = [("class","nav")]}
 -}
 addNameAndCssClass :: Text -> Text -> FieldSettings app
 addNameAndCssClass name cssClass = addFieldAttrs
@@ -147,32 +177,59 @@ addNameAndCssClass name cssClass = addFieldAttrs
       }
 
 
--- | Add an attribute-value pair to the given FieldSettings
+{- |
+Add an attribute-value pair to the given FieldSettings.
+
+==== Example
+
+>>> addAttribute ("type","hidden") "testSettings" :: FieldSettings FlexForm
+FieldSettings {fsLabel = (German: "testSettings", English: "testSettings"), ..., fsAttrs = [("type","hidden")]}
+-}
 addAttribute :: (Text,Text) -> FieldSettings app -> FieldSettings app
 addAttribute attribute fs =  fs { fsAttrs = attribute : fsAttrs fs}
 
 
--- | Add a list of attribute-value pairs to the given FieldSettings
+-- | Add a list of attribute-value pairs to the given FieldSettings.
 addAttributes :: [(Text,Text)] -> FieldSettings app -> FieldSettings app
 addAttributes as fs =  fs { fsAttrs = as ++ fsAttrs fs}
 
 
--- | Add a CSS class to the given FieldSettings
+{- | Add a CSS class to the given FieldSettings.
+
+==== Example
+
+>>> addCssClass "nav" "testSettings" :: FieldSettings FlexForm
+FieldSettings {fsLabel = (German: "testSettings", English: "testSettings"), ..., fsAttrs = [("class","nav")]}
+-}
 addCssClass :: Text -> FieldSettings app -> FieldSettings app
 addCssClass c fs = fs { fsAttrs = addClass c $ fsAttrs fs}
 
 
--- | Turn FieldSettings into a read-only input field
+-- | Turn FieldSettings into a read-only input field.
 readOnly :: FieldSettings app -> FieldSettings app
 readOnly = addAttributes [("readonly",""),("style","background-color: #EEEEEE")]
 
 
--- | Turn a String into a label for all languages.
+{- |
+Turn a String into a label for all languages.
+
+==== Example
+
+>>> universalLabel "index"
+(German: "index", English: "index")
+-}
 universalLabel :: String -> SomeMessage FlexForm
 universalLabel = fromString
 
 
--- | Turn the Show instance of a value into a label for all languages
+{- |
+Turn the Show instance of a value into a label for all languages.
+
+==== __Example__
+
+>>> showToUniversalLabel (1 :: Int)
+(German: "1", English: "1")
+-}
 showToUniversalLabel :: Show a => a -> SomeMessage FlexForm
 showToUniversalLabel = universalLabel . show
 
