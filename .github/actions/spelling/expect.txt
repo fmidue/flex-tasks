@@ -12,7 +12,7 @@ lindex
 RWS
 syb
 subdirs
-evalRandTIO
+TIO
 uncons
 unsnoc
 usr
