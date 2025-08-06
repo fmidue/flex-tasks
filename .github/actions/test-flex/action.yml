@@ -158,7 +158,7 @@ runs:
         set -ex
         sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
         cd ${{ inputs.tasks }}
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/runGhci.expect -o runGhci.expect
+        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/general-gen/flex-tasks/tasks/runGhci.expect -o runGhci.expect
         curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/mutator.expect -o mutator.expect
         curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/test.sh -o test.sh
         curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/scan_check.sh -o scan_check.sh
