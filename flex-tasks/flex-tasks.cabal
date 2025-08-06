@@ -29,7 +29,6 @@ library
       src
   default-extensions:
       TupleSections
-      DuplicateRecordFields
       OverloadedLabels
       MultiParamTypeClasses
       FlexibleInstances
@@ -65,6 +64,53 @@ library
     , yesod-core
   default-language: Haskell2010
 
+test-suite flex-tasks-doctest
+  type: exitcode-stdio-1.0
+  main-is: DocTest.hs
+  other-modules:
+      Paths_flex_tasks
+  hs-source-dirs:
+      doctest
+  default-extensions:
+      TupleSections
+      OverloadedLabels
+      MultiParamTypeClasses
+      FlexibleInstances
+      TypeApplications
+      ScopedTypeVariables
+      NamedFieldPuns
+      FlexibleContexts
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , SHA
+    , base
+    , blaze-html
+    , containers
+    , directory
+    , doctest
+    , doctest-discover
+    , extra
+    , fast-logger
+    , file-embed
+    , filepath
+    , flex-tasks
+    , flex-tasks-processing
+    , ghc
+    , hint
+    , mtl
+    , output-blocks
+    , parsec
+    , parsec-numbers
+    , raw-strings-qq
+    , shakespeare
+    , text
+    , transformers
+    , utf8-string
+    , yesod
+    , yesod-core
+  default-language: Haskell2010
+
 test-suite flex-tasks-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
@@ -80,7 +126,6 @@ test-suite flex-tasks-test
       test
   default-extensions:
       TupleSections
-      DuplicateRecordFields
       OverloadedLabels
       MultiParamTypeClasses
       FlexibleInstances
