@@ -47,6 +47,7 @@ library
     , blaze-html
     , containers
     , directory
+    , exceptions
     , extra
     , fast-logger
     , file-embed
@@ -101,6 +102,7 @@ test-suite flex-tasks-test
     , blaze-html
     , containers
     , directory
+    , exceptions
     , extra
     , fast-logger
     , file-embed

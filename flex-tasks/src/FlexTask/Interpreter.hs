@@ -115,6 +115,7 @@ genFlexInst
         [ ("Global", globalModule)
         , ("TaskSettings", settingsModule)
         , ("TaskData", taskDataModule)
+        , ("Helper", helper)
         ] ++ extraModules
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
@@ -130,7 +131,7 @@ genFlexInst
     where
       tfInter :: Interpreter (RandT StdGen IO GenOutput)
       tfInter = do
-        setTopLevelModules ["TaskData", "Global", "TaskSettings"]
+        setTopLevelModules ["TaskData", "Global", "TaskSettings", "Helper"]
         setImports [
             "Capabilities.Alloy.IO"
           , "Control.Monad.Random"
@@ -279,8 +280,6 @@ checkSolution taskData globalCode settingsCode parseCode checkCode extraCode sub
     tData = parens taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
     path = show picPath
-    helper = [rQ|module Helper (syntaxAndSemantics) where
-      import FlexTask.InterpreterHelper|]
 
 
 
@@ -335,6 +334,13 @@ imageLinks = concatMap $ foldMapOutputBy (++) (\case
   Translated {} -> []
   Special {}    -> []
   )
+
+
+helper :: String
+helper = [rQ|
+  module Helper (syntaxAndSemantics) where
+  import FlexTask.InterpreterHelper
+  |]
 
 
 {- |

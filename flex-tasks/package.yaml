@@ -7,6 +7,7 @@ dependencies:
   - blaze-html
   - containers
   - directory
+  - exceptions
   - extra
   - fast-logger
   - filepath
