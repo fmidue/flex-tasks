@@ -134,6 +134,8 @@ genFlexInst
         setTopLevelModules ["TaskData", "Global", "TaskSettings", "Helper"]
         setImports [
             "Capabilities.Alloy.IO"
+          , "Capabilities.Diagrams.IO"
+          , "Capabilities.Graphviz.IO"
           , "Control.Monad.Random"
           , "Data.Generics.Text"
           , "Data.Map"
