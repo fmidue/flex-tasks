@@ -117,7 +117,7 @@ Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters.
 ==== Example
 
 >>> :set -XQuasiQuotes
->>> getFormData $ addCss [lucius| myClass {margin: 2px}|] $ myForm
+>>> getFormData $ addCss [lucius| myClass {margin: 2px}|] myForm
 ...[("de","<style>myClass{margin:2px}</style>..."),("en","<style>myClass{margin:2px}</style>...")]...
 -}
 addCss
@@ -135,7 +135,7 @@ Use with `Yesod` Julius Shakespeare quasi quoters.
 ==== Example
 
 >>> :set -XQuasiQuotes
->>> getFormData $ addJs [julius| myFunc(){ console.log("Hi"); }|] $ myForm
+>>> getFormData $ addJs [julius| myFunc(){ console.log("Hi"); }|] myForm
 ...[("de","...<script> myFunc(){ console.log(\"Hi\"); }</script>"),("en","...</div><script> myFunc(){ console.log(\"Hi\"); }</script>")]...
 
 -}
