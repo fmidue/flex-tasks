@@ -85,7 +85,7 @@ __Examples__
 Input
 
 @
-[[Single \"field1\", Single \"field2\"]]
+[[single \"field1\", single \"field2\"]]
 @
 
 Renders as:
