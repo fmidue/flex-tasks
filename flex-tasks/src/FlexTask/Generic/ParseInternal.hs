@@ -288,7 +288,7 @@ data MyType = One | Two | Three deriving (Bounded, Enum, Eq)
 
 that can not use a bodyless `Parse` instance.
 
-=== Example
+=== __Example__
 
 >>> import FlexTask.Processing.Text (formatAnswer)
 >>> instance Parse MyType where formParser = parseInstanceSingleChoice
