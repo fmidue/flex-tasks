@@ -65,6 +65,7 @@ import FlexTask.YesodConfig (
 
 {- $setup
 >>> :set -XOverloadedStrings
+>>> :set -XQuasiQuotes
 >>> import FlexTask.Generic.Form
 >>> let myForm = formify (Nothing :: Maybe Int) [[single "input"]]
 -}
@@ -92,9 +93,8 @@ f1 $$> f2 = do
 {- |
 Apply some function to the embedded widget of a `Rendered` value.
 
-==== Example
+==== __Example__
 
->>> :set -XQuasiQuotes
 >>> getFormData $ applyToWidget ([whamlet| <h1>Insert me at once!|] >>) myForm
 ...[("de","<h1>Insert me at once!</h1>..."),("en","<h1>Insert me at once!</h1>...")]...
 -}
@@ -114,9 +114,8 @@ addContent content = applyToWidget (<* toWidget content)
 Add CSS to a form.
 Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters.
 
-==== Example
+==== __Example__
 
->>> :set -XQuasiQuotes
 >>> getFormData $ addCss [lucius| myClass {margin: 2px}|] myForm
 ...[("de","<style>myClass{margin:2px}</style>..."),("en","<style>myClass{margin:2px}</style>...")]...
 -}
@@ -132,9 +131,8 @@ addCss = addContent
 Add JavaScript to a form.
 Use with `Yesod` Julius Shakespeare quasi quoters.
 
-==== Example
+==== __Example__
 
->>> :set -XQuasiQuotes
 >>> getFormData $ addJs [julius| myFunc(){ console.log("Hi"); }|] myForm
 ...[("de","...<script> myFunc(){ console.log(\"Hi\"); }</script>"),("en","...</div><script> myFunc(){ console.log(\"Hi\"); }</script>")]...
 
@@ -180,7 +178,7 @@ addNameAndCssClass name cssClass = addFieldAttrs
 {- |
 Add an attribute-value pair to the given FieldSettings.
 
-==== Example
+==== __Example__
 
 >>> addAttribute ("type","hidden") "testSettings" :: FieldSettings FlexForm
 FieldSettings {fsLabel = (German: "testSettings", English: "testSettings"), ..., fsAttrs = [("type","hidden")]}
@@ -196,7 +194,7 @@ addAttributes as fs =  fs { fsAttrs = as ++ fsAttrs fs}
 
 {- | Add a CSS class to the given FieldSettings.
 
-==== Example
+==== __Example__
 
 >>> addCssClass "nav" "testSettings" :: FieldSettings FlexForm
 FieldSettings {fsLabel = (German: "testSettings", English: "testSettings"), ..., fsAttrs = [("class","nav")]}
@@ -213,7 +211,7 @@ readOnly = addAttributes [("readonly",""),("style","background-color: #EEEEEE")]
 {- |
 Turn a String into a label for all languages.
 
-==== Example
+==== __Example__
 
 >>> universalLabel "index"
 (German: "index", English: "index")
