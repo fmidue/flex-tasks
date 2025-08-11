@@ -35,7 +35,7 @@ import Control.OutputCapable.Blocks.Generic (
   )
 import Data.Functor       (($>))
 import Data.List.Extra    (drop1, dropEnd1, takeWhileEnd)
-import Data.Text          (Text)
+import Data.Text          (Text, pack, unpack)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
   ( ParseError
@@ -70,9 +70,10 @@ import qualified Data.Text    as T
 import FlexTask.Processing.Text (
   argDelimiter,
   emptyMarker,
+  formatAnswer,
   inputEscape,
   listDelimiter,
-  missingMarker
+  missingMarker,
   )
 import FlexTask.Generic.Form
   ( MultipleChoiceSelection
@@ -545,3 +546,21 @@ displayInputAnd messaging a ma err = do
     english $ "Error in \"" ++ a ++ "\" : "
   indent $ messaging ma err
   pure ()
+
+
+{- |
+Turn a nested list of String values into the Autotool Flex-Tasks submission format.
+Each inner list represents a group of inputs that will be interpreted as a list.
+The result is parsable by a matching 'formParser'.
+Used for debugging parsers.
+
+=== __Examples__
+
+>>> parseTest (formParser @([Integer],String)) $ asSubmission [["20","34","-7"], ["Some Answer"]]
+([20,34,-7],"Some Answer")
+-}
+asSubmission :: [[String]] -> String
+asSubmission [] = unpack $
+  inputEscape <> inputEscape <> missingMarker <> inputEscape <> inputEscape
+asSubmission xss = maybe (error "impossible") unpack $
+  formatAnswer $ map (map pack) xss
