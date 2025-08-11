@@ -28,6 +28,8 @@ module FlexTask.FormUtil
   , newFlexId
   , newFlexName
   , repeatFlexName
+  -- * debugging
+  , printWidget
   ) where
 
 
@@ -35,7 +37,7 @@ module FlexTask.FormUtil
 import Control.Monad.Reader            (runReader)
 import Data.Containers.ListUtils       (nubOrd)
 import Data.IORef                      (readIORef, writeIORef)
-import Data.Map                        (fromList)
+import Data.List.Extra                 (isInfixOf, isPrefixOf, trimEnd, splitOn)
 import Data.String                     (fromString)
 import Data.Text                       (Text, pack)
 import Data.Tuple.Extra                (second)
@@ -48,6 +50,7 @@ import Yesod.Core.Types                (HandlerData(..), HandlerFor(..), RY, ghs
 import Yesod.Default.Config2           (makeYesodLogger)
 
 import qualified Control.Monad.Trans.RWS as RWS   (get)
+import qualified Data.Map                as M     (lookup, fromList)
 import qualified Data.Text               as T     (replace)
 import qualified Yesod.Core.Unsafe       as Unsafe
 
@@ -279,7 +282,7 @@ getFormData widget = do
       (l:ls) -> do
         (names,first) <- withLang l
         rest <- traverse (fmap snd . withLang) ls
-        return (names, fromList $ first:rest)
+        return (names, M.fromList $ first:rest)
       _ -> error "No supported languages found!"
 
     withLang :: Lang -> Handler ([Text], (Lang, String))
@@ -301,3 +304,61 @@ setRequestLang lang HandlerFor{..} = do
   where
     alterHandlerData hd@HandlerData{..} =
       hd{handlerRequest = handlerRequest{reqLangs = [lang]}}
+
+
+
+{- |
+Pretty prints the given enbedded Widget's HTML code in the console.
+Applies the specified language for internationalization.
+Used for debugging.
+
+=== __Example__
+
+>>> printWidget "en" $ formify (Nothing :: Maybe Int) [[single "Number Please"]]
+<div class="flex-form-div">
+  <input type="hidden" name="_hasdata">
+  <span class="required flex-form-span">
+    <label for="flexident1">
+      Number Please
+    </label>
+    <input id="flexident1" name="flex1" type="number" step="1" required="" value="">
+  </span>
+</div>
+-}
+printWidget :: Lang -> Rendered Widget -> IO ()
+printWidget lang render  = do
+  (_, dict) <- getFormData render
+  putStrLn $ maybe "Form not available in this language."
+    (trimEnd . unlines . addIndent 0 . intoLines)
+    $ M.lookup lang dict
+  where
+    intoLines s =
+      let opening = map ("<" ++) $ drop 1 (splitOn "<" s)
+          closing = concatMap (filter (/="") . splitOn ">") opening
+      in  map (\x -> if "<" `isPrefixOf` x then x ++ ">" else x) closing
+
+    addIndent _ [] = []
+    addIndent i (s:ss)
+      | "</" `isInfixOf` s
+      = (replicate (i-2) ' ' ++ s) : addIndent (i-2) ss
+      | ">" `isInfixOf` s && not (any (`isInfixOf` s) noClose)
+      = (replicate i ' ' ++ s) : addIndent (i+2) ss
+      | otherwise
+      = (replicate i ' ' ++ s) : addIndent i ss
+
+    noClose =
+      [ "area"
+      , "base"
+      , "br"
+      , "col"
+      , "embed"
+      , "hr"
+      , "img"
+      , "input"
+      , "link"
+      , "meta"
+      , "param"
+      , "source"
+      , "track"
+      , "wbr"
+      ]
