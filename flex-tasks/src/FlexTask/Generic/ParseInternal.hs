@@ -444,16 +444,21 @@ e.g. checking a term for bracket consistency even if the parser failed early on.
 
 >>> import Control.OutputCapable.Blocks (Language(..))
 >>> import Control.OutputCapable.Blocks.Debug (run)
->>> let errorHandling mSecondError _ = maybe (text "Fractions are not allowed") (const $ text "That's not a number") mSecondError
+>>> let onDouble = text "Fractions are not allowed"
+>>> let onNoNumber = text "That's not a number"
+>>> let errorHandling mSecondError _ = maybe onDouble (const onNoNumber) mSecondError
+>>> let errorFeedback = displayInputAnd errorHandling
+>>> let intFirst = formParser @Int
+>>> let thenDouble = void $ formParser @Double
 
->>> run English $ parseWithFallback (formParser @Int) (displayInputAnd errorHandling) (void $ formParser @Double) $ asSubmission [["2"]]
+>>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ asSubmission [["2"]]
 Just 2
 
->>> run English $ parseWithFallback (formParser @Int) (displayInputAnd errorHandling) (void $ formParser @Double) $ asSubmission [["2.5"]]
+>>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ asSubmission [["2.5"]]
 Error in """2.5""" : >>>>Fractions are not allowed<<<<
 Nothing
 
->>> run English $ parseWithFallback (formParser @Int) (displayInputAnd errorHandling) (void $ formParser @Double) $ asSubmission [["I'm a number"]]
+>>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ asSubmission [["I'm a number"]]
 Error in """I'm a number""" : >>>>That's not a number<<<<
 Nothing
 -}

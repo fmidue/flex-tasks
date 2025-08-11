@@ -838,11 +838,11 @@ Possible builders to use with instances are `buttonsEnum` (checkboxes) and `drop
 
 >>> instance Formify [MyType] where formifyImplementation = formifyInstanceMultiChoice
 
->>> printWidget "en" $ formify (Just [Two,Three]) [[buttonsEnum Horizontal "Choose some" (showToUniversalLabel @MyType)]]
+>>> printWidget "en" $ formify (Just [Two,Three]) [[buttonsEnum Horizontal "Choose" (showToUniversalLabel @MyType)]]
 <div class="flex-form-div">
 ...
     <label for="flexident1">
-      Choose some
+      Choose
     </label>
 ...
 ...

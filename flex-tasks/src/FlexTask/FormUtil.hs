@@ -213,7 +213,7 @@ Useful when writing a custom form to group multiple inputs.
 ==== __Example__
 
 >>> addNameAndCssClass "testSettings" "nav" :: FieldSettings FlexForm
-FieldSettings {fsLabel = (German: "testSettings", English: "testSettings"), ..., fsName = Just "testSettings", fsAttrs = [("class","nav")]}
+FieldSettings {..., fsName = Just "testSettings", fsAttrs = [("class","nav")]}
 -}
 addNameAndCssClass :: Text -> Text -> FieldSettings app
 addNameAndCssClass name cssClass = addFieldAttrs

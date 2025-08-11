@@ -22,7 +22,7 @@ wbr
 Wno
 xit
 xprop
-XOverloadedStrings
-XQuasiQuotes
-XTypeApplications
+XOverloaded
+XQuasi
+XType
 YOURFORM
