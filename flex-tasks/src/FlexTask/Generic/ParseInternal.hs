@@ -4,17 +4,8 @@
 {-# language TypeOperators #-}
 
 
-module FlexTask.Generic.ParseInternal
-  ( Parse(..)
-  , parseInstanceSingleChoice
-  , parseInstanceMultiChoice
-  , parseInstanceSingleInputList
-  , escaped
-  , parseWithOrReport
-  , reportWithFieldNumber
-  , parseInfallibly
-  , parseWithFallback
-  , displayInputAnd
+module FlexTask.Generic.ParseInternal (
+  module FlexTask.Generic.ParseInternal
   ) where
 
 
