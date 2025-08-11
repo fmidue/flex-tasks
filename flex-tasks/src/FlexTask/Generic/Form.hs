@@ -86,7 +86,6 @@ The form is represented by a @[[FieldInfo]]@ type value.
 Each FieldInfo value is an individual form element.
 Inner lists represent the rows of the form.
 All FieldInfo values in an inner list are rendered besides each other.
-The outer list represents the columns of the form.
 Inner lists are rendered below each other.
 
 __Examples__
@@ -171,17 +170,55 @@ instance Show (SomeMessage FlexForm) where
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
--- | Wrapper type for generating hidden fields.
+{- |
+Wrapper type for generating hidden fields.
+
+This can be used to transfer static information through the form to parsing.
+Note that the generated field still has a label.
+If the label is not left blank, then it will be displayed as normal.
+
+=== __Example__
+
+>>> printWidget "en" $ formify (Just $ Hidden 3) [[single ""]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+    </label>
+    <input type="hidden" id="flexident1" ... value="3">
+...
+</div>
+-}
 newtype Hidden a = Hidden {getHidden :: a} deriving (Eq,Show)
 
 
--- | Wrapper type for lists. Use for a single field list input.
+{- |
+Wrapper type for lists. Use for a single field list input.
+Normally, lists are interpreted as multiple fields instead.
+
+=== __Example__
+
+>>> printWidget "en" $ formify (Nothing @(SingleInputList String)) [[single "Input comma separated sentences"]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Input comma separated sentences
+    </label>
+    <input id="flexident1" ... type="text" ...>
+...
+</div>
+
+Note that this does not actually enforce any kind of input syntax.
+The generated input itself is a simple text field.
+The comma separation is checked only when parsing with the matching `FlexTask.Generic.Parse.formParser`.
+-}
 newtype SingleInputList a = SingleInputList {getList :: [a]} deriving (Eq,Show)
 
 {- |
 Generic single choice answer type.
-Use if you want a 'choose one of multiple' style input
-without caring about the underlying type.
+Use if both of the following is true:
+
+  - You want an input that presents multiple answer choices, but only allows a single selection.
+  - There's no specific data type associated with this selection.
 
 === __Example__
 
@@ -211,6 +248,11 @@ newtype SingleChoiceSelection = SingleChoiceSelection
   } deriving (Show,Eq,Generic)
 {- |
 Same as `SingleChoiceSelection`, but for multiple choice input.
+
+Use if both of the following is true:
+
+  - You want an input that presents multiple answer choices and allows selecting any number of them.
+  - There's no specific data type associated with this selection.
 
 === __Example__
 
