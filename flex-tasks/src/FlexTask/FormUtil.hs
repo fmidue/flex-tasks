@@ -204,9 +204,9 @@ addCssAndJs css js = applyToWidget ((<* toWidget css) . (<* toWidget js))
 
 
 {- |
-Directly create a Yesod FieldSetting with this name and CSS Class.
+Directly create a Yesod FieldSettings with this name and CSS Class.
 
-Using the `IsString` instance of `Fieldsettings a` only sets the label.
+Using the `IsString` instance of `FieldSettings a` only sets the label.
 The name is then auto generated.
 Useful when writing a custom form to group multiple inputs.
 
@@ -356,7 +356,7 @@ setRequestLang lang HandlerFor{..} = do
 
 
 {- |
-Pretty prints the given enbedded Widget's HTML code in the console.
+Pretty prints the given embedded Widget's HTML code in the console.
 Applies the specified language for internationalization.
 Used for debugging.
 

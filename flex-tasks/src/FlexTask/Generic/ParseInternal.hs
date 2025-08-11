@@ -312,11 +312,11 @@ These instances are already provided for standard types as is.
 
 === __Example__
 
->>> newtype CustomInt = CInt Int deriving Show
->>> let myParser = CInt . read <$> many1 digit
+>>> newtype CustomInt = CustomInt Int deriving Show
+>>> let myParser = CustomInt . read <$> many1 digit
 >>> instance Parse (SingleInputList CustomInt) where formParser = parseInstanceSingleInputList myParser
 >>> parseTest (formParser @(SingleInputList CustomInt)) $ asSubmission [["1, 2, 3"]]
-SingleInputList {getList = [CInt 1,CInt 2,CInt 3]}
+SingleInputList {getList = [CustomInt 1,CustomInt 2,CustomInt 3]}
 -}
 parseInstanceSingleInputList :: Parser a -> Parser (SingleInputList a)
 parseInstanceSingleInputList parser = escaped $ contents <* spaces
