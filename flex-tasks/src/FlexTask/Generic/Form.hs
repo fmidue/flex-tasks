@@ -69,8 +69,13 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
 
 {- $setup
+>>> :set -XTypeApplications
 >>> import FlexTask.FormUtil
 >>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
+>>> newtype MyCoolType = CType { getString :: String}
+>>> let toCool = CType
+>>> let fromCool = getString
+>>> let basisField = baseForm
 -}
 
 
@@ -180,7 +185,8 @@ without caring about the underlying type.
 
 === __Example__
 
->>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) [[dropdown "Choose one" ["First Option", "Second Option", "Third Option"]]]
+>>> let labels = ["First Option", "Second Option", "Third Option"]
+>>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) [[dropdown "Choose one" labels]]
 <div class="flex-form-div">
 ...
     <label for="flexident1">
@@ -208,7 +214,8 @@ Same as `SingleChoiceSelection`, but for multiple choice input.
 
 === __Example__
 
->>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) [[dropdown "Choose one" ["First Option", "Second Option", "Third Option"]]]
+>>> let labels = ["First Option", "Second Option", "Third Option"]
+>>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) [[dropdown "Choose one" labels]]
 <div class="flex-form-div">
 ...
     <label for="flexident1">
@@ -262,6 +269,10 @@ A `BaseForm` instance of type @a@ is needed for generically producing forms
 for @[a]@ and @Maybe a@ types.
 An instance can be given manually with the `Field` constructor
 or using the `convertField` function on an existing `Field`.
+
+=== __Example__
+
+>>> instance BaseForm MyCoolType where baseForm = convertField toCool fromCool basisField
 -}
 class BaseForm a where
   baseForm :: Field Handler a
@@ -585,6 +596,11 @@ renderNextField _ _ _ = error "Incorrect FieldInfo for a field or single/multi c
 {- |
 Premade `formifyImplementation` for types with `BaseForm` instances.
 Use within manual instances of `Formify`.
+
+=== __Example__
+
+>>> instance BaseForm MyCoolType where baseForm = convertField toCool fromCool basisField
+>>> instance Formify MyCoolType where formifyImplementation = formifyInstanceBasicField
 -}
 formifyInstanceBasicField
     :: BaseForm a
@@ -600,6 +616,11 @@ formifyInstanceBasicField = renderNextField
 
 {- |
 Same as `formifyInstanceBasicField`, but for optional fields with `Maybe` wrapping.
+
+=== __Example__
+
+>>> instance BaseForm MyCoolType where baseForm = convertField toCool fromCool basisField
+>>> instance Formify (Maybe MyCoolType) where formifyImplementation = formifyInstanceOptionalField
 -}
 formifyInstanceOptionalField
     :: BaseForm a
@@ -842,6 +863,8 @@ zipWithEnum labels
 Same as `buttons`, but using an explicit enum type.
 Use this with custom enum types to automatically create labels
 for all constructors according to the given showing scheme.
+
+See `formifyInstanceSingleChoice`, `formifyInstanceMultiChoice` for example use.
 -}
 buttonsEnum
   :: (Bounded a, Enum a)
@@ -857,11 +880,11 @@ buttonsEnum align t f = ChoicesButtons align t $ map f [minBound .. maxBound]
 Create FieldInfo for a button field.
 Will turn into either radio buttons or checkboxes
 depending on the form type.
-Use with SingleChoiceSelection or MultipleChoiceSelection.
+Use with `SingleChoiceSelection` or `MultipleChoiceSelection`.
 __Do not use with custom enum types.__
 __Use `buttonsEnum` instead.__
 
-See `formifyInstanceSingleChoice`, `formifyInstanceMultiChoice` for example use.
+See `SingleChoiceSelection`, `MultipleChoiceSelection` for example use.
 -}
 buttons
   :: Alignment
@@ -892,9 +915,11 @@ dropdownEnum t f = ChoicesDropdown t $ map f [minBound .. maxBound]
 Create FieldInfo for a dropdown menu field.
 Will turn into either single or multiple selection field
 depending on the form type.
-Use with SingleChoiceSelection or MultipleChoiceSelection.
+Use with `SingleChoiceSelection` or `MultipleChoiceSelection`.
 __Do not use with custom enum types.__
 __Use `dropdownEnum` instead.__
+
+See `SingleChoiceSelection`, `MultipleChoiceSelection` for example use.
 -}
 dropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
@@ -907,6 +932,30 @@ dropdown = ChoicesDropdown
 {- |
 Create FieldInfo for a number of fields.
 Their result will be handled as a list of values.
+The length of the list is equal to the amount of labels provided.
+
+=== __Example__
+
+>>> let labels = ["Input 1", "Input 2", "Input 3"]
+>>> printWidget "en" $ formify (Nothing @[Double]) [[list Horizontal labels]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Input 1
+    </label>
+    <input id="flexident1" ... type="number" step="any" ...>
+...
+    <label for="flexident2">
+      Input 2
+    </label>
+    <input id="flexident2" ... type="number" step="any" ...>
+...
+    <label for="flexident3">
+      Input 3
+    </label>
+    <input id="flexident3" ... type="number" step="any" ...>
+...
+</div>
 -}
 list
   :: Alignment
@@ -935,6 +984,7 @@ listWithoutLabels align amount attrs = List align $ replicate amount $ "" {fsAtt
 
 {- |
 Create FieldInfo for a standalone field.
+
 See `formify` for example use.
 -}
 single :: FieldSettings FlexForm -> FieldInfo
