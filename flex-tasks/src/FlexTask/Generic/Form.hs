@@ -68,6 +68,10 @@ import FlexTask.Widgets
 import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
 
+{- $setup
+>>> import FlexTask.FormUtil
+>>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
+-}
 
 
 {- |
@@ -173,11 +177,57 @@ newtype SingleInputList a = SingleInputList {getList :: [a]} deriving (Eq,Show)
 Generic single choice answer type.
 Use if you want a 'choose one of multiple' style input
 without caring about the underlying type.
+
+=== __Example__
+
+>>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) [[dropdown "Choose one" ["First Option", "Second Option", "Third Option"]]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Choose one
+    </label>
+    <select id="flexident1" ...>
+      <option value="1">
+        First Option
+      </option>
+      <option value="2">
+        Second Option
+      </option>
+      <option value="3" selected>
+        Third Option
+      </option>
+    </select>
+...
+</div>
 -}
 newtype SingleChoiceSelection = SingleChoiceSelection
   {getAnswer :: Maybe Int -- ^ Retrieve the selected option. @Nothing@ if none.
   } deriving (Show,Eq,Generic)
--- | Same as `SingleChoiceSelection`, but for multiple choice input.
+{- |
+Same as `SingleChoiceSelection`, but for multiple choice input.
+
+=== __Example__
+
+>>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) [[dropdown "Choose one" ["First Option", "Second Option", "Third Option"]]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Choose one
+    </label>
+    <select id="flexident1" ... multiple>
+      <option value="1" selected>
+        First Option
+      </option>
+      <option value="2" selected>
+        Second Option
+      </option>
+      <option value="3">
+        Third Option
+      </option>
+    </select>
+...
+</div>
+-}
 newtype MultipleChoiceSelection = MultipleChoiceSelection
   { getAnswers :: [Int] -- ^ Retrieve the list of selected options. @[]@ if none.
   } deriving (Show,Eq,Generic)
@@ -266,8 +316,8 @@ Use utility functions for those or provide your own instance.
 -}
 class Formify a where
   {- |
-  Direct use of this function is not recommended
-  due to possible undetected invalidity of the result.
+  __Direct use of this function is not recommended__
+  __due to possible undetected invalidity of the result.__
   It should only be used when writing manual instances of `Formify`.
   Use `formify` or its variants instead.
   -}
@@ -391,37 +441,81 @@ Will fail if remaining `FieldInfo` structure is not empty,
 indicating the form is faulty.
 
 
-__Examples__
-
-@
-formify (Nothing \@Int) [[single \"Age\"]]
-@
+=== __Examples__
 
 Renders an input field with /type=number/ attribute, no default value and label /Age/.
 
-@
-formify (Just [\"Hallo\", \"Hello\", \"Hola\", \"Ciao\"]) [[listWithoutLabels Vertical 4 [(\"class\",\"helloInput\")]]]
-@
+>>> printWidget "en" $ formify (Nothing @Int) [[single "Age"]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Age
+    </label>
+    <input id="flexident1" name="flex1" type="number" step="1" required="" value="">
+...
+</div>
 
 Renders a series of four input fields, each for the type String
 and organized vertically beneath each other.
 They are prefilled with the values given above,
 are assigned the Css class \"helloInput\" and have no labels attached to them.
 
-@
-formify
-  (Nothing \@SingleChoiceSelection)
-  [[ buttons
-      \"Make your choice\"
-      [ \"this one\"
-      , \"or rather that one\"
-      , \"I just can't decide\"
-      ]
-  ]]
-@
+>>> let defaults = ["Hallo", "Hello", "Hola", "Ciao"]
+>>> printWidget "en" $ formify (Just defaults) [[listWithoutLabels Vertical 4 [("class","helloInput")]]]
+<div class="flex-form-div">
+...
+    <input id="flexident1" name="flex1" type="text" ... value="Hallo" class="helloInput">
+...
+</div>
+<div class="flex-form-div">
+...
+    <input id="flexident2" name="flex1" type="text" ... value="Hello" class="helloInput">
+...
+</div>
+<div class="flex-form-div">
+...
+    <input id="flexident3" name="flex1" type="text" ... value="Hola" class="helloInput">
+...
+</div>
+<div class="flex-form-div">
+...
+    <input id="flexident4" name="flex1" type="text" ... value="Ciao" class="helloInput">
+...
+</div>
 
 Renders a radio button field with the given title and option labels attached.
 No option is selected when the form is loaded.
+
+>>> let labels = ["this one", "or rather that one", "I just cannot decide"]
+>>> printWidget "en" $ formify (Nothing @SingleChoiceSelection) [[buttons Vertical "Make your choice" labels]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Make your choice
+    </label>
+...
+        <label for="flexident1-1">
+          <div>
+            <input id="flexident1-1" type="radio" ... value="1" ...>
+            this one
+          </div>
+        </label>
+...
+        <label for="flexident1-2">
+          <div>
+            <input id="flexident1-2" type="radio" ... value="2" ...>
+            or rather that one
+          </div>
+        </label>
+...
+        <label for="flexident1-3">
+          <div>
+            <input id="flexident1-3" type="radio" ... value="3" ...>
+            I just cannot decide
+          </div>
+        </label>
+...
+</div>
 -}
 formify
   :: (Formify a)
@@ -557,6 +651,61 @@ formifyInstanceList _ _ = error "Incorrect FieldInfo for a list of fields! Use o
 {- |
 Premade `formifyImplementation` for "single choice" forms of enum types.
 Use within manual instances of `Formify`.
+
+Intended for use with types such as
+
+@
+data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
+@
+
+that cannot use a bodyless `Formify` instance.
+
+=== __Examples__
+
+>>> instance Formify MyType where formifyImplementation = formifyInstanceSingleChoice
+
+>>> printWidget "en" $ formify (Just Two) [[buttonsEnum Horizontal "Choose one" (showToUniversalLabel @MyType)]]
+...
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Choose one
+    </label>
+...
+        <label for="flexident1-1">
+          <input id="flexident1-1" type="radio" ... value="1" ...>
+          One
+        </label>
+        <label for="flexident1-2">
+          <input id="flexident1-2" type="radio" ... value="2" checked ...>
+          Two
+        </label>
+        <label for="flexident1-3">
+          <input id="flexident1-3" type="radio" ... value="3" ...>
+          Three
+        </label>
+...
+</div>
+
+>>> printWidget "en" $ formify (Just Two) [[dropdownEnum "Choose one" (showToUniversalLabel @MyType)]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Choose one
+    </label>
+    <select id="flexident1" ...>
+      <option value="1">
+        One
+      </option>
+      <option value="2" selected>
+        Two
+      </option>
+      <option value="3">
+        Three
+      </option>
+    </select>
+...
+</div>
 -}
 formifyInstanceSingleChoice
     :: (Bounded a, Enum a, Eq a)
@@ -617,7 +766,58 @@ renderNextMultipleChoiceField pairsWith =
 
 
 
--- | Same as `formifyInstanceSingleChoice`, but for multiple choice.
+{- |
+Same as `formifyInstanceSingleChoice`, but for multiple choice.
+This means the rendered input form will accept any number of inputs, resulting in a list of values.
+Possible builders to use with instances are `buttonsEnum` (checkboxes) and `dropdownEnum` (select list).
+
+=== __Examples__
+
+>>> instance Formify [MyType] where formifyImplementation = formifyInstanceMultiChoice
+
+>>> printWidget "en" $ formify (Just [Two,Three]) [[buttonsEnum Horizontal "Choose some" (showToUniversalLabel @MyType)]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Choose some
+    </label>
+...
+...
+      <label>
+        <input type="checkbox" ... value="1">
+        One
+      </label>
+      <label>
+        <input type="checkbox" ... value="2" checked>
+        Two
+      </label>
+      <label>
+        <input type="checkbox" ... value="3" checked>
+        Three
+      </label>
+...
+</div>
+
+>>> printWidget "en" $ formify (Just [Two,Three]) [[dropdownEnum "Choose some" (showToUniversalLabel @MyType)]]
+<div class="flex-form-div">
+...
+    <label for="flexident1">
+      Choose some
+    </label>
+    <select id="flexident1" ... multiple>
+      <option value="1">
+        One
+      </option>
+      <option value="2" selected>
+        Two
+      </option>
+      <option value="3" selected>
+        Three
+      </option>
+    </select>
+...
+</div>
+-}
 formifyInstanceMultiChoice
     :: (Bounded a, Enum a, Eq a)
     => Maybe [a]
@@ -658,7 +858,10 @@ Create FieldInfo for a button field.
 Will turn into either radio buttons or checkboxes
 depending on the form type.
 Use with SingleChoiceSelection or MultipleChoiceSelection.
-__Usage with a custom enum type is not recommended due to error proneness.__
+__Do not use with custom enum types.__
+__Use `buttonsEnum` instead.__
+
+See `formifyInstanceSingleChoice`, `formifyInstanceMultiChoice` for example use.
 -}
 buttons
   :: Alignment
@@ -673,6 +876,8 @@ buttons = ChoicesButtons
 Same as `dropdown`, but using an explicit enum type.
 Use this with custom enum types to automatically create labels
 for all constructors according to the given showing scheme.
+
+See `formifyInstanceSingleChoice`, `formifyInstanceMultiChoice` for example use.
 -}
 dropdownEnum
   :: (Bounded a, Enum a)
@@ -688,7 +893,8 @@ Create FieldInfo for a dropdown menu field.
 Will turn into either single or multiple selection field
 depending on the form type.
 Use with SingleChoiceSelection or MultipleChoiceSelection.
-__Usage with a custom enum types is not recommended due to error proneness.__
+__Do not use with custom enum types.__
+__Use `dropdownEnum` instead.__
 -}
 dropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
@@ -715,6 +921,8 @@ Same as `list`, but without using any field labels.
 Attributes and CSS classes for each field cannot be set with this function.
 Instead, all fields share the given list of attributes.
 Use `list` if individual configuration is required.
+
+See `formify` for example use.
 -}
 listWithoutLabels
   :: Alignment
@@ -725,6 +933,9 @@ listWithoutLabels align amount attrs = List align $ replicate amount $ "" {fsAtt
 
 
 
--- | Create FieldInfo for a standalone field.
+{- |
+Create FieldInfo for a standalone field.
+See `formify` for example use.
+-}
 single :: FieldSettings FlexForm -> FieldInfo
 single = Single
