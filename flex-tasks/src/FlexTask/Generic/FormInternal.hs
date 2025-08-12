@@ -533,22 +533,22 @@ are assigned the Css class \"helloInput\" and have no labels attached to them.
 >>> printWidget "en" $ formify (Just defaults) [[listWithoutLabels Vertical 4 [("class","helloInput")]]]
 <div class="flex-form-div">
 ...
-    <input id="flexident1" name="flex1" type="text" ... value="Hallo" class="helloInput">
+    <input id="flexident1" ... type="text" ... value="Hallo" class="helloInput">
 ...
 </div>
 <div class="flex-form-div">
 ...
-    <input id="flexident2" name="flex1" type="text" ... value="Hello" class="helloInput">
+    <input id="flexident2" ... type="text" ... value="Hello" class="helloInput">
 ...
 </div>
 <div class="flex-form-div">
 ...
-    <input id="flexident3" name="flex1" type="text" ... value="Hola" class="helloInput">
+    <input id="flexident3" ... type="text" ... value="Hola" class="helloInput">
 ...
 </div>
 <div class="flex-form-div">
 ...
-    <input id="flexident4" name="flex1" type="text" ... value="Ciao" class="helloInput">
+    <input id="flexident4" ... type="text" ... value="Ciao" class="helloInput">
 ...
 </div>
 
@@ -700,7 +700,7 @@ formifyInstanceList mas ((List align fs : xs) : xss) =
     defaults = case mas of
       Nothing -> repeat Nothing
       Just ds
-        | length ds /= length fs +1
+        | length ds /= length fs
           -> error $ "The default value contains too many/few individual values. " ++
                      "It does not match the amount of FieldInfo supplied."
         | otherwise
