@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Linter
-        uses: github/super-linter@v8.0.0
+        uses: github/super-linter@v7
         env:
           YAML_ERROR_ON_WARNING: true
           VALIDATE_JAVASCRIPT_STANDARD: false
