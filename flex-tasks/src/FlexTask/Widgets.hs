@@ -31,7 +31,7 @@ renderForm
     -> Rendered Widget
 renderForm newId aformStub label =
     reader $ \fragment -> do
-      ident <- newFlexId
+      ident <- maybe newFlexId pure $ fsId label
       name <- if newId then newFlexName else repeatFlexName
       let addAttrs = label {fsName = Just name, fsId = Just ident}
       (_, views') <- aFormToForm $ aformStub addAttrs
