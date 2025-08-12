@@ -27,7 +27,7 @@ renderForm
     -> Rendered Widget
 renderForm aformStub label =
     reader $ \fragment -> do
-      ident <- newFlexId
+      ident <- maybe newFlexId pure $ fsId label
       name <- newFlexName
       let addAttrs = label {fsName = Just name, fsId = Just ident}
       (_, views') <- aFormToForm $ aformStub addAttrs
