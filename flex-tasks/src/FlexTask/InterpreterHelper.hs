@@ -16,11 +16,11 @@ import Control.OutputCapable.Blocks.Type (
 
 
 
-instance MonadThrow m => MonadThrow (RandT g m) where
+instance MonadThrow (RandT g IO) where
   throwM = lift . throwM
 
 
-instance MonadCatch m => MonadCatch (RandT g m) where
+instance MonadCatch (RandT g IO) where
   catch = liftCatch catch
 
 
