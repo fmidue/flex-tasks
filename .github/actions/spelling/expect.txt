@@ -8,7 +8,10 @@ gparse
 gshow
 gsub
 hlint
+hasdata
+img
 lindex
+lucius
 RWS
 syb
 subdirs
@@ -16,7 +19,11 @@ TIO
 uncons
 unsnoc
 usr
+wbr
 Wno
 xit
 xprop
+XOverloaded
+XQuasi
+XType
 YOURFORM

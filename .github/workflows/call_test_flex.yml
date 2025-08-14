@@ -23,4 +23,3 @@ jobs:
           package-locations: '*'
           subdirs: '[flex-tasks, flex-tasks-processing]'
           latex-setup: true
-          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}

@@ -1,5 +1,6 @@
 ---
 name: flex-tasks
+version: 0.1
 extra-source-files:
   - tasks/defaultConfig.flex
 dependencies:
@@ -31,7 +32,6 @@ dependencies:
   - yesod-core
 default-extensions:
   - TupleSections
-  - DuplicateRecordFields
   - OverloadedLabels
   - MultiParamTypeClasses
   - FlexibleInstances
@@ -77,3 +77,16 @@ tests:
       - quickcheck-instances
       - string-interpolate
       - syb
+  flex-tasks-doctest:
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    main: DocTest.hs
+    source-dirs:
+      - doctest
+    dependencies:
+      - doctest
+      - doctest-discover
+      - flex-tasks
+      - flex-tasks-processing

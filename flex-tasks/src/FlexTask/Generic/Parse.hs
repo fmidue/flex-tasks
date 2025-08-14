@@ -8,7 +8,21 @@ Generic Parsing interface for submission types.
 -}
 
 module FlexTask.Generic.Parse (
-  module FlexTask.Generic.ParseInternal
+  Parse(..),
+  -- * Parse Helpers
+  parseInstanceSingleChoice,
+  parseInstanceMultiChoice,
+  parseInstanceSingleInputList,
+  escaped,
+  -- * Embedding Functions
+  parseWithOrReport,
+  reportWithFieldNumber,
+  parseInfallibly,
+  -- * Error Processing
+  parseWithFallback,
+  displayInputAnd,
+  -- * Debugging
+  asSubmission,
   ) where
 
 

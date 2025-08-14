@@ -1,5 +1,6 @@
 ---
 name: flex-tasks-processing
+version: 0.1
 extra-source-files: [ ]
 dependencies:
   - base

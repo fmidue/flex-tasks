@@ -5,11 +5,19 @@
 module FlexTask.TypesSpec where
 
 
+import Data.Char                        (isLetter, toUpper)
 import Data.List                        (intercalate)
-import Test.Hspec                       (Spec, describe, xit, shouldBe)
+import Test.Hspec                       (Spec, describe, it, shouldBe)
 import Test.Hspec.Parsec                (shouldParse)
-import Test.Hspec.QuickCheck            (prop, xprop)
-import Test.QuickCheck                  (chooseInt, forAll, vectorOf)
+import Test.Hspec.QuickCheck            (prop)
+import Test.QuickCheck (
+  Gen,
+  chooseInt,
+  forAll,
+  suchThat,
+  listOf,
+  vectorOf,
+  )
 import Test.QuickCheck.Arbitrary        (Arbitrary(..))
 import Text.Parsec                      (parse)
 
@@ -30,12 +38,12 @@ spec = do
         ] ++ map snd extraModules)
 
   describe "parseFlexConfig" $
-    xit "always successfully parses when encountering 3 delimiters and no additional modules" $
-      forAll (vectorOf 4 arbitrary) $ \xs ->
+    it "always successfully parses when encountering 4 delimiters and no additional modules" $
+      forAll (vectorOf 5 arbitrary) $ \xs ->
         parse parseFlexConfig "" (intercalate delimiter xs) `shouldParse` conf xs
 
   describe "both" $ do
-    xprop "are inverse to each other" $ \fConf ->
+    prop "are inverse to each other (provided extra modules are valid)" $ \fConf ->
       parse parseFlexConfig "" (showFlexConfig fConf) `shouldParse` fConf
 
     where
@@ -60,7 +68,7 @@ instance Arbitrary CommonModules where
     descriptionModule <- arbitrary
     parseModule <- arbitrary
     amount <- chooseInt (1,5)
-    extraModules <- filter ((/="") . snd) <$> vectorOf amount arbitrary
+    extraModules <- vectorOf amount genValidExtraModule
     pure (CommonModules {
       globalModule,
       settingsModule,
@@ -68,6 +76,17 @@ instance Arbitrary CommonModules where
       parseModule,
       extraModules
       })
+
+
+genValidExtraModule :: Gen (String,String)
+genValidExtraModule = do
+  firstChar <- toUpper <$> letter
+  rest <- listOf letter
+  let modName = firstChar : rest
+  contents <- arbitrary
+  pure (modName, "module " ++ modName ++ " where\n" ++ contents)
+  where
+    letter = arbitrary `suchThat` isLetter
 
 
 instance Arbitrary FlexConf where
