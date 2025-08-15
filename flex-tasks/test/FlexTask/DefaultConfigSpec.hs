@@ -14,8 +14,6 @@ import Test.Hspec (
   it,
   )
 import Test.Hspec.Parsec                (shouldParse)
-import Test.QuickCheck.Gen              (unGen)
-import Test.QuickCheck.Random           (mkQCGen)
 import Text.Parsec                      (parse)
 
 import FlexTask.DefaultConfig
@@ -74,5 +72,4 @@ spec = do
   where
     genInst = genFlexInst
       defaultConfig
-      (\gen seed -> unGen gen (mkQCGen (read seed)) 30)
-      "91275060"
+      91275060
