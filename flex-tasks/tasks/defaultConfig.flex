@@ -46,10 +46,10 @@ This includes (in order):
 - Flexible data available to both the task description and the checks/feedback. (TaskData)
 - The entire "Check" module, containing a syntax and a semantics check. (String, use QuasiQuoting)
 - An HTML input form represented by the names of all contained input fields
-  and a map of languages to translated HTML code, wrapped in IO. (IO ([Text],HtmlDict))
+  and a map of languages to translated HTML code, wrapped in IO. (IO ([[Text]],HtmlDict))
 
 Provide a function
-getTask :: MonadRandom m => m (TaskData, String, IO ([Text],HtmlDict))
+getTask :: MonadRandom m => m (TaskData, String, IO ([[Text]],HtmlDict))
 implementing a generator for these elements.
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
@@ -119,7 +119,7 @@ instance RenderMessage a Label where
 
 
 
-getTask :: MonadRandom m => m (TaskData, String, IO ([Text],HtmlDict))
+getTask :: MonadRandom m => m (TaskData, String, IO ([[Text]],HtmlDict))
 getTask = fromGen $ do
     numbers@(n1,n2,n3) <- (,,) <$> intInRange <*> intInRange <*> intInRange
     let checkData = (product [n1,n2,n3], sum [n1,n2,n3])

@@ -8,11 +8,8 @@ import Control.Monad.Reader (reader)
 import Yesod
 
 import FlexTask.FormUtil (
-  ($$>),
-  applyToWidget,
   newFlexId,
   newFlexName,
-  repeatFlexName,
   )
 import FlexTask.Styling     (horizontalRBStyle)
 import FlexTask.YesodConfig (
@@ -25,14 +22,13 @@ import FlexTask.YesodConfig (
 
 
 renderForm
-    :: Bool
-    -> (FieldSettings FlexForm -> AForm Handler a)
+    :: (FieldSettings FlexForm -> AForm Handler a)
     -> FieldSettings FlexForm
     -> Rendered Widget
-renderForm newId aformStub label =
+renderForm aformStub label =
     reader $ \fragment -> do
       ident <- maybe newFlexId pure $ fsId label
-      name <- if newId then newFlexName else repeatFlexName
+      name <- newFlexName
       let addAttrs = label {fsName = Just name, fsId = Just ident}
       (_, views') <- aFormToForm $ aformStub addAttrs
       let views = views' []
@@ -48,16 +44,13 @@ $forall view <- views
         $maybe err <- fvErrors view
             <div .errors>#{err}
 |]
-      return ([name],widget)
+      return ([[name]],widget)
 
 
 
-joinRenders :: [[Rendered Widget]] -> Rendered Widget
-joinRenders = foldr (joinOuter . joinInner) zero
+joinWidgets :: [[Widget]] -> Widget
+joinWidgets = mapM_ (insertDiv . sequence_)
   where
-    zero = pure (pure ([],pure ()))
-    joinInner = foldr ($$>) zero
-    joinOuter x y = applyToWidget insertDiv x $$> y
     insertDiv w = [whamlet|
       $newline never
       <div .flex-form-div>

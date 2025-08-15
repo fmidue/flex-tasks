@@ -25,7 +25,7 @@ import Control.OutputCapable.Blocks.Generic (
   toAbort,
   )
 import Data.Functor       (($>))
-import Data.List.Extra    (drop1, dropEnd1, takeWhileEnd)
+import Data.List.Extra    (drop1, dropEnd1, singleton, takeWhileEnd)
 import Data.Text          (Text, pack, unpack)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
@@ -66,7 +66,7 @@ import FlexTask.Processing.Text (
   listDelimiter,
   missingMarker,
   )
-import FlexTask.Generic.Form
+import FlexTask.Generic.FormInternal
   ( MultipleChoiceSelection
   , SingleChoiceSelection
   , SingleInputList(..)
@@ -549,4 +549,4 @@ asSubmission :: [[String]] -> String
 asSubmission [] = unpack $
   inputEscape <> inputEscape <> missingMarker <> inputEscape <> inputEscape
 asSubmission xss = maybe (error "impossible") unpack $
-  formatAnswer $ map (map pack) xss
+  formatAnswer $ map (singleton . map pack) xss
