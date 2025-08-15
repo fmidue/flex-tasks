@@ -19,6 +19,7 @@ module FlexTask.Interpreter
 
 import Control.Monad                (unless, void)
 import Control.Monad.Identity       (runIdentity)
+import Control.Monad.Random         (RandT, StdGen, evalRandT, mkStdGen)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
@@ -51,7 +52,6 @@ import System.Directory (
     )
 import System.Environment          (getEnv)
 import System.FilePath             ((</>), (<.>))
-import Test.QuickCheck.Gen         (Gen)
 import Text.RawString.QQ (rQ)
 
 import FlexTask.Types (
@@ -101,8 +101,7 @@ Apply the given method to run the generator with a seed.
 -}
 genFlexInst
   :: FlexConf
-  -> (Gen GenOutput -> a -> GenOutput) -- ^ Method of running the random generator
-  -> a                                 -- ^ Generator seed
+  -> Int          -- ^ Generator seed
   -> IO FlexInst
 genFlexInst
   FlexConf{ commonModules = commonModules@CommonModules{
@@ -111,18 +110,18 @@ genFlexInst
     extraModules
     },
     ..}
-  genMethod
   seed
   = do
       filePaths <- writeUncachedAndGetPaths taskName $
         [ ("Global", globalModule)
         , ("TaskSettings", settingsModule)
         , ("TaskData", taskDataModule)
+        , ("Helper", helper)
         ] ++ extraModules
       taskAndFormResult <- runWithPackageDB $
                              loadModules filePaths >> tfInter
       let gen = extract taskAndFormResult
-      let (taskData, checkModule, io) = genMethod gen seed
+      (taskData, checkModule, io) <- evalRandT gen $ mkStdGen seed
       form <- io
       pure $ FlexInst {
         identifier = taskName,
@@ -132,11 +131,15 @@ genFlexInst
         commonModules
       }
     where
-      tfInter :: Interpreter (Gen GenOutput)
+      tfInter :: Interpreter (RandT StdGen IO GenOutput)
       tfInter = do
-        setTopLevelModules ["TaskData", "Global", "TaskSettings"]
+        setTopLevelModules ["TaskData", "Global", "TaskSettings", "Helper"]
         setImports [
-            "Data.Generics.Text"
+            "Capabilities.Alloy.IO"
+          , "Capabilities.Diagrams.IO"
+          , "Capabilities.Graphviz.IO"
+          , "Control.Monad.Random"
+          , "Data.Generics.Text"
           , "Data.Map"
           , "Data.Text"
           , "Data.Tuple.Extra"
@@ -170,6 +173,7 @@ makeDescription taskName taskData global settings description extras picPath = d
         , "Capabilities.Cache.IO"
         , "Capabilities.Diagrams.IO"
         , "Capabilities.LatexSvg.IO"
+        , "Capabilities.WriteFile.IO"
         , "Control.OutputCapable.Blocks.Generic.Type"
         , "Data.Text"
         ]
@@ -273,6 +277,7 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
         , "Capabilities.Diagrams.IO"
         , "Capabilities.LatexSvg.IO"
         , "Capabilities.Graphviz.IO"
+        , "Capabilities.WriteFile.IO"
         , "Control.OutputCapable.Blocks.Generic.Type"
         , "Control.OutputCapable.Blocks"
         , "Data.Ratio"
@@ -284,8 +289,6 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
     tData = parens taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
     path = show picPath
-    helper = [rQ|module Helper (syntaxAndSemantics) where
-      import FlexTask.InterpreterHelper|]
 
 
 
@@ -340,6 +343,13 @@ imageLinks = concatMap $ foldMapOutputBy (++) (\case
   Translated {} -> []
   Special {}    -> []
   )
+
+
+helper :: String
+helper = [rQ|
+  module Helper (syntaxAndSemantics) where
+  import FlexTask.InterpreterHelper
+  |]
 
 
 {- |

@@ -1,7 +1,11 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# language ApplicativeDo #-}
 module FlexTask.InterpreterHelper (syntaxAndSemantics) where
 
 
+import Control.Monad.Catch              (MonadCatch(..), MonadThrow(..))
+import Control.Monad.Trans.Class        (lift)
+import Control.Monad.Trans.Random       (RandT, liftCatch)
 import Control.OutputCapable.Blocks     (LangM, LangM', Rated, ReportT)
 import Control.OutputCapable.Blocks.Generic (($>>=))
 import Control.OutputCapable.Blocks.Type (
@@ -10,6 +14,14 @@ import Control.OutputCapable.Blocks.Type (
   getOutputSequenceWithRating,
   )
 
+
+
+instance MonadThrow (RandT g IO) where
+  throwM = lift . throwM
+
+
+instance MonadCatch (RandT g IO) where
+  catch = liftCatch catch
 
 
 type Report = ReportT Output IO
