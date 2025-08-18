@@ -5,7 +5,7 @@
 module FlexTask.TypesSpec where
 
 
-import Data.Char                        (isLetter, toUpper)
+import Data.Char                        (isAscii, isLetter, toUpper)
 import Data.List                        (intercalate)
 import Test.Hspec                       (Spec, describe, it, shouldBe)
 import Test.Hspec.Parsec                (shouldParse)
@@ -39,9 +39,11 @@ spec = do
         ] ++ map snd extraModules)
 
   describe "parseFlexConfig" $
-    it "always successfully parses when encountering 4 delimiters and no additional modules" $
+    it "always successfully parses when encountering 5 delimiters and no additional modules" $
       forAll (vectorOf 5 arbitrary) $ \xs ->
-        parse parseFlexConfig "" (intercalate delimiter xs) `shouldParse` conf xs
+        forAll genValidName $ \tName ->
+          parse parseFlexConfig "" (intercalate delimiter (("taskName: " ++ tName):xs)) `shouldParse`
+          conf (tName:xs)
 
   describe "both" $ do
     prop "are inverse to each other (provided extra modules are valid)" $ \fConf ->
@@ -80,6 +82,10 @@ instance Arbitrary CommonModules where
       })
 
 
+genValidName :: Gen String
+genValidName = listOf (letter `suchThat` isAscii)
+
+
 genValidExtraModule :: Gen (String,String)
 genValidExtraModule = do
   firstChar <- toUpper <$> letter
@@ -87,13 +93,15 @@ genValidExtraModule = do
   let modName = firstChar : rest
   contents <- arbitrary
   pure (modName, "module " ++ modName ++ " where\n" ++ contents)
-  where
-    letter = arbitrary `suchThat` isLetter
+
+
+letter :: Gen Char
+letter = arbitrary `suchThat` isLetter
 
 
 instance Arbitrary FlexConf where
   arbitrary = do
-    taskName <- arbitrary
+    taskName <- genValidName
     taskDataModule <- arbitrary
     commonModules <- arbitrary
     pure $ FlexConf {taskName, taskDataModule, commonModules}
