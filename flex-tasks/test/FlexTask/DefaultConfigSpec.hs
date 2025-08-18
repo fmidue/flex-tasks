@@ -50,6 +50,7 @@ spec = do
         it "and it can be used to build a description" $
           \FlexInst{commonModules = CommonModules{..},..} ->
             validDescription @TestReport
+              identifier
               taskData
               globalModule
               settingsModule
@@ -60,6 +61,7 @@ spec = do
         it "and it can be used to validate a submission" $
           \FlexInst{commonModules = CommonModules{..},..} ->
             checkSolution
+              identifier
               taskData
               globalModule
               settingsModule
