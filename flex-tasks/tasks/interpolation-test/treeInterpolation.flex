@@ -60,9 +60,11 @@ validateSettings = pure ()
 module TaskData (getTask) where
 
 
+import Control.Monad.Random    (MonadRandom)
 import Data.String.Interpolate (i)
 import Data.Text               (Text)
 import FlexTask.FormUtil       (getFormData)
+import FlexTask.GenUtil        (fromGen)
 import FlexTask.Generic.Form
 import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered, Widget)
@@ -74,8 +76,8 @@ import Global
 
 
 
-getTask :: Gen (TaskData, String, IO ([Text],HtmlDict))
-getTask = do
+getTask :: MonadRandom m => m (TaskData, String, IO ([Text],HtmlDict))
+getTask = fromGen $ do
     tree <- addToTree <$> vectorOf 100 (chooseInt (-100000,100000))
     pure (tree, checkers tree, getFormData form)
 

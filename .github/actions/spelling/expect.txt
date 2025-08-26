@@ -5,6 +5,7 @@ getline
 gformify
 ghs
 gparse
+gread
 gshow
 gsub
 hlint
@@ -21,8 +22,6 @@ unsnoc
 usr
 wbr
 Wno
-xit
-xprop
 XOverloaded
 XQuasi
 XType

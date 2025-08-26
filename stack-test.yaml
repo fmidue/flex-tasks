@@ -16,5 +16,6 @@ extra-deps:
   - call-alloy-0.6.0.2@sha256:f7ecb0f4b8f7cc804d6d8ace7c323b48e3aa03994a2d09c4b7ee66cc4bf15abd,3850
   - diagrams-graphviz-1.4.1.1@sha256:9a2bf7b7c9c86ab28228d36017c70cf1b53c95dae4004fc71e81fbc702098e9f,1495
   - latex-svg-image-0.2@sha256:b282a74a96724037ec3d24b664118e51170c8152aff12f363ddb715a38ef053a,1830
+  - syb-0.7.3
 
 allow-newer: true

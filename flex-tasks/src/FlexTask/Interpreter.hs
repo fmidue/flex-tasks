@@ -175,9 +175,11 @@ makeDescription taskName taskData global settings description extras picPath = d
         , "Capabilities.LatexSvg.IO"
         , "Capabilities.WriteFile.IO"
         , "Control.OutputCapable.Blocks.Generic.Type"
+        , "Data.Generics.Text"
+        , "Data.List.Extra"
         , "Data.Text"
         ]
-      interpret ("description " ++ show picPath ++ parens taskData) infer
+      interpret ("description " ++ show picPath ++ parens (greadError taskData)) infer
 
 
 
@@ -280,13 +282,15 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
         , "Capabilities.WriteFile.IO"
         , "Control.OutputCapable.Blocks.Generic.Type"
         , "Control.OutputCapable.Blocks"
+        , "Data.Generics.Text"
+        , "Data.List.Extra"
         , "Data.Ratio"
         , "Data.Text"
         ]
       setTopLevelModules ["Check", "Global", "Helper", "Parse"]
       interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
 
-    tData = parens taskData
+    tData = parens $ greadError taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
     path = show picPath
 
@@ -360,3 +364,9 @@ prettyError (UnknownError s) = "Unknown error:\n" ++ s
 prettyError (NotAllowed s) = "Not allowed:\n" ++ s
 prettyError (GhcException s) = "GHC exception occurred:\n" ++ s
 prettyError (WontCompile ghcErrors) = "Won't compile:\n" ++ unlines (map errMsg ghcErrors)
+
+
+greadError :: String -> String
+greadError term = "fst $ headDef (error " ++ show errorMessage ++") $ gread " ++ show term
+  where
+    errorMessage = "Failed reading stored TaskData. Encountered this: " ++ term
