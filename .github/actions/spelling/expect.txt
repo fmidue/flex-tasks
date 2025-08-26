@@ -5,6 +5,7 @@ getline
 gformify
 ghs
 gparse
+gread
 gshow
 gsub
 hlint
