@@ -34,8 +34,9 @@ import Text.Parsec (
     char,
     eof,
     lookAhead,
-    many,
+    many1,
     manyTill,
+    option,
     satisfy,
     string,
     skipMany,
@@ -136,8 +137,7 @@ Modules starting from the sixth will be added to `CommonModules.extraModules`.
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
     spaces
-    taskName <- parsePathSegment
-    atLeastThree
+    taskName <- option "" parsePathSegment
     modules <- betweenEquals
     case splitAt 5 modules of
       ( [ globalModule
@@ -176,8 +176,9 @@ parseFlexConfig = do
     parsePathSegment = do
       discardString "taskName"
       discardString ":"
-      path <- lexeme $ many $ satisfy $ liftA2 (&&) isAscii isLetter
+      path <- lexeme $ many1 $ satisfy $ liftA2 (&&) isAscii isLetter
       void $ manyTill space $ try $ lookAhead atLeastThree
+      atLeastThree
       pure path
 
     -- the Parsec provided 'spaces' parser also parses newline characters
