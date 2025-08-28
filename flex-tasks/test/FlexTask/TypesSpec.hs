@@ -52,9 +52,9 @@ spec = do
     where
       conf [taskName, globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] =
         FlexConf {
-          taskName,
           taskDataModule,
           commonModules = CommonModules {
+            taskName,
             globalModule,
             settingsModule,
             descriptionModule,
@@ -67,6 +67,7 @@ spec = do
 
 instance Arbitrary CommonModules where
   arbitrary = do
+    taskName <- genValidName
     globalModule <- arbitrary
     settingsModule <- arbitrary
     descriptionModule <- arbitrary
@@ -74,6 +75,7 @@ instance Arbitrary CommonModules where
     amount <- chooseInt (1,5)
     extraModules <- vectorOf amount genValidExtraModule
     pure (CommonModules {
+      taskName,
       globalModule,
       settingsModule,
       descriptionModule,
@@ -101,7 +103,6 @@ letter = arbitrary `suchThat` isLetter
 
 instance Arbitrary FlexConf where
   arbitrary = do
-    taskName <- genValidName
     taskDataModule <- arbitrary
     commonModules <- arbitrary
-    pure $ FlexConf {taskName, taskDataModule, commonModules}
+    pure $ FlexConf {taskDataModule, commonModules}

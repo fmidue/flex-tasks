@@ -105,6 +105,7 @@ genFlexInst
   -> IO FlexInst
 genFlexInst
   FlexConf{ commonModules = commonModules@CommonModules{
+    taskName,
     globalModule,
     settingsModule,
     extraModules
@@ -124,7 +125,6 @@ genFlexInst
       (taskData, checkModule, io) <- evalRandT gen $ mkStdGen seed
       form <- io
       pure $ FlexInst {
-        identifier = taskName,
         form,
         taskData,
         checkModule,

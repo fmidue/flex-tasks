@@ -59,7 +59,6 @@ Concrete Task instance.
 Contained Haskell code is runtime interpreted to produce needed components of a task.
 -}
 data FlexInst = FlexInst {
-    identifier      ::  String,           -- ^ A task identifier used as a label for file caching
     form            :: ([Text],HtmlDict), -- ^ Field IDs of input elements and Html code.
     taskData        ::  String,           -- ^ Flexible task data used by task description and checker functions.
     commonModules   ::  CommonModules,    -- ^ Modules shared between config and instance.
@@ -73,7 +72,6 @@ Configuration to use for random generation of concrete `FlexInst`.
 The other Haskell modules are propagated to the generated task instance.
 -}
 data FlexConf = FlexConf {
-    taskName :: String,             -- ^ A task identifier used as a label for file caching
     taskDataModule :: String,       -- ^ Module for generating the form, as well as `CheckModule`.
     commonModules  :: CommonModules -- ^ Modules shared between config and instance.
   } deriving (Eq,Generic,Ord,Show)
@@ -84,6 +82,7 @@ Modules present in both `FlexConf` and `FlexInst`.
 They are propagated to the generated task instance.
 -}
 data CommonModules = CommonModules {
+    taskName          ::  String, -- ^ A task identifier used as a label for file caching
     globalModule      ::  String, -- ^ Global code module available in all interpreter runs.
     settingsModule    ::  String, -- ^ Module for task configuration constants.
     descriptionModule ::  String, -- ^ Module for producing the task description.
@@ -150,9 +149,9 @@ parseFlexConfig = do
         let extraModules = mapMaybe getModName extra
         pure $
           FlexConf {
-            taskName,
             taskDataModule,
             commonModules = CommonModules {
+              taskName,
               globalModule,
               settingsModule,
               descriptionModule,
