@@ -215,7 +215,6 @@ test-suite flex-tasks-test
     , autotool-capabilities-io-instances
     , base
     , blaze-html
-    , blaze-markup
     , containers
     , directory
     , exceptions

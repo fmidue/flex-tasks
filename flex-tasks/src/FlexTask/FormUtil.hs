@@ -1,5 +1,4 @@
 {-# language OverloadedStrings #-}
-{-# language RecordWildCards #-}
 {-# language TypeOperators #-}
 
 {- | Functions for creating and composing forms.

@@ -78,7 +78,6 @@ tests:
     dependencies:
       - autotool-capabilities
       - autotool-capabilities-io-instances
-      - blaze-markup
       - flex-tasks-internal
       - flex-tasks-processing
       - hspec
