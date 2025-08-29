@@ -16,6 +16,7 @@ import Test.QuickCheck (
   forAll,
   suchThat,
   listOf,
+  listOf1,
   vectorOf,
   )
 import Test.QuickCheck.Arbitrary        (Arbitrary(..))
@@ -38,19 +39,22 @@ spec = do
         , parseModule
         ] ++ map snd extraModules)
 
-  describe "parseFlexConfig" $
-    it "always successfully parses when encountering 5 delimiters and no additional modules" $
-      forAll (vectorOf 5 arbitrary) $ \xs ->
-        forAll genValidName $ \tName ->
-          parse parseFlexConfig "" (intercalate delimiter (("taskName: " ++ tName):xs)) `shouldParse`
-          conf (tName:xs)
+  describe "parseFlexConfig" $ do
+    it "successfully parses core and extra modules when task name is present" $
+      forAll ((,,) <$> vectorOf 5 arbitrary <*> listOf genExtraModule <*> genTaskName) $ \(mods,eMods,tName) ->
+        parse parseFlexConfig "" (intercalate delimiter $ ("taskName: " ++ tName) : mods ++ map snd eMods) `shouldParse`
+        conf (tName : mods) eMods
+    it "successfully parses core and extra modules when task name is absent" $
+      forAll ((,) <$> vectorOf 5 arbitrary <*> listOf genExtraModule) $ \(mods,eMods) ->
+        parse parseFlexConfig "" (intercalate delimiter (mods ++ map snd eMods)) `shouldParse`
+        conf mods eMods
 
   describe "both" $ do
     prop "are inverse to each other (provided extra modules are valid)" $ \fConf ->
       parse parseFlexConfig "" (showFlexConfig fConf) `shouldParse` fConf
 
     where
-      conf [taskName, globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] =
+      conf [taskName, globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
         FlexConf {
           taskDataModule,
           commonModules = CommonModules {
@@ -59,21 +63,33 @@ spec = do
             settingsModule,
             descriptionModule,
             parseModule,
-            extraModules = []
+            extraModules
           }
         }
-      conf _ = error "not possible"
+      conf [globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
+        FlexConf {
+          taskDataModule,
+          commonModules = CommonModules {
+            taskName = "",
+            globalModule,
+            settingsModule,
+            descriptionModule,
+            parseModule,
+            extraModules
+          }
+        }
+      conf _ _ = error "temp"
 
 
 instance Arbitrary CommonModules where
   arbitrary = do
-    taskName <- genValidName
+    taskName <- genTaskName
     globalModule <- arbitrary
     settingsModule <- arbitrary
     descriptionModule <- arbitrary
     parseModule <- arbitrary
     amount <- chooseInt (1,5)
-    extraModules <- vectorOf amount genValidExtraModule
+    extraModules <- vectorOf amount genExtraModule
     pure (CommonModules {
       taskName,
       globalModule,
@@ -84,12 +100,12 @@ instance Arbitrary CommonModules where
       })
 
 
-genValidName :: Gen String
-genValidName = listOf (letter `suchThat` isAscii)
+genTaskName :: Gen String
+genTaskName = listOf1 (letter `suchThat` isAscii)
 
 
-genValidExtraModule :: Gen (String,String)
-genValidExtraModule = do
+genExtraModule :: Gen (String,String)
+genExtraModule = do
   firstChar <- toUpper <$> letter
   rest <- listOf letter
   let modName = firstChar : rest

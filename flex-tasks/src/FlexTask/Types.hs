@@ -23,7 +23,15 @@ module FlexTask.Types
 import Control.Monad                     (void)
 import Control.OutputCapable.Blocks      (LangM, OutputCapable, indent, refuse, translate, german, english)
 import Data.Char                         (isAscii, isLetter)
-import Data.List.Extra                   (dropEnd1, intercalate, isPrefixOf, nubOrd, stripInfix, word1)
+import Data.List.Extra (
+  dropEnd1,
+  intercalate,
+  isPrefixOf,
+  notNull,
+  nubOrd,
+  stripInfix,
+  word1
+  )
 import Data.Map                          (Map)
 import Data.Maybe                        (mapMaybe)
 import Data.Text                         (Text)
@@ -117,8 +125,8 @@ Module2 where
 showFlexConfig :: FlexConf -> String
 showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
     intercalate delimiter $
-      [ "taskName: " ++ taskName ++ "\r\n"
-      , globalModule
+      ["taskName: " ++ taskName ++ "\r\n" | notNull taskName] ++
+      [ globalModule
       , settingsModule
       , taskDataModule
       , descriptionModule
@@ -136,8 +144,7 @@ Modules starting from the sixth will be added to `CommonModules.extraModules`.
 -}
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
-    spaces
-    taskName <- option "" parsePathSegment
+    taskName <- option "" $ try parsePathSegment
     modules <- betweenEquals
     case splitAt 5 modules of
       ( [ globalModule
@@ -174,6 +181,7 @@ parseFlexConfig = do
       atLeastThree
 
     parsePathSegment = do
+      spaces
       discardString "taskName"
       discardString ":"
       path <- lexeme $ many1 $ satisfy $ liftA2 (&&) isAscii isLetter
