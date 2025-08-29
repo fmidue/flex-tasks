@@ -23,7 +23,7 @@ import Control.Monad.Random         (RandT, StdGen, evalRandT, mkStdGen)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
-import Data.List.Extra              (intercalate, replace)
+import Data.List.Extra              (headDef, intercalate, replace)
 import Data.Map                     (elems)
 import Data.Maybe                   (isJust)
 import Data.Text                    (Text)
@@ -117,10 +117,10 @@ genFlexInst
         [ ("Global", globalModule)
         , ("TaskSettings", settingsModule)
         , ("TaskData", taskDataModule)
-        , ("Helper", helper)
         ] ++ extraModules
+      helperPath <- cacheHelper
       taskAndFormResult <- runWithPackageDB $
-                             loadModules filePaths >> tfInter
+          loadModules (helperPath : filePaths) >> tfInter
       let gen = extract taskAndFormResult
       (taskData, checkModule, io) <- evalRandT gen $ mkStdGen seed
       form <- io
@@ -269,9 +269,9 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
       , ("TaskSettings", settingsCode)
       , ("Parse", parseCode)
       , ("Check", checkCode)
-      , ("Helper", helper)
       ] ++ extraCode
-    runWithPackageDB (loadModules filePaths >> runCheck) >>= sequence
+    helperPath <- cacheHelper
+    runWithPackageDB (loadModules (helperPath : filePaths) >> runCheck) >>= sequence
   where
     runCheck = do
       setImports
@@ -349,11 +349,17 @@ imageLinks = concatMap $ foldMapOutputBy (++) (\case
   )
 
 
-helper :: String
-helper = [rQ|
-  module Helper (syntaxAndSemantics) where
-  import FlexTask.InterpreterHelper
-  |]
+cacheHelper :: IO FilePath
+cacheHelper = headDef cachingError <$>
+    writeUncachedAndGetPaths "" [("Helper",helperCode)]
+  where
+    cachingError = error "Caching the internal Helper module failed."
+
+    helperCode = [rQ|
+      module Helper (syntaxAndSemantics) where
+      import FlexTask.InterpreterHelper
+      |]
+
 
 
 {- |
