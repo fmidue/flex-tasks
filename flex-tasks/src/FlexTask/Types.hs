@@ -68,10 +68,10 @@ Concrete Task instance.
 Contained Haskell code is runtime interpreted to produce needed components of a task.
 -}
 data FlexInst = FlexInst {
-    form            :: ([Text],HtmlDict), -- ^ Field IDs of input elements and Html code.
-    taskData        ::  String,           -- ^ Flexible task data used by task description and checker functions.
-    commonModules   ::  CommonModules,    -- ^ Modules shared between config and instance.
-    checkModule     ::  String            -- ^ Module containing the Checker functions.
+    form            :: ([[Text]],HtmlDict), -- ^ Field IDs of input elements and Html code.
+    taskData        ::  String,             -- ^ Flexible task data used by task description and checker functions.
+    commonModules   ::  CommonModules,      -- ^ Modules shared between config and instance.
+    checkModule     ::  String              -- ^ Module containing the Checker functions.
   } deriving (Generic)
 
 

@@ -76,7 +76,7 @@ import Global
 
 
 
-getTask :: MonadRandom m => m (TaskData, String, IO ([Text],HtmlDict))
+getTask :: MonadRandom m => m (TaskData, String, IO ([[Text]],HtmlDict))
 getTask = fromGen $ do
     tree <- addToTree <$> vectorOf 100 (chooseInt (-100000,100000))
     pure (tree, checkers tree, getFormData form)
