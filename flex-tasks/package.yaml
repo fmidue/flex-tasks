@@ -39,6 +39,14 @@ default-extensions:
   - ScopedTypeVariables
   - NamedFieldPuns
   - FlexibleContexts
+internal-libraries:
+  flex-tasks-internal:
+    visibility: private
+    source-dirs: src
+    ghc-options:
+    - -Wall
+    - -Widentities
+    - -Werror
 library:
   source-dirs: src
   exposed-modules:
@@ -71,7 +79,7 @@ tests:
       - autotool-capabilities
       - autotool-capabilities-io-instances
       - blaze-markup
-      - flex-tasks
+      - flex-tasks-internal
       - flex-tasks-processing
       - hspec
       - hspec-parsec
