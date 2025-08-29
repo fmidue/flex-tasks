@@ -65,7 +65,7 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
-type GenOutput = (String, String, IO ([Text],HtmlDict))
+type GenOutput = (String, String, IO ([Text], HtmlDict))
 
 
 {- |
@@ -144,7 +144,7 @@ genFlexInst
           , "Data.Text"
           , "Data.Tuple.Extra"
           ]
-        interpret "first3 gshow <$> getTask " infer
+        interpret "third3 getFormData . first3 gshow <$> getTask " infer
 
 
 

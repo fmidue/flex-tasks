@@ -61,11 +61,10 @@ This includes (in order):
 
 - Flexible data available to both the task description and the checks/feedback. (TaskData)
 - The entire "Check" module, containing a syntax and a semantics check. (String, use QuasiQuoting)
-- An HTML input form represented by the names of all contained input fields
-  and a map of languages to translated HTML code, wrapped in IO. (IO ([Text],HtmlDict))
+- The input form given by a Flex-Tasks defined data type. (Rendered Widget)
 
 Provide a function
-getTask :: MonadRandom m => m (TaskData, String, IO ([Text],HtmlDict))
+getTask :: MonadRandom m => m (TaskData, String, Rendered Widget)
 implementing a generator for these elements.
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
@@ -108,13 +107,10 @@ module TaskData (getTask) where
 
 
 import Control.Monad.Random    (MonadRandom)
-import FlexTask.FormUtil       (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.GenUtil        (fromGen)
-import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Data.String.Interpolate (i)
-import Data.Text               (Text)
 import Test.QuickCheck.Gen
 import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 
@@ -135,11 +131,11 @@ instance RenderMessage a Label where
 
 
 
-getTask :: MonadRandom m => m (TaskData, String, IO ([Text],HtmlDict))
+getTask :: MonadRandom m => m (TaskData, String, Rendered Widget)
 getTask = fromGen $ do
     numbers@(n1,n2,n3) <- (,,) <$> intInRange <*> intInRange <*> intInRange
     let checkData = (product [n1,n2,n3], sum [n1,n2,n3])
-    pure ((numbers,checkData), checkers, getFormData form)
+    pure ((numbers,checkData), checkers, form)
   where
     intInRange = chooseInt (1,6)
 
