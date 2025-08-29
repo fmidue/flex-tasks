@@ -39,17 +39,10 @@ default-extensions:
   - ScopedTypeVariables
   - NamedFieldPuns
   - FlexibleContexts
-internal-libraries:
-  flex-tasks-internal:
-    visibility: private
-    source-dirs: src
-    ghc-options:
-    - -Wall
-    - -Widentities
-    - -Werror
 library:
   source-dirs: src
   exposed-modules:
+    - FlexTask.ConvertForm
     - FlexTask.DefaultConfig
     - FlexTask.FormUtil
     - FlexTask.Generic.Form
@@ -78,7 +71,7 @@ tests:
     dependencies:
       - autotool-capabilities
       - autotool-capabilities-io-instances
-      - flex-tasks-internal
+      - flex-tasks
       - flex-tasks-processing
       - hspec
       - hspec-parsec

@@ -1,7 +1,8 @@
+{-# OPTIONS_HADDOCK hide #-}
 {-# language QuasiQuotes #-}
 {-# language RecordWildCards #-}
 
-module FlexTask.Internal.ConvertForm where
+module FlexTask.ConvertForm where
 
 
 import qualified Yesod.Core.Unsafe      as Unsafe

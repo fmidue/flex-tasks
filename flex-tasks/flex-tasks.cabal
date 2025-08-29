@@ -1,4 +1,4 @@
-cabal-version: 3.0
+cabal-version: 1.12
 
 -- This file has been generated from package.yaml by hpack version 0.38.0.
 --
@@ -12,6 +12,7 @@ extra-source-files:
 
 library
   exposed-modules:
+      FlexTask.ConvertForm
       FlexTask.DefaultConfig
       FlexTask.FormUtil
       FlexTask.Generic.Form
@@ -23,72 +24,8 @@ library
       FlexTask.YesodConfig
   other-modules:
       FlexTask.Generic.ParseInternal
-      FlexTask.Internal.ConvertForm
       FlexTask.Styling
       FlexTask.Widgets
-      Paths_flex_tasks
-  autogen-modules:
-      Paths_flex_tasks
-  hs-source-dirs:
-      src
-  default-extensions:
-      TupleSections
-      OverloadedLabels
-      MultiParamTypeClasses
-      FlexibleInstances
-      TypeApplications
-      ScopedTypeVariables
-      NamedFieldPuns
-      FlexibleContexts
-  ghc-options: -Wall -Widentities -Werror
-  build-depends:
-      MonadRandom
-    , QuickCheck
-    , SHA
-    , base
-    , blaze-html
-    , containers
-    , directory
-    , exceptions
-    , extra
-    , fast-logger
-    , file-embed
-    , filepath
-    , flex-tasks-processing
-    , ghc
-    , hint
-    , mtl
-    , output-blocks
-    , parsec
-    , parsec-numbers
-    , raw-strings-qq
-    , shakespeare
-    , text
-    , transformers
-    , utf8-string
-    , yesod
-    , yesod-core
-  default-language: Haskell2010
-
-library flex-tasks-internal
-  visibility: private
-  exposed-modules:
-      FlexTask.DefaultConfig
-      FlexTask.FormUtil
-      FlexTask.Generic.Form
-      FlexTask.Generic.Parse
-      FlexTask.Generic.ParseInternal
-      FlexTask.GenUtil
-      FlexTask.Internal.ConvertForm
-      FlexTask.Interpreter
-      FlexTask.InterpreterHelper
-      FlexTask.Styling
-      FlexTask.Types
-      FlexTask.Widgets
-      FlexTask.YesodConfig
-  other-modules:
-      Paths_flex_tasks
-  autogen-modules:
       Paths_flex_tasks
   hs-source-dirs:
       src
@@ -135,8 +72,6 @@ test-suite flex-tasks-doctest
   type: exitcode-stdio-1.0
   main-is: DocTest.hs
   other-modules:
-      Paths_flex_tasks
-  autogen-modules:
       Paths_flex_tasks
   hs-source-dirs:
       doctest
@@ -193,8 +128,6 @@ test-suite flex-tasks-test
       FlexTask.TestUtil
       FlexTask.TypesSpec
       Paths_flex_tasks
-  autogen-modules:
-      Paths_flex_tasks
   hs-source-dirs:
       test
   default-extensions:
@@ -222,7 +155,7 @@ test-suite flex-tasks-test
     , fast-logger
     , file-embed
     , filepath
-    , flex-tasks-internal
+    , flex-tasks
     , flex-tasks-processing
     , ghc
     , hint

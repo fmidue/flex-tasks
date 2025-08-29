@@ -17,7 +17,7 @@ import Control.OutputCapable.Blocks.Type (
   getOutputSequenceWithRating,
   )
 
-import FlexTask.Internal.ConvertForm    (getFormData)
+import FlexTask.ConvertForm              (getFormData)
 
 
 
