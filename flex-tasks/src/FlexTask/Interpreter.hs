@@ -356,9 +356,10 @@ cacheHelper = headDef cachingError <$>
     cachingError = error "Caching the internal Helper module failed."
 
     helperCode = [rQ|
-      module Helper (syntaxAndSemantics) where
-      import FlexTask.InterpreterHelper
-      |]
+module Helper (syntaxAndSemantics) where
+
+import FlexTask.InterpreterHelper
+|]
 
 
 
