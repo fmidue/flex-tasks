@@ -628,11 +628,11 @@ checkAndApply toOutput ma xs = case rest of
 
 
 renderNextField
-  :: (FieldInfo ->
-       ( FieldSettings FlexForm
-       , FieldSettings FlexForm -> Maybe a -> AForm Handler a
-       )
-     )
+  :: ( FieldInfo ->
+        ( FieldSettings FlexForm
+        , FieldSettings FlexForm -> Maybe a -> AForm Handler a
+        )
+      )
   -> Maybe a
   -> [[FieldInfo]]
   -> ([[FieldInfo]], Rendered [[Widget]])
@@ -701,8 +701,9 @@ formifyInstanceList mas ((List align fs : xs) : xss) =
       Nothing -> repeat Nothing
       Just ds
         | length ds /= length fs
-          -> error $ "The default value contains too many/few individual values. " ++
-                     "It does not match the amount of FieldInfo supplied."
+          -> error $
+              "The default value contains too many/few individual values. " ++
+              "It does not match the amount of FieldInfo supplied."
         | otherwise
           -> sequence mas
 
@@ -712,10 +713,12 @@ formifyInstanceList mas ((List align fs : xs) : xss) =
       pure $ do
         (names1,wid1) <- res1
         (names2,wid2) <- res2
-        pure ([nubOrd $ concat $ names1 ++ names2]
-             , case align of
-                 Vertical   -> wid1 ++ wid2
-                 Horizontal -> [concat (wid1 ++ wid2)])
+        pure
+          ( [nubOrd $ concat $ names1 ++ names2]
+          , case align of
+              Vertical   -> wid1 ++ wid2
+              Horizontal -> [concat (wid1 ++ wid2)]
+          )
 
 formifyInstanceList _ _ = error "Incorrect FieldInfo for a list of fields! Use one of the list builders."
 
@@ -795,16 +798,17 @@ renderNextSingleChoiceField
 renderNextSingleChoiceField pairsWith =
   renderNextField
   (\case
-      ChoicesDropdown fs opts -> ( fs
-                                 , areq $ selectField $ withOptions opts
-                                 )
-      ChoicesButtons align fs opts -> ( fs
-                                      , areq $
-                                          case align of
-                                            Vertical -> radioField
-                                            Horizontal -> horizontalRadioField
-                                          $ withOptions opts
-                                      )
+      ChoicesDropdown fs opts ->
+        ( fs
+        , areq $ selectField $ withOptions opts
+        )
+      ChoicesButtons align fs opts ->
+        ( fs
+        , areq $ case align of
+            Vertical -> radioField
+            Horizontal -> horizontalRadioField
+          $ withOptions opts
+        )
       _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith
@@ -818,16 +822,17 @@ renderNextMultipleChoiceField
 renderNextMultipleChoiceField pairsWith =
   renderNextField
   (\case
-      ChoicesDropdown fs opts -> ( fs
-                                 , areq $ multiSelectField $ withOptions opts
-                                 )
-      ChoicesButtons align fs opts -> ( fs
-                                      , areq $
-                                          case align of
-                                            Vertical   -> checkboxField True
-                                            Horizontal -> checkboxField False
-                                          $ withOptions opts
-                                      )
+      ChoicesDropdown fs opts ->
+        ( fs
+        , areq $ multiSelectField $ withOptions opts
+        )
+      ChoicesButtons align fs opts ->
+        ( fs
+        , areq $ case align of
+            Vertical   -> checkboxField True
+            Horizontal -> checkboxField False
+          $ withOptions opts
+        )
       _ -> error "Incorrect FieldInfo for a multiple choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith
