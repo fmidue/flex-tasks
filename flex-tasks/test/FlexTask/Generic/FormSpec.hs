@@ -29,7 +29,7 @@ import Test.QuickCheck.Instances.Text   ()
 import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
-import FlexTask.FormUtil                (getFormData)
+import FlexTask.ConvertForm             (getFormData)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig             (FlexForm)
 

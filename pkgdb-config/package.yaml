@@ -17,12 +17,10 @@ dependencies:
   - autotool-capabilities-io-instances
   - base >= 4.7 && < 5
   - flex-tasks
-  - logic-tasks
   - output-blocks
   - parsec
   - string-interpolate
   - syb
-  - term-tasks
   - yesod-form
 library:
   source-dirs: .

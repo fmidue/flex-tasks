@@ -22,4 +22,3 @@ jobs:
           settings-gens: flex-tasks/tasks/settings-gens
           package-locations: '*'
           subdirs: '[flex-tasks, flex-tasks-processing]'
-          latex-setup: true

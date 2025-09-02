@@ -1,6 +1,9 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# language ApplicativeDo #-}
-module FlexTask.InterpreterHelper (syntaxAndSemantics) where
+module FlexTask.InterpreterHelper (
+  syntaxAndSemantics,
+  getFormData,
+  ) where
 
 
 import Control.Monad.Catch              (MonadCatch(..), MonadThrow(..))
@@ -13,6 +16,8 @@ import Control.OutputCapable.Blocks.Type (
   getOutputSequenceWithResult,
   getOutputSequenceWithRating,
   )
+
+import FlexTask.ConvertForm              (getFormData)
 
 
 

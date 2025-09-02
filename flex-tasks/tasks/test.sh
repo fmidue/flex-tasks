@@ -39,6 +39,10 @@ script_path="$(realpath "$(dirname "$0")")"
 expect_script="${script_path}/runGhci.expect"
 mapfile -t files < <(
   awk '
+    /^\s*taskName:\s*/ {
+      print "TaskName.txt"
+      next
+    }
     /^\s*module/ && !/^\s*module +Check +/ {
       mod = $0
 
@@ -80,7 +84,12 @@ while IFS= read -r line || [ -n "$line" ]; do
     true >"${files[$current_file]}"
     continue
   fi
-  echo "${line//$'\r'/}" >>"${files[$current_file]}"
+  if [[ "$line" =~ "taskName:" ]]; then
+    task_name=$(awk '{$1=$1;print}' <<<"${line#"taskName:"}")
+    echo "$task_name" >>"${files[$current_file]}"
+  else
+    echo "${line//$'\r'/}" >>"${files[$current_file]}"
+  fi
 done <"$1"
 
 cp "$1" "$base_name/config.txt"

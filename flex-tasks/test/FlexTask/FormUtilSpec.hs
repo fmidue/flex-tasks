@@ -13,6 +13,7 @@ import Test.Hspec (
 import Text.Cassius                     (Css, cassius)
 import Text.Julius                      (JavascriptUrl, julius)
 
+import FlexTask.ConvertForm
 import FlexTask.TestUtil                (shouldNotThrow, shouldReturnSame)
 import FlexTask.FormUtil
 import FlexTask.Generic.Form

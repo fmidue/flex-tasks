@@ -24,11 +24,8 @@ module TaskData (getTask) where
 
 import Control.Monad.Random    (MonadRandom)
 import Data.String.Interpolate (i)
-import Data.Text               (Text)
-import FlexTask.FormUtil       (getFormData)
 import FlexTask.GenUtil        (fromGen)
 import FlexTask.Generic.Form
-import FlexTask.Types          (HtmlDict)
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Test.QuickCheck.Gen
 
@@ -37,10 +34,10 @@ import Global
 
 
 
-getTask :: MonadRandom m => m (TaskData, String, IO ([[Text]],HtmlDict))
+getTask :: MonadRandom m => m (TaskData, String, Rendered Widget)
 getTask = fromGen $ do
     numbers <- vectorOf 15 $ chooseInt (0,1000)
-    pure (numbers, checkers numbers, getFormData form)
+    pure (numbers, checkers numbers, form)
 
 
 
@@ -119,11 +116,11 @@ description _ input = do
     english "Your answer has to satisfy the following:"
   itemizeM [
       translate $ do
-       german "Keines hat zwei negative Nachbarn."
-       english "None has two negative neighbours."
+        german "Keines hat zwei negative Nachbarn."
+        english "None has two negative neighbours."
     , translate $ do
-       german "Keines hat zwei durch 3 teilbare Nachbarn."
-       english "None has two neighbours divisible by 3."
+        german "Keines hat zwei durch 3 teilbare Nachbarn."
+        english "None has two neighbours divisible by 3."
     ]
   pure ()
 
