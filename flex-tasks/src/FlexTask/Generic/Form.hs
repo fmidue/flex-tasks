@@ -620,12 +620,12 @@ checkAndApply toOutput ma xs = case rest of
 
 
 renderNextField
-  :: (FieldInfo ->
+  ::  (FieldInfo ->
         ( FieldSettings FlexForm
         , Bool
         , FieldSettings FlexForm -> Maybe a -> AForm Handler a
         )
-     )
+      )
   -> Maybe a
   -> [[FieldInfo]]
   -> ([[FieldInfo]], [[Rendered Widget]])
@@ -815,18 +815,19 @@ renderNextMultipleChoiceField
 renderNextMultipleChoiceField pairsWith =
   renderNextField
   (\case
-      ChoicesDropdown fs opts -> ( fs
-                                 , True
-                                 , areq $ multiSelectField $ withOptions opts
-                                 )
-      ChoicesButtons align fs opts -> ( fs
-                                      , True
-                                      , areq $
-                                          case align of
-                                            Vertical   -> checkboxField True
-                                            Horizontal -> checkboxField False
-                                          $ withOptions opts
-                                      )
+      ChoicesDropdown fs opts ->
+        ( fs
+        , True
+        , areq $ multiSelectField $ withOptions opts
+        )
+      ChoicesButtons align fs opts ->
+        ( fs
+        , True
+        , areq $ case align of
+            Vertical   -> checkboxField True
+            Horizontal -> checkboxField False
+          $ withOptions opts
+        )
       _ -> error "Incorrect FieldInfo for a multiple choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith
