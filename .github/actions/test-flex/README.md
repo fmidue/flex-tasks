@@ -8,7 +8,7 @@ The action will install, build and cache all necessary components to execute the
 If there's anything to report, the action will finally submit a comment containing the report files on the corresponding commit.
 
 
-# Usage
+## Usage
 
 <!-- start usage -->
 ```yaml
@@ -173,6 +173,7 @@ Add your project's packages to the dependencies list.
 ## Including private repositories into the package database
 
 For private repositories you will need to use SSH keys. Follow these steps:
+
   1. Generate a key pair __without password protection__
   2. Configure the public key as a deploy-key in your private repository.
   3. Configure the private key as an action secret for the repository calling this action.
@@ -181,7 +182,7 @@ For private repositories you will need to use SSH keys. Follow these steps:
 Note that the repositories in steps 2 and 3 could be the same.
 
 
-# Recommended permissions
+## Recommended permissions
 
 When using the `test-flex` action in your workflow, it is recommended to set the following `GITHUB_TOKEN` permissions to ensure proper functionality:
 
