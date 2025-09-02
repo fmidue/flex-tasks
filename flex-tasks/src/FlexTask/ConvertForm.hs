@@ -35,7 +35,7 @@ resetIdentGen = do
 Extract a form from the environment.
 The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
 -}
-getFormData :: Rendered Widget -> IO ([Text], HtmlDict)
+getFormData :: Rendered Widget -> IO ([[Text]], HtmlDict)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     Unsafe.fakeHandlerGetLogger
@@ -43,7 +43,7 @@ getFormData widget = do
       FlexForm {appLogger = logger}
       writeHtml
   where
-    writeHtml :: Handler ([Text], HtmlDict)
+    writeHtml :: Handler ([[Text]], HtmlDict)
     writeHtml = case supportedLanguages of
       (l:ls) -> do
         (names,first) <- withLang l
@@ -51,7 +51,7 @@ getFormData widget = do
         return (names, fromList $ first:rest)
       _ -> error "No supported languages found!"
 
-    withLang :: Lang -> Handler ([Text], (Lang, String))
+    withLang :: Lang -> Handler ([[Text]], (Lang, String))
     withLang lang = setRequestLang lang $ do
       resetIdentGen
       (names,wid) <- fst <$> runFormGet (runReader widget)
