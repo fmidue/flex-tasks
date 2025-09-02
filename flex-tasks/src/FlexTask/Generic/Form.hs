@@ -621,10 +621,10 @@ checkAndApply toOutput ma xs = case rest of
 
 renderNextField
   :: (FieldInfo ->
-       ( FieldSettings FlexForm
-       , Bool
-       , FieldSettings FlexForm -> Maybe a -> AForm Handler a
-       )
+        ( FieldSettings FlexForm
+        , Bool
+        , FieldSettings FlexForm -> Maybe a -> AForm Handler a
+        )
      )
   -> Maybe a
   -> [[FieldInfo]]
@@ -697,8 +697,9 @@ formifyInstanceList mas ((List align (f:fs) : xs) : xss) =
       Nothing -> repeat Nothing
       Just ds
         | length ds /= length fs +1
-          -> error $ "The default value contains too many/few individual values. " ++
-                     "It does not match the amount of FieldInfo supplied."
+          -> error $
+              "The default value contains too many/few individual values. " ++
+              "It does not match the amount of FieldInfo supplied."
         | otherwise
           -> sequence mas
 
@@ -788,18 +789,19 @@ renderNextSingleChoiceField
 renderNextSingleChoiceField pairsWith =
   renderNextField
   (\case
-      ChoicesDropdown fs opts -> ( fs
-                                 , True
-                                 , areq $ selectField $ withOptions opts
-                                 )
-      ChoicesButtons align fs opts -> ( fs
-                                      , True
-                                      , areq $
-                                          case align of
-                                            Vertical -> radioField
-                                            Horizontal -> horizontalRadioField
-                                          $ withOptions opts
-                                      )
+      ChoicesDropdown fs opts ->
+        ( fs
+        , True
+        , areq $ selectField $ withOptions opts
+        )
+      ChoicesButtons align fs opts ->
+        ( fs
+        , True
+        , areq $ case align of
+            Vertical -> radioField
+            Horizontal -> horizontalRadioField
+          $ withOptions opts
+        )
       _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith

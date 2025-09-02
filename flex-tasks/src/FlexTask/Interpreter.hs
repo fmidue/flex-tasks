@@ -306,7 +306,7 @@ writeUncachedAndGetPaths cachePrefix xs = do
     getCachePaths files = do
       dir <- cacheDir cachePrefix
       pure $ map (\(prefix, content) ->
-                 (dir </> prefix <> "-" <> hash content <.> "hs",content)) files
+        (dir </> prefix <> "-" <> hash content <.> "hs",content)) files
 
     writeUncachedFiles :: [(FilePath,String)] -> IO ()
     writeUncachedFiles = void . mapM (\ (path,content) ->

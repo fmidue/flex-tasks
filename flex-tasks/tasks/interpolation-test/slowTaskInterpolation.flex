@@ -116,11 +116,11 @@ description _ input = do
     english "Your answer has to satisfy the following:"
   itemizeM [
       translate $ do
-       german "Keines hat zwei negative Nachbarn."
-       english "None has two negative neighbours."
+        german "Keines hat zwei negative Nachbarn."
+        english "None has two negative neighbours."
     , translate $ do
-       german "Keines hat zwei durch 3 teilbare Nachbarn."
-       english "None has two neighbours divisible by 3."
+        german "Keines hat zwei durch 3 teilbare Nachbarn."
+        english "None has two neighbours divisible by 3."
     ]
   pure ()
 

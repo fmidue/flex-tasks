@@ -167,9 +167,9 @@ parseFlexConfig = do
             }
           }
       _ -> fail $
-             "Unexpected end of file. " ++
-             "Provide at least the following Modules (in this order): " ++
-             "Global, TaskSettings, TaskData (Check), Description, Parse"
+        "Unexpected end of file. " ++
+        "Provide at least the following Modules (in this order): " ++
+        "Global, TaskSettings, TaskData (Check), Description, Parse"
   where
     atLeastThree = do
       discard endOfLine
