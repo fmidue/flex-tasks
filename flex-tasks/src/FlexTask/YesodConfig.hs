@@ -1,5 +1,6 @@
 {-# language InstanceSigs #-}
 {-# language TypeFamilies #-}
+{-# language PatternSynonyms #-}
 
 {-|
 Default Yesod configuration for form generating environment.
@@ -14,6 +15,13 @@ module FlexTask.YesodConfig
   -- * Form type
   , Rendered'
   , Rendered
+  -- * Convenience Patterns
+  {- |
+  Patterns for defining POST parameters in custom forms.
+  Mostly for ease of reading/self documenting code.
+  -}
+  , pattern Singular
+  , pattern Multiple
   ) where
 
 
@@ -29,6 +37,15 @@ import Yesod.Core.Types (Logger)
 newtype FlexForm = FlexForm {
   appLogger :: Logger
   }
+
+
+-- | Form submits a lone POST parameter
+pattern Singular :: Text -> [[Text]]
+pattern Singular t = [[t]]
+
+-- | Form submits multiple POST parameters
+pattern Multiple :: [Text] -> [[Text]]
+pattern Multiple ts = [ts]
 
 
 -- |
