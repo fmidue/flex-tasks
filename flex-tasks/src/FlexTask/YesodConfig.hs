@@ -18,7 +18,7 @@ module FlexTask.YesodConfig
   -- * Convenience Patterns
   {- |
   Patterns for defining POST parameters in custom forms.
-  Mostly for ease of reading/self documenting code.
+  Reduces error potential and increases ease of reading.
   -}
   , pattern Singular
   , pattern Multiple
@@ -39,16 +39,18 @@ newtype FlexForm = FlexForm {
   }
 
 
--- | Form submits a lone POST parameter
+{- |
+Form component submits a single POST parameter.
+(potentially with multiple values of that name)
+-}
 pattern Singular :: Text -> [[Text]]
 pattern Singular t = [[t]]
 
--- | Form submits multiple POST parameters
+-- | Form component submits multiple POST parameters.
 pattern Multiple :: [Text] -> [[Text]]
 pattern Multiple ts = [ts]
 
 
--- |
 type Handler = HandlerFor FlexForm
 type Widget = WidgetFor FlexForm ()
 -- | General type of composable forms inside the environment
