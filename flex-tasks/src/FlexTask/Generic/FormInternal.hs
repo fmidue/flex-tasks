@@ -562,27 +562,26 @@ No option is selected when the form is loaded.
     <label for="flexident1">
       Make your choice
     </label>
-...
+    <div id="flexident1">
+      <div class="radio">
+        <input id="flexident1-1" type="radio" ... value="1" ...>
         <label for="flexident1-1">
-          <div>
-            <input id="flexident1-1" type="radio" ... value="1" ...>
-            this one
-          </div>
+          this one
         </label>
-...
+      </div>
+      <div class="radio">
+        <input id="flexident1-2" type="radio" ... value="2" ...>
         <label for="flexident1-2">
-          <div>
-            <input id="flexident1-2" type="radio" ... value="2" ...>
-            or rather that one
-          </div>
+          or rather that one
         </label>
-...
+      </div>
+      <div class="radio">
+        <input id="flexident1-3" type="radio" ... value="3" ...>
         <label for="flexident1-3">
-          <div>
-            <input id="flexident1-3" type="radio" ... value="3" ...>
-            I just cannot decide
-          </div>
+          I just cannot decide
         </label>
+      </div>
+    </div>
 ...
 </div>
 -}
@@ -805,7 +804,7 @@ renderNextSingleChoiceField pairsWith =
       ChoicesButtons align fs opts ->
         ( fs
         , areq $ case align of
-            Vertical -> radioField
+            Vertical -> radioField'
             Horizontal -> horizontalRadioField
           $ withOptions opts
         )

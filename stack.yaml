@@ -1,5 +1,5 @@
 ---
-resolver: nightly-2024-03-20
+resolver: nightly-2025-07-23
 packages:
   - flex-tasks
   - flex-tasks-processing
