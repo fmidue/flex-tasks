@@ -68,7 +68,7 @@ setDefaultsJS names = [julius|
       else {
         const name = names[0];
         const fields = Array.from(document.getElementsByName(name));
-        const isList = Array.isArray(raw) || /^[\[\{]/.test(raw);
+        const isList = Array.isArray(raw) || /^\[\"/.test(raw);
 
         fields.forEach((field, j) => {
           let val;
