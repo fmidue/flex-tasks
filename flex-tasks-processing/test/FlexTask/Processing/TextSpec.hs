@@ -5,8 +5,8 @@ module FlexTask.Processing.TextSpec where
 
 import Data.Char                        (isAscii)
 import Data.List                        (intersperse)
-import Data.Maybe                       (fromJust, fromMaybe)
-import Data.Text                        (Text, isInfixOf, pack)
+import Data.Maybe                       (fromJust)
+import Data.Text                        (Text, isInfixOf)
 import Test.Hspec                       (Spec, describe, it, shouldBe)
 import Test.Hspec.QuickCheck            (modifyMaxSize, prop)
 import Test.QuickCheck (
@@ -41,10 +41,6 @@ spec = do
           formatAnswer tss
           `shouldBe`
           Just (T.intercalate argDelimiter $ map (processArg . concat) tss)
-    prop "escaped Text does not contain control sequences" $ \t ->
-      not $ any
-        (`T.isInfixOf` (content $ fromMaybe "" $ formatAnswer [[[t]]]))
-        controlSequences
 
   describe "formatForJS" $ do
     it "does not change non unicode text and puts it in a printed list" $
@@ -63,25 +59,18 @@ spec = do
 
   where
     formatUnitTest = T.concat $ intersperse argDelimiter
-      [ escaped "one"
-      , escaped missingMarker
-      , escaped emptyMarker
+      [ "one"
+      , missingMarker
+      , emptyMarker
       , T.concat
-        [ escaped "two"
+        [ "two"
         , listDelimiter
-        , escaped "three"
+        , "three"
         ]
       ]
 
     jsUnitTest = "\1234\10678"
 
-    controlSequences =
-      [ argDelimiter
-      , listDelimiter
-      , inputEscape <> inputEscape
-      ]
-
-    content = T.drop 2 . T.dropEnd 2
     noUnicode t = T.all isAscii t && not ("\\u" `isInfixOf` t)
 
     genTestString upper lower = show <$> chooseInt (upper,lower)
@@ -94,12 +83,8 @@ genEmpty = do
 
 
 processArg :: [Text] -> Text
-processArg [] = escaped missingMarker
-processArg xs = T.intercalate listDelimiter $ map escaped xs
-
-
-escaped :: Text -> Text
-escaped t = inputEscape <> pack (show $ emptyOrNone t) <> inputEscape
+processArg [] = missingMarker
+processArg xs = T.intercalate listDelimiter $ map emptyOrNone xs
 
 
 emptyOrNone :: Text -> Text

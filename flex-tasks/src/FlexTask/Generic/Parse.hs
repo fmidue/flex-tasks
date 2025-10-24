@@ -13,7 +13,6 @@ module FlexTask.Generic.Parse (
   parseInstanceSingleChoice,
   parseInstanceMultiChoice,
   parseInstanceSingleInputList,
-  escaped,
   -- * Embedding Functions
   parseWithOrReport,
   reportWithFieldNumber,

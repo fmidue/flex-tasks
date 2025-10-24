@@ -102,7 +102,7 @@ spec = do
   where
     testParse = many1 digit
     boolShow b = if b then "yes" else "no"
-    maybeShow = maybe "None"
+    maybeShow = maybe "Nothing"
     removeEmpty = filter (>0)
 
     testParsingMaybeStringList fromString = testParsingStringList (format fromString)
@@ -134,7 +134,7 @@ escapedList = escapedString . singleton . singleton
 
 
 escapedString :: [[[String]]] -> String
-escapedString = unpack . fromMaybe "\"\"Missing\"\"" . formatAnswer . map (map $ map pack)
+escapedString = unpack . fromMaybe "Missing" . formatAnswer . map (map $ map pack)
 
 
 stripEscape :: String -> String

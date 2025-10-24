@@ -9,7 +9,6 @@ module FlexTask.Processing.Text
     -- $control
     argDelimiter
   , listDelimiter
-  , inputEscape
   , missingMarker
   , emptyMarker
     -- * Formatting Functions
@@ -40,15 +39,11 @@ The answer String contains control sequences which encode the structure of the i
 
 -- | Outer delimiter for individual fields.
 argDelimiter :: Text
-argDelimiter = "\a\a"
+argDelimiter = ","
 
 -- | Inner delimiter for elements of a field list.
 listDelimiter :: Text
-listDelimiter = "\b\b"
-
--- | Sequence denoting the start and end of a fields value.
-inputEscape :: Text
-inputEscape = "\""
+listDelimiter = ","
 
 -- | Marker for a missing field
 missingMarker :: Text
@@ -56,19 +51,15 @@ missingMarker = "Missing"
 
 -- | Marker for a blank optional field
 emptyMarker :: Text
-emptyMarker = "None"
-
-
-escape :: Text -> Text
-escape t = inputEscape <> T.pack (show t) <> inputEscape
+emptyMarker = "Nothing"
 
 
 
 process :: [Text] -> Text
-process []   = escape "Missing"
-process s    = T.intercalate listDelimiter $ map (escape . checkEmpty) s
+process [] = missingMarker
+process s  = T.intercalate listDelimiter $ map checkEmpty s
   where
-    checkEmpty t = if T.null t then "None" else t
+    checkEmpty t = if T.null t then emptyMarker else t
 
 
 
@@ -87,7 +78,7 @@ toJSUnicode c
 
 
 removeEscape :: Text -> [[Text]]
-removeEscape t = map (\i -> fromMaybe i $ readMaybe $ T.unpack $ T.drop 1 $ T.dropEnd 1 i) <$> splitArgs t
+removeEscape = splitArgs
   where
     splitArgs = map (T.splitOn listDelimiter) . T.splitOn argDelimiter
 
@@ -132,6 +123,8 @@ removeUnicodeEscape xs = xs
 
 
 {- |
+FIX: THIS NO LONGER MAKES ANY SENSE. REPLACE AFTER FINISHING REWRITE
+
 Format an answer String into a vertical text listing of individual values.
 This is used to display Flex submissions in a non-HTML context, e.g. in a downloadable text file.
 -}
@@ -145,7 +138,7 @@ formatIfFlexSubmission t
     | null splitArgs || any T.null splitArgs = ""
     | otherwise = T.unlines numberInputs
     where
-      escapeSeq = inputEscape <> inputEscape
+      escapeSeq = ""
       escapeWrapped = escapeSeq `T.isPrefixOf` t && escapeSeq `T.isSuffixOf` t
       splitArgs = T.splitOn argDelimiter t
       splitLists = T.splitOn listDelimiter t
