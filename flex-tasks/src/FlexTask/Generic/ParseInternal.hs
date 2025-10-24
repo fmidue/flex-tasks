@@ -102,16 +102,16 @@ class Parse a where
 
   === __Examples__
 
-  >>> parseTest (formParser @Bool) $ asSubmission [["yes"]]
+  >>> parseTest (formParser @Bool) "yes"
   True
 
-  >>> parseTest (formParser @[Double]) $ asSubmission [["2.0", "0.12e-12"]]
+  >>> parseTest (formParser @[Double]) "[2.0,0.12e-12]"
   [2.0,1.2e-13]
 
-  >>> parseTest (formParser @(String,Integer)) $ asSubmission [["Good day"],["-100"]]
+  >>> parseTest (formParser @(String,Integer)) "(\"Good day\",-100)"
   ("Good day",-100)
 
-  >>> parseTest (formParser @Int) $ asSubmission [["Test"]]
+  >>> parseTest (formParser @Int) "Test"
   parse error at (line 1, column 3):
   ...
   -}
@@ -296,7 +296,7 @@ Same as `parseInstanceSingleChoice`, but for parsing a List of the given type, i
 === __Example __
 
 >>> instance Parse [MyType] where formParser = parseInstanceMultiChoice
->>> parseTest (formParser @[MyType]) $ asSubmission [["1","3"]]
+>>> parseTest (formParser @[MyType]) "[1,3]"
 [One,Three]
 -}
 parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser [a]
@@ -351,13 +351,13 @@ This can be useful for giving better error messages.
 >>> import Control.OutputCapable.Blocks (Language(..))
 >>> import Control.OutputCapable.Blocks.Debug (run)
 
->>> run English $ parseWithOrReport (formParser @Int) reportWithFieldNumber $ asSubmission [["1"]]
+>>> run English $ parseWithOrReport (formParser @Int) reportWithFieldNumber "1"
 Just 1
 
->>> run German $ parseWithOrReport (formParser @Int) reportWithFieldNumber $ asSubmission [["Hello"]]
-Fehler in Eingabefeld 1: "Hello" an Position 1>>>>
-unexpected "H"
-expecting white space, "-", "+" or digit<<<<
+>>> run German $ parseWithOrReport (formParser @Int) reportWithFieldNumber "\"Hello\""
+Fehler in Eingabefeld 1: Hello an Position ...
+unexpected "\""
+expecting "-", "+" or digit<<<<
 Nothing
 -}
 parseWithOrReport ::
@@ -385,8 +385,8 @@ the input form is "infallible" since only constructed from String text fields, s
 >>> run German $ parseInfallibly (formParser @SingleChoiceSelection) $ asSubmission [["1"]]
 Just (SingleChoiceSelection {getAnswer = Just 1})
 
->>> run English $ parseInfallibly (formParser @(SingleInputList Double)) $ asSubmission [["Wrong input"]]
-*** Exception: The impossible happened: (line 1, column 3):
+>>> run English $ parseInfallibly (formParser @(SingleInputList Double)) "\"Wrong input\""
+*** Exception: The impossible happened: (line 1, column 1):
 ...
 -}
 parseInfallibly ::
@@ -423,11 +423,11 @@ e.g. checking a term for bracket consistency even if the parser failed early on.
 >>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ asSubmission [["2"]]
 Just 2
 
->>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ asSubmission [["2.5"]]
+>>> run English $ parseWithFallback intFirst errorFeedback thenDouble "2.5"
 Error in """2.5""" : >>>>Fractions are not allowed<<<<
 Nothing
 
->>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ asSubmission [["I'm a number"]]
+>>> run English $ parseWithFallback intFirst errorFeedback thenDouble "\"I'm a number\""
 Error in """I'm a number""" : >>>>That's not a number<<<<
 Nothing
 -}
@@ -511,7 +511,7 @@ Used for debugging parsers.
 
 === __Examples__
 
->>> parseTest (formParser @([Integer],String)) $ asSubmission [["20","34","-7"], ["Some Answer"]]
+>>> parseTest (formParser @([Integer],String)) "([20,34,-7],\"Some Answer\")"
 ([20,34,-7],"Some Answer")
 -}
 asSubmission :: [[String]] -> String

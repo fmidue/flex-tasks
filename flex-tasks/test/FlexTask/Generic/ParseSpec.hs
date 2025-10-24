@@ -4,7 +4,7 @@
 module FlexTask.Generic.ParseSpec where
 
 
-import Data.List.Extra                  (dropEnd, singleton, trim)
+import Data.List.Extra                  (singleton, trim)
 import Data.Maybe                       (fromMaybe)
 import Data.Text                        (pack, unpack)
 import Test.Hspec (
@@ -17,10 +17,10 @@ import Test.Hspec (
   shouldSatisfy,
   )
 import Test.Hspec.QuickCheck            (prop)
-import Test.Hspec.Parsec                (shouldFailOn, shouldParse)
+import Test.Hspec.Parsec                (shouldParse)
 import Test.QuickCheck                  (chooseInt, forAll, sublistOf)
 import Test.QuickCheck.Instances.Text   ()
-import Text.Parsec                      (ParseError, eof, digit, many1, parse)
+import Text.Parsec                      (ParseError, parse)
 import Text.Parsec.String               (Parser)
 import Yesod (Textarea(..))
 
@@ -43,12 +43,6 @@ instance Parse [TestEnum] where
 
 spec :: Spec
 spec = do
-  describe "escaped" $
-    prop "works like the original parser, minding the input escape" $ \s ->
-      case withParser (testParse <* eof) s of
-        Left _ -> withParser (escaped testParse) `shouldFailOn` escapedSingle s
-        Right res -> withParser (escaped testParse) (escapedSingle s) `shouldParse` stripEscape res
-
   describe "formParser" $ do
     context "should work for all base types" $ do
       prop "String" $ testParsingString id
@@ -100,7 +94,6 @@ spec = do
         escapedList (map show is) `parsesTo`
         map (toEnum @TestEnum . subtract 1) (removeEmpty is)
   where
-    testParse = many1 digit
     boolShow b = if b then "yes" else "no"
     maybeShow = maybe "Nothing"
     removeEmpty = filter (>0)
@@ -138,14 +131,12 @@ escapedString = unpack . fromMaybe "Missing" . formatAnswer . map (map $ map pac
 
 
 stripEscape :: String -> String
-stripEscape = toMaybe . drop 1 . dropEnd 1 . show
-  where
-    toMaybe s = if null s then "None" else s
+stripEscape = show
 
 
 format :: (String -> a) -> String -> Maybe a
 format from s
-  | s == "None" = Nothing
+  | s == "Nothing" = Nothing
   | otherwise =  Just $ from s
 
 
