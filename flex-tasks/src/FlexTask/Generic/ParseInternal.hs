@@ -24,7 +24,6 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   toAbort,
   )
-import Data.Char          (readLitChar)
 import Data.List.Extra    (drop1, dropEnd1, singleton, takeWhileEnd)
 import Data.Text          (Text, pack, unpack)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
@@ -32,9 +31,6 @@ import Text.Parsec
   ( ParseError
   , (<|>)
   , between
-  , getInput
-  , setInput
-  , many
   , optionMaybe
   , parse
   , sepBy1
@@ -43,17 +39,23 @@ import Text.Parsec
   , spaces
   , try
   )
-import Text.Parsec.Char   (noneOf, char, string)
+import Text.Parsec.Char   (char, string)
 import Text.Parsec.Error (
   errorMessages,
   errorPos,
   showErrorMessages,
   )
 import Text.Parsec.String (Parser)
+import Text.ParserCombinators.Parsec.Language (
+  haskell,
+  )
 import Text.ParserCombinators.Parsec.Number (
   floating2,
   int,
   sign,
+  )
+import Text.ParserCombinators.Parsec.Token (
+  stringLiteral,
   )
 import Yesod              (Textarea(..))
 
@@ -148,16 +150,7 @@ instance Parse a => GParse (K1 i a) where
 
 
 parseString :: Parser String
-parseString = between (char '"') (char '"') (many stringChar)
-  where
-    stringChar = noneOf ['\\','"'] <|> parseEscape
-
-    parseEscape = do
-      char '\\'
-      input <- getInput
-      case readLitChar ('\\' : input) of
-        [(c, rest)] -> c <$ setInput rest
-        err -> fail $ "Invalid escape sequence: " ++ show err
+parseString = stringLiteral haskell
 
 
 parseBool :: Parser Bool
