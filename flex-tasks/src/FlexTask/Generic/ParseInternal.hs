@@ -25,8 +25,8 @@ import Control.OutputCapable.Blocks (
 import Control.OutputCapable.Blocks.Generic (
   toAbort,
   )
-import Data.List.Extra    (drop1, dropEnd1, singleton, takeWhileEnd)
-import Data.Text          (Text, pack, unpack)
+import Data.List.Extra    (drop1, dropEnd1, takeWhileEnd)
+import Data.Text          (Text)
 import GHC.Generics       (Generic(..), K1(..), M1(..), (:*:)(..))
 import Text.Parsec
   ( ParseError
@@ -66,9 +66,7 @@ import qualified Data.Text    as T
 import FlexTask.Processing.Text (
   argDelimiter,
   emptyMarker,
-  formatAnswer,
   listDelimiter,
-  missingMarker,
   )
 import FlexTask.Generic.FormInternal
   ( MultipleChoiceSelection
@@ -284,7 +282,7 @@ that can not use a bodyless `Parse` instance.
 === __Example__
 
 >>> instance Parse MyType where formParser = parseInstanceSingleChoice
->>> parseTest (formParser @MyType) $ asSubmission [["1"]]
+>>> parseTest (formParser @MyType) "1"
 One
 -}
 parseInstanceSingleChoice :: (Bounded a, Enum a, Eq a) => Parser a
@@ -318,7 +316,7 @@ These instances are already provided for standard types as is.
 >>> newtype CustomInt = CustomInt Int deriving Show
 >>> let myParser = CustomInt . read <$> many1 digit
 >>> instance Parse (SingleInputList CustomInt) where formParser = parseInstanceSingleInputList myParser
->>> parseTest (formParser @(SingleInputList CustomInt)) $ asSubmission [["1, 2, 3"]]
+>>> parseTest (formParser @(SingleInputList CustomInt)) $ "1, 2, 3"
 SingleInputList {getList = [CustomInt 1,CustomInt 2,CustomInt 3]}
 -}
 parseInstanceSingleInputList :: Parser a -> Parser (SingleInputList a)
@@ -384,7 +382,7 @@ the input form is "infallible" since only constructed from String text fields, s
 >>> import Control.OutputCapable.Blocks (Language(..))
 >>> import Control.OutputCapable.Blocks.Debug (run)
 
->>> run German $ parseInfallibly (formParser @SingleChoiceSelection) $ asSubmission [["1"]]
+>>> run German $ parseInfallibly (formParser @SingleChoiceSelection) "1"
 Just (SingleChoiceSelection {getAnswer = Just 1})
 
 >>> run English $ parseInfallibly (formParser @(SingleInputList Double)) "\"Wrong input\""
@@ -508,20 +506,3 @@ displayInputAnd messaging a ma err = do
 
 parseComplete :: Parser a -> Parser a
 parseComplete p = p <* eof
-
-
-{- |
-Turn a nested list of String values into the Autotool Flex-Tasks submission format.
-Each inner list represents a group of inputs that will be interpreted as a list.
-The result is parsable by a matching 'formParser'.
-Used for debugging parsers.
-
-=== __Examples__
-
->>> parseTest (formParser @([Integer],String)) "([20,34,-7],\"Some Answer\")"
-([20,34,-7],"Some Answer")
--}
-asSubmission :: [[String]] -> String
-asSubmission [] = unpack missingMarker
-asSubmission xss = maybe (error "impossible") unpack $
-  formatAnswer $ map (singleton . map pack) xss
