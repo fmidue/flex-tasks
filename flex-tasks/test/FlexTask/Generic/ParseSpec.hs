@@ -4,9 +4,8 @@
 module FlexTask.Generic.ParseSpec where
 
 
-import Data.List.Extra                  (singleton, trim)
-import Data.Maybe                       (fromMaybe)
-import Data.Text                        (pack, unpack)
+import Data.List.Extra                  (intercalate)
+import Data.Text                        (pack)
 import Test.Hspec (
   Expectation,
   Spec,
@@ -29,7 +28,6 @@ import FlexTask.Generic.Form (
   multipleChoiceAnswer,
   )
 import FlexTask.Generic.Parse
-import FlexTask.Processing.Text         (formatAnswer)
 
 
 data TestEnum = One | Two | Three deriving (Bounded, Enum, Eq, Show)
@@ -50,7 +48,7 @@ spec = do
       prop "Textarea" $ testParsingString $ Textarea . pack
       prop "Bool" $ testParsing boolShow
       prop "Int" $ testParsing @Int show
-      prop "Double" $ \a -> parsesNear @Double (escapedSingle (show a)) a $ doubleInaccuracy a
+      prop "Double" $ \a -> parsesNear @Double (show a) a $ doubleInaccuracy a
 
     context "should work for lists" $ do
       prop "String" $ testParsingStringList id
@@ -58,7 +56,7 @@ spec = do
       prop "Textarea" $ testParsingStringList (Textarea . pack)
       prop "Bool" $ testParsingList boolShow
       prop "Int" $ testParsingList @Int show
-      prop "Double" $ \a -> parsesNear @[Double] (escapedList $ map show a) a $
+      prop "Double" $ \a -> parsesNear @[Double] (toShowList show a) a $
         and . zipWith doubleInaccuracy a
 
     context "should work for optional values" $ do
@@ -67,7 +65,7 @@ spec = do
       prop "Textarea" $ testParsingMaybe (Textarea . pack)
       prop "Bool" $ testParsing $ maybeShow boolShow
       prop "Int" $ testParsing @(Maybe Int) $ maybeShow show
-      prop "Double" $ \a -> parsesNear @(Maybe Double) (escapedSingle $ maybeShow show a) a $
+      prop "Double" $ \a -> parsesNear @(Maybe Double) (maybeShow show a) a $
         compareMaybeDoubles a
 
     context "should work for lists of optional values" $ do
@@ -76,22 +74,22 @@ spec = do
       prop "Textarea" $ testParsingMaybeStringList (Textarea . pack)
       prop "Bool" $ testParsingList $ maybeShow boolShow
       prop "Int" $ testParsingList @(Maybe Int) $ maybeShow show
-      prop "Double" $ \a -> parsesNear @[Maybe Double] (escapedList $ map (maybeShow show) a) a
+      prop "Double" $ \a -> parsesNear @[Maybe Double] (toShowList (maybeShow show) a) a
         $ and . zipWith compareMaybeDoubles a
 
   describe "anonymous choice selection parsers" $ do
     prop "single choice works" $ \i ->
-      escapedSingle (show i) `parsesTo` singleChoiceAnswer i
+      show i `parsesTo` singleChoiceAnswer i
     prop "multiple choice works" $ \is ->
-      escapedList (map show is) `parsesTo` multipleChoiceAnswer (removeEmpty is)
+      toShowList show is `parsesTo` multipleChoiceAnswer (removeEmpty is)
 
   describe "choice selection parsers (for a test enum)" $ do
     specify "single choice works" $
       forAll (chooseInt (0,2)) $ \i ->
-        escapedSingle (show $ i+1) `parsesTo` toEnum @TestEnum i
+        show (i+1) `parsesTo` toEnum @TestEnum i
     specify "multiple choice works" $
       forAll (sublistOf [0..2]) $ \is ->
-        escapedList (map show is) `parsesTo`
+        toShowList show is `parsesTo`
         map (toEnum @TestEnum . subtract 1) (removeEmpty is)
   where
     boolShow b = if b then "yes" else "no"
@@ -103,35 +101,19 @@ spec = do
     compareMaybeDoubles a mRes = mRes == a || (doubleInaccuracy <$> a <*> mRes) == Just True
 
 testParsingString :: (Eq a, Parse a, Show a) => (String -> a) -> String -> IO ()
-testParsingString fromString s = escapedSingle s `parsesTo` fromString (trim $ stripEscape s)
+testParsingString fromString s = show s `parsesTo` fromString s
 
 
 testParsing :: (Eq a, Parse a, Show a) => (a -> String) -> a -> IO ()
-testParsing toString a = escapedSingle (toString a) `parsesTo` a
+testParsing toString a = toString a `parsesTo` a
 
 
 testParsingList :: (Eq a, Show a, Parse [a]) => (a -> String) -> [a] -> IO ()
-testParsingList toString as = escapedList (map toString as) `parsesTo` as
+testParsingList toString as = toShowList toString as `parsesTo` as
 
 
 testParsingStringList :: (Eq a, Parse [a], Show a) => (String -> a) -> [String] -> IO ()
-testParsingStringList fromString s = escapedList s `parsesTo` map (fromString . trim . stripEscape) s
-
-
-escapedSingle :: String -> String
-escapedSingle = escapedList . (:[])
-
-
-escapedList :: [String] -> String
-escapedList = escapedString . singleton . singleton
-
-
-escapedString :: [[[String]]] -> String
-escapedString = unpack . fromMaybe "Missing" . formatAnswer . map (map $ map pack)
-
-
-stripEscape :: String -> String
-stripEscape = show
+testParsingStringList fromString s = show s `parsesTo` map fromString s
 
 
 format :: (String -> a) -> String -> Maybe a
@@ -166,3 +148,7 @@ shouldParseWith i o p = case i of
 
 doubleInaccuracy :: Double -> Double -> Bool
 doubleInaccuracy a b = abs (a-b) < 0.001
+
+
+toShowList :: (a -> String) -> [a] -> String
+toShowList toString as = "[" ++ intercalate "," (map toString as) ++ "]"
