@@ -55,10 +55,10 @@ emptyMarker = "Nothing"
 
 
 
-process :: (Text,Text) -> ([Text] -> Text) -> [Text] -> Text
-process _                           _ []  = missingMarker
-process _                           _ [x] = x
-process (leftBracket, rightBracket) f s   = leftBracket <> f s <> rightBracket
+processList :: [Text] -> Text
+processList []  = missingMarker
+processList [x] = x
+processList s   = "[" <> T.intercalate listDelimiter s <> "]"
 
 
 
@@ -66,10 +66,7 @@ process (leftBracket, rightBracket) f s   = leftBracket <> f s <> rightBracket
 formatAnswer :: [[[Text]]] -> Maybe Text
 formatAnswer values
   | all (all null) values = Nothing
-  | otherwise = Just $ processTuple $ map (processList . concat) values
-  where
-    processTuple = process ("(",")") $ T.intercalate argDelimiter
-    processList  = process ("[","]") $ T.intercalate listDelimiter
+  | otherwise = Just $ T.intercalate argDelimiter $ map (processList . concat) values
 
 
 toJSUnicode :: Char -> Text

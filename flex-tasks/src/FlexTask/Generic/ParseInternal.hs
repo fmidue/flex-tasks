@@ -108,7 +108,7 @@ class Parse a where
   >>> parseTest (formParser @[Double]) "[2.0,0.12e-12]"
   [2.0,1.2e-13]
 
-  >>> parseTest (formParser @(String,Integer)) "(\"Good day\",-100)"
+  >>> parseTest (formParser @(String,Integer)) "\"Good day\",-100"
   ("Good day",-100)
 
   >>> parseTest (formParser @Int) "Test"
@@ -128,11 +128,9 @@ class GParse f where
 
 instance (GParse a, GParse b) => GParse (a :*: b) where
   gparse = do
-    void $ parseText "("
     a <- gparse
     void $ parseText argDelimiter
     b <- gparse
-    void $ parseText ")"
     pure (a :*: b)
 
 

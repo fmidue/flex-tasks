@@ -58,7 +58,7 @@ spec = do
         removeUnicodeEscape ('\\': i) `shouldBe` i
 
   where
-    formatUnitTest = "(" <> T.concat (intersperse argDelimiter
+    formatUnitTest = T.concat $ intersperse argDelimiter
       [ "one"
       , missingMarker
       , emptyMarker
@@ -68,7 +68,7 @@ spec = do
         , listDelimiter
         , "three"
         ] <> "]"
-      ]) <> ")"
+      ]
 
     jsUnitTest = "\1234\10678"
 
@@ -86,7 +86,7 @@ genEmpty = do
 processArg :: [Text] -> Text
 processArg [] = missingMarker
 processArg [x] = x
-processArg xs = "(" <> T.intercalate argDelimiter (map emptyOrNone xs) <> ")"
+processArg xs = T.intercalate argDelimiter (map emptyOrNone xs)
 
 
 processList :: [Text] -> Text
