@@ -63,6 +63,7 @@ library
     , raw-strings-qq
     , shakespeare
     , text
+    , text-show
     , transformers
     , utf8-string
     , yesod
@@ -112,6 +113,7 @@ test-suite flex-tasks-doctest
     , raw-strings-qq
     , shakespeare
     , text
+    , text-show
     , transformers
     , utf8-string
     , yesod
@@ -172,6 +174,7 @@ test-suite flex-tasks-test
     , string-interpolate
     , syb
     , text
+    , text-show
     , transformers
     , utf8-string
     , yesod

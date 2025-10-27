@@ -26,6 +26,7 @@ dependencies:
   - SHA
   - shakespeare
   - text
+  - text-show
   - transformers
   - utf8-string
   - yesod
