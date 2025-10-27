@@ -32,7 +32,7 @@ spec = do
       forAll genEmpty $ \tss ->
         formatAnswer tss `shouldBe` Nothing
     it "correctly encodes a simple unit test" $
-      formatAnswer [[["one"]],[],[[""]],[["two","three"]]]
+      formatAnswer [[["one"]],[[]],[["Nothing"]],[["two","three"]]]
       `shouldBe`
       Just formatUnitTest
     modifyMaxSize (const 40) $
@@ -40,7 +40,7 @@ spec = do
         let tss = map (map getNonEmpty . getNonEmpty) nEs in
           formatAnswer tss
           `shouldBe`
-          Just (T.intercalate argDelimiter $ map (processArg . concat) tss)
+          Just (processArg $ map (processList . concat) tss)
 
   describe "formatForJS" $ do
     it "does not change non unicode text and puts it in a printed list" $
@@ -58,16 +58,17 @@ spec = do
         removeUnicodeEscape ('\\': i) `shouldBe` i
 
   where
-    formatUnitTest = T.concat $ intersperse argDelimiter
+    formatUnitTest = "(" <> T.concat (intersperse argDelimiter
       [ "one"
       , missingMarker
       , emptyMarker
-      , T.concat
+      , "[" <>
+        T.concat
         [ "two"
         , listDelimiter
         , "three"
-        ]
-      ]
+        ] <> "]"
+      ]) <> ")"
 
     jsUnitTest = "\1234\10678"
 
@@ -84,9 +85,16 @@ genEmpty = do
 
 processArg :: [Text] -> Text
 processArg [] = missingMarker
-processArg xs = T.intercalate listDelimiter $ map emptyOrNone xs
+processArg [x] = x
+processArg xs = "(" <> T.intercalate argDelimiter (map emptyOrNone xs) <> ")"
+
+
+processList :: [Text] -> Text
+processList [] = missingMarker
+processList [x] = x
+processList xs = "[" <> T.intercalate listDelimiter (map emptyOrNone xs) <> "]"
 
 
 emptyOrNone :: Text -> Text
-emptyOrNone "" = emptyMarker
+emptyOrNone "Nothing" = emptyMarker
 emptyOrNone x = x
