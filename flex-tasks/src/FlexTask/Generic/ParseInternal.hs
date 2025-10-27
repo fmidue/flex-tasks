@@ -15,6 +15,7 @@ import Control.OutputCapable.Blocks (
   LangM',
   OutputCapable,
   ReportT,
+  code,
   english,
   german,
   indent,
@@ -31,6 +32,7 @@ import Text.Parsec
   ( ParseError
   , (<|>)
   , between
+  , eof
   , optionMaybe
   , parse
   , sepBy1
@@ -83,7 +85,7 @@ import FlexTask.Generic.FormInternal
 {- $setup
 >>> :set -XOverloadedStrings
 >>> :set -XTypeApplications
->>> import Data.Text
+>>> import Data.Text hiding (show)
 >>> import Data.Maybe
 >>> import Text.Parsec
 >>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
@@ -112,7 +114,7 @@ class Parse a where
   ("Good day",-100)
 
   >>> parseTest (formParser @Int) "Test"
-  parse error at (line 1, column 3):
+  parse error at (line 1, column 1):
   ...
   -}
   formParser :: Parser a
@@ -367,7 +369,7 @@ parseWithOrReport ::
   -> String
   -> LangM' (ReportT o m) a
 parseWithOrReport parser errorMsg answer =
-  case parse parser "" answer of
+  case parse (parseComplete parser) "" answer of
     Left failure  -> toAbort $ errorMsg answer failure
     Right success -> pure success
 
@@ -395,7 +397,7 @@ parseInfallibly ::
   -> String
   -> m a
 parseInfallibly parser answer =
-  case parse parser "" answer of
+  case parse (parseComplete parser) "" answer of
     Left failure  -> error $ "The impossible happened: " ++ show failure
     Right success -> pure success
 
@@ -420,15 +422,15 @@ e.g. checking a term for bracket consistency even if the parser failed early on.
 >>> let intFirst = formParser @Int
 >>> let thenDouble = void $ formParser @Double
 
->>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ asSubmission [["2"]]
+>>> run English $ parseWithFallback intFirst errorFeedback thenDouble "2"
 Just 2
 
 >>> run English $ parseWithFallback intFirst errorFeedback thenDouble "2.5"
-Error in """2.5""" : >>>>Fractions are not allowed<<<<
+Error in <2.5> >>>>Fractions are not allowed<<<<
 Nothing
 
->>> run English $ parseWithFallback intFirst errorFeedback thenDouble "\"I'm a number\""
-Error in """I'm a number""" : >>>>That's not a number<<<<
+>>> run English $ parseWithFallback intFirst errorFeedback thenDouble $ show "I'm a number"
+Error in <"I'm a number"> >>>>That's not a number<<<<
 Nothing
 -}
 parseWithFallback ::
@@ -497,10 +499,15 @@ displayInputAnd ::
   -> String -> Maybe a -> ParseError -> LangM m
 displayInputAnd messaging a ma err = do
   translate $ do
-    german $ "Fehler in \"" ++ a ++ "\" : "
-    english $ "Error in \"" ++ a ++ "\" : "
+    german "Fehler in"
+    english "Error in"
+  code a
   indent $ messaging ma err
   pure ()
+
+
+parseComplete :: Parser a -> Parser a
+parseComplete p = p <* eof
 
 
 {- |
