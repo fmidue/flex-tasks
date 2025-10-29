@@ -11,10 +11,12 @@ module FlexTask.Processing.Text
   , listDelimiter
   , missingMarker
   , emptyMarker
+  , plaintextTag
     -- * Formatting Functions
   , formatAnswer
   , formatIfFlexSubmission
   , formatForJS
+  , processParam
   , removeUnicodeEscape
     -- * Internationalization
   , supportedLanguages
@@ -54,12 +56,24 @@ emptyMarker :: Text
 emptyMarker = "Nothing"
 
 
+-- | tag for identifying plaintext fields
+plaintextTag :: Text
+plaintextTag = "-plaintext"
 
-processList :: [Text] -> Text
-processList []  = missingMarker
-processList [x] = x
-processList s   = "[" <> T.intercalate listDelimiter s <> "]"
 
+
+{- | pre-process POST parameters:
+  1. Mark empty submissions as optional values instead of an empty String.
+  2. Escape plaintext inputs with double quotes for easier parsing.
+-}
+processParam :: Functor f => (Text -> f [Text]) -> Text -> f [Text]
+processParam getValues param = map decide <$> getValues param
+  where
+    decide :: Text -> Text
+    decide t
+      | T.null t = emptyMarker
+      | plaintextTag `T.isSuffixOf` param = T.pack $ show t
+      | otherwise = t
 
 
 -- | format a list of (nested) individual answers into a single answer String
@@ -67,6 +81,10 @@ formatAnswer :: [[[Text]]] -> Maybe Text
 formatAnswer values
   | all (all null) values = Nothing
   | otherwise = Just $ T.intercalate argDelimiter $ map (processList . concat) values
+  where
+    processList []  = missingMarker
+    processList [x] = x
+    processList s   = "[" <> T.intercalate listDelimiter s <> "]"
 
 
 toJSUnicode :: Char -> Text

@@ -13,6 +13,7 @@ import FlexTask.FormUtil (
   newFlexId,
   newFlexName,
   )
+import FlexTask.Processing.Text         (plaintextTag)
 import FlexTask.Styling     (horizontalRBStyle)
 import FlexTask.YesodConfig (
   FlexForm,
@@ -33,7 +34,7 @@ renderForm aformStub label =
       ident <- maybe newFlexId pure $ fsId label
       let tag = if any (`isInfixOf` typeString (Proxy @a))
                        [typeString $ Proxy @String, typeString $ Proxy @Text]
-          then "-plaintext"
+          then plaintextTag
           else mempty
       name <- (<> tag) <$> newFlexName
       let addAttrs = label {fsName = Just name, fsId = Just ident}
