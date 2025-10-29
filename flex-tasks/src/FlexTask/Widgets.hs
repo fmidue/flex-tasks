@@ -1,10 +1,12 @@
+{-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 
 module FlexTask.Widgets where
 
 
-
 import Control.Monad.Reader (reader)
+import Data.Text            (Text)
+import Data.Typeable
 import Yesod
 
 import FlexTask.FormUtil (
@@ -22,13 +24,17 @@ import FlexTask.YesodConfig (
 
 
 renderForm
-    :: (FieldSettings FlexForm -> AForm Handler a)
+    :: forall a . Typeable a
+    => (FieldSettings FlexForm -> AForm Handler a)
     -> FieldSettings FlexForm
     -> Rendered Widget
 renderForm aformStub label =
     reader $ \fragment -> do
       ident <- maybe newFlexId pure $ fsId label
-      name <- newFlexName
+      let tag = if typeRep (Proxy @a) `elem` [typeRep $ Proxy @String, typeRep $ Proxy @Text]
+            then "-text"
+            else mempty
+      name <- fmap (<> tag) <$> maybe newFlexName pure $ fsName label
       let addAttrs = label {fsName = Just name, fsId = Just ident}
       (_, views') <- aFormToForm $ aformStub addAttrs
       let views = views' []

@@ -51,10 +51,11 @@ module FlexTask.Generic.FormInternal
 
 import Data.List.Extra      (intercalate, nubOrd, nubSort, singleton, uncons, unsnoc)
 import Data.Maybe           (fromMaybe)
+import Data.Typeable
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
-import TextShow             (showt)
+--import TextShow             (showt)
 import Yesod
 
 import FlexTask.FormUtil    (applyToWidget)
@@ -316,15 +317,15 @@ instance BaseForm Text where
   -- original `textField` copies input verbatim.
   -- This adds escaped quotes to differentiate from non-textual results.
   baseForm = oldField
-      { fieldParse = fmap (fmap $ fmap $ fmap showt) <$>
-          fieldParse oldField
-      }
+    --  { fieldParse = fmap (fmap $ fmap $ fmap showt) <$>
+    --      fieldParse oldField
+    --  }
     where
       oldField = textField
 
 
 instance BaseForm String where
-  baseForm = convertField unpack pack textField
+  baseForm = convertField unpack pack baseForm
 
 
 instance BaseForm Textarea where
@@ -467,11 +468,11 @@ instance Formify Double where
   formifyImplementation = formifyInstanceBasicField
 
 
-instance PathPiece a => Formify (Hidden a) where
+instance (Typeable a, PathPiece a) => Formify (Hidden a) where
   formifyImplementation = formifyInstanceBasicField
 
 
-instance Show a => Formify (SingleInputList a) where
+instance (Typeable a, Show a) => Formify (SingleInputList a) where
   formifyImplementation = formifyInstanceBasicField
 
 
@@ -493,7 +494,7 @@ instance Formify [String] where
   formifyImplementation = formifyInstanceList
 
 
-instance (BaseForm a, Formify a) => Formify (Maybe a) where
+instance (Typeable a, BaseForm a, Formify a) => Formify (Maybe a) where
   formifyImplementation = formifyInstanceOptionalField
 
 
@@ -635,7 +636,8 @@ checkAndApply toOutput ma xs = case rest of
 
 
 renderNextField
-  :: ( FieldInfo ->
+  :: Typeable a =>
+      ( FieldInfo ->
         ( FieldSettings FlexForm
         , FieldSettings FlexForm -> Maybe a -> AForm Handler a
         )
@@ -661,7 +663,7 @@ Use within manual instances of `Formify`.
 >>> instance Formify MyCoolType where formifyImplementation = formifyInstanceBasicField
 -}
 formifyInstanceBasicField
-    :: BaseForm a
+    :: (BaseForm a, Typeable a)
     => Maybe a
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered [[Widget]])
@@ -680,7 +682,7 @@ Same as `formifyInstanceBasicField`, but for optional fields with `Maybe` wrappi
 >>> instance Formify (Maybe MyCoolType) where formifyImplementation = formifyInstanceOptionalField
 -}
 formifyInstanceOptionalField
-    :: BaseForm a
+    :: (BaseForm a, Typeable a)
     => Maybe (Maybe a)
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered [[Widget]])
@@ -790,14 +792,14 @@ that cannot use a bodyless `Formify` instance.
 </div>
 -}
 formifyInstanceSingleChoice
-    :: (Bounded a, Enum a, Eq a)
+    :: (Typeable a, Bounded a, Enum a, Eq a)
     => Maybe a
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
 renderNextSingleChoiceField
-    :: Eq a
+    :: (Typeable a, Eq a)
     => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe a
     -> [[FieldInfo]]
@@ -821,7 +823,7 @@ renderNextSingleChoiceField pairsWith =
   where withOptions = optionsPairs . pairsWith
 
 renderNextMultipleChoiceField
-    :: Eq a
+    :: (Typeable a, Eq a)
     => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
     -> Maybe [a]
     -> [[FieldInfo]]
@@ -898,7 +900,7 @@ Possible builders to use with instances are `buttonsEnum` (checkboxes) and `drop
 </div>
 -}
 formifyInstanceMultiChoice
-    :: (Bounded a, Enum a, Eq a)
+    :: (Typeable a, Bounded a, Enum a, Eq a)
     => Maybe [a]
     -> [[FieldInfo]]
     -> ([[FieldInfo]], Rendered [[Widget]])
