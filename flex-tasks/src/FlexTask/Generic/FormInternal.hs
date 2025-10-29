@@ -55,7 +55,6 @@ import Data.Typeable
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
---import TextShow             (showt)
 import Yesod
 
 import FlexTask.FormUtil    (applyToWidget)
@@ -314,14 +313,7 @@ instance BaseForm Int where
   baseForm = intField
 
 instance BaseForm Text where
-  -- original `textField` copies input verbatim.
-  -- This adds escaped quotes to differentiate from non-textual results.
-  baseForm = oldField
-    --  { fieldParse = fmap (fmap $ fmap $ fmap showt) <$>
-    --      fieldParse oldField
-    --  }
-    where
-      oldField = textField
+  baseForm = textField
 
 
 instance BaseForm String where

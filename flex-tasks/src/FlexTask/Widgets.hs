@@ -5,10 +5,10 @@ module FlexTask.Widgets where
 
 
 import Control.Monad.Reader (reader)
+import Data.List            (isInfixOf)
 import Data.Text            (Text)
-import Data.Typeable
+import Data.Typeable        (Proxy(..), Typeable, typeRep)
 import Yesod
-
 import FlexTask.FormUtil (
   newFlexId,
   newFlexName,
@@ -31,10 +31,11 @@ renderForm
 renderForm aformStub label =
     reader $ \fragment -> do
       ident <- maybe newFlexId pure $ fsId label
-      let tag = if typeRep (Proxy @a) `elem` [typeRep $ Proxy @String, typeRep $ Proxy @Text]
-            then "-text"
-            else mempty
-      name <- fmap (<> tag) <$> maybe newFlexName pure $ fsName label
+      let tag = if any (`isInfixOf` typeString (Proxy @a))
+                       [typeString $ Proxy @String, typeString $ Proxy @Text]
+          then "-plaintext"
+          else mempty
+      name <- (<> tag) <$> newFlexName
       let addAttrs = label {fsName = Just name, fsId = Just ident}
       (_, views') <- aFormToForm $ aformStub addAttrs
       let views = views' []
@@ -51,7 +52,9 @@ $forall view <- views
             <div .errors>#{err}
 |]
       return ([[name]],widget)
-
+  where
+    typeString :: forall t . Typeable t => Proxy t -> String
+    typeString = show . typeRep
 
 
 joinWidgets :: [[Widget]] -> Widget
