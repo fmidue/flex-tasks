@@ -5,6 +5,7 @@ extra-source-files: [ ]
 dependencies:
   - base
   - text
+  - parsec
   - shakespeare
 default-extensions:
   - TupleSections

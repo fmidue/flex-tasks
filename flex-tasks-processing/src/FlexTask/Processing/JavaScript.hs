@@ -37,7 +37,7 @@ setDefaultsJS names = [julius|
         }
       },
       default:  (field, value) => {
-        if (value !== "Missing" && value !== "None") {
+        if (value !== "Missing" && value !== "Nothing") {
           field.value = value;
         }
       }
@@ -96,7 +96,7 @@ setDefaultsJS names = [julius|
 triggerDefaults :: Text -> JavascriptUrl url
 triggerDefaults t
   | t == "[ ]" || T.length t < 2 = mempty
-  | otherwise = [julius|window.onload = setDefaults(#{rawJS (formatForJS t)});|]
+  | otherwise = [julius|window.onload = setDefaults(#{rawJS (show $ formatForJS t)});|]
 
 
 lockForm :: Bool -> JavascriptUrl url

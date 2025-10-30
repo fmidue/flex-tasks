@@ -16,14 +16,24 @@ module FlexTask.Processing.Text
   , formatAnswer
   , formatIfFlexSubmission
   , formatForJS
+  , submissionToJs
   , processParam
   , removeUnicodeEscape
     -- * Internationalization
   , supportedLanguages
   ) where
 
+import Text.Parsec
+import Text.Parsec.String
+import Text.ParserCombinators.Parsec.Language (
+  haskell,
+  )
+import Text.ParserCombinators.Parsec.Token (
+  stringLiteral,
+  )
 
 import Data.Char                        (isAscii, isDigit)
+import Data.List                        (intercalate)
 import Data.Maybe                       (fromMaybe)
 import Data.Text                        (Text)
 import Numeric                          (showHex)
@@ -94,32 +104,37 @@ toJSUnicode c
 
 
 
-removeEscape :: Text -> [[Text]]
-removeEscape = splitArgs
-  where
-    splitArgs = map (T.splitOn listDelimiter) . T.splitOn argDelimiter
+asUnicode :: Text -> Text
+asUnicode = T.concatMap toJSUnicode
 
-
-
-asUnicode :: Text -> [Text]
-asUnicode t = compress . map (T.concatMap toJSUnicode) <$> removeEscape t
-  where
-    compress x
-      | length x > 1 = T.pack $ show x
-      | otherwise    = T.concat x
 
 
 correctUnicodeEscape :: Text -> Text
-correctUnicodeEscape t = T.replace "\\\\\\u" "\\\\u" stepOne
+correctUnicodeEscape t = stepOne
   where
     stepOne = T.replace "\\\\u" "\\u" t
 
 
+submissionToJs :: Parser [String]
+submissionToJs = sepBy1 (parseString <|> parseList <|> parseOther) (char ',')
+  where
+    parseString :: Parser String
+    parseString = stringLiteral haskell
+
+    parseList :: Parser String
+    parseList = do
+      xs <- between (char '[') (char ']') (sepBy1 (parseString <|> parseOther) (char ','))
+      pure $ "[" ++ intercalate "," (map (show . asUnicode . T.pack) xs) ++ "]"
+
+    parseOther :: Parser String
+    parseOther = many1 (noneOf "\"[,]")
+
 
 -- | Process Text containing Haskell Unicode representation for use in JavaScript.
-formatForJS :: Text -> Text
-formatForJS t = correctUnicodeEscape $ T.pack $ show $ asUnicode t
-
+formatForJS :: Text -> [Text]
+formatForJS t = case parse submissionToJs "" (T.unpack t) of
+  Left e -> [T.pack $ show e]
+  Right xs -> map (correctUnicodeEscape . T.pack) xs
 
 
 {- |
