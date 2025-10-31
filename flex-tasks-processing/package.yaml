@@ -4,7 +4,9 @@ version: 0.1
 extra-source-files: [ ]
 dependencies:
   - base
+  - extra
   - text
+  - text-show
   - parsec
   - shakespeare
 default-extensions:

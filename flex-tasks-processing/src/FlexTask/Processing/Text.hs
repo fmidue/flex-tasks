@@ -30,9 +30,9 @@ import Text.ParserCombinators.Parsec.Language (
 import Text.ParserCombinators.Parsec.Token (
   stringLiteral,
   )
-
+import TextShow                         (showt)
 import Data.Char                        (isAscii)
-import Data.List                        (intercalate)
+import Data.List.Extra                  (intercalate, replace)
 import Data.Maybe                       (fromMaybe)
 import Data.Text                        (Text)
 import Numeric                          (showHex)
@@ -108,10 +108,8 @@ asUnicode = T.concatMap toJSUnicode
 
 
 
-correctUnicodeEscape :: Text -> Text
-correctUnicodeEscape t = stepOne
-  where
-    stepOne = T.replace "\\\\u" "\\u" t
+correctUnicodeEscape :: String -> String
+correctUnicodeEscape = replace "\\\\u" "\\u"
 
 
 submissionToJs :: Parser [String]
@@ -130,10 +128,10 @@ submissionToJs = sepBy1 (parseString <|> parseList <|> parseOther) (char ',')
 
 
 -- | Process Text containing Haskell Unicode representation for use in JavaScript.
-formatForJS :: Text -> [Text]
+formatForJS :: Text -> Text
 formatForJS t = case parse submissionToJs "" (T.unpack t) of
-  Left e -> [T.pack $ show e]
-  Right xs -> map (correctUnicodeEscape . T.pack) xs
+  Left e -> T.pack $ show e
+  Right xs -> showt $ map correctUnicodeEscape xs
 
 
 {- |

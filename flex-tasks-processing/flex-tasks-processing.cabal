@@ -29,9 +29,11 @@ library
   ghc-options: -Wall -Widentities -Werror
   build-depends:
       base
+    , extra
     , parsec
     , shakespeare
     , text
+    , text-show
   default-language: Haskell2010
 
 test-suite flex-tasks-test
@@ -56,10 +58,12 @@ test-suite flex-tasks-test
   build-depends:
       QuickCheck
     , base
+    , extra
     , flex-tasks-processing
     , hspec
     , parsec
     , quickcheck-instances
     , shakespeare
     , text
+    , text-show
   default-language: Haskell2010
