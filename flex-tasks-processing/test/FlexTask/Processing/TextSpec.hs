@@ -45,18 +45,9 @@ spec = do
   describe "formatForJS" $ do
     it "does not change non unicode text and puts it in a printed list" $
       forAll (arbitrary `suchThat` noUnicode) $ \t ->
-        formatForJS (fromJust $ formatAnswer [[[t]]]) `shouldBe` T.pack (show [emptyOrNone t])
+        formatForJS (fromJust $ formatAnswer [[[t]]]) `shouldBe` [T.pack (show [emptyOrNone t])]
     it "converts haskell unicode chars into JavaScript (\\u) for a unit test" $
-      formatForJS (fromJust $ formatAnswer [[[jsUnitTest]]]) `shouldBe` "[\"\\u04d2\\u29b6\"]"
-
-  describe "removeUnicodeEscape" $ do
-    it "leaves ascii chars alone" $
-      forAll (('\\' :) <$> genTestString 0 127) $ \i ->
-        removeUnicodeEscape i `shouldBe` i
-    it "strips an escape char off of any unicode." $
-      forAll (genTestString 128 1114111) $ \i ->
-        removeUnicodeEscape ('\\': i) `shouldBe` i
-
+      formatForJS (fromJust $ formatAnswer [[[jsUnitTest]]]) `shouldBe` ["[\"\\u04d2\\u29b6\"]"]
   where
     formatUnitTest = T.concat $ intersperse argDelimiter
       [ "one"
@@ -73,8 +64,6 @@ spec = do
     jsUnitTest = "\1234\10678"
 
     noUnicode t = T.all isAscii t && not ("\\u" `isInfixOf` t)
-
-    genTestString upper lower = show <$> chooseInt (upper,lower)
 
 
 genEmpty :: Gen [[[Text]]]

@@ -18,7 +18,6 @@ module FlexTask.Processing.Text
   , formatForJS
   , submissionToJs
   , processParam
-  , removeUnicodeEscape
     -- * Internationalization
   , supportedLanguages
   ) where
@@ -32,7 +31,7 @@ import Text.ParserCombinators.Parsec.Token (
   stringLiteral,
   )
 
-import Data.Char                        (isAscii, isDigit)
+import Data.Char                        (isAscii)
 import Data.List                        (intercalate)
 import Data.Maybe                       (fromMaybe)
 import Data.Text                        (Text)
@@ -135,23 +134,6 @@ formatForJS :: Text -> [Text]
 formatForJS t = case parse submissionToJs "" (T.unpack t) of
   Left e -> [T.pack $ show e]
   Right xs -> map (correctUnicodeEscape . T.pack) xs
-
-
-{- |
-Remove excessive escape characters in front of Unicode
-caused by conversion between Haskell and JavaScript representation.
--}
-removeUnicodeEscape :: String -> String
-removeUnicodeEscape (x:xs)
-    | x == '\\' && ident > 127 && inUnicodeRange
-      = unicodeIdent ++ removeUnicodeEscape rest
-    | otherwise = x : removeUnicodeEscape xs
-  where
-    (unicodeIdent,rest) = span isDigit xs
-    ident = fromMaybe 0 $ readMaybe unicodeIdent
-    inUnicodeRange = ident <= (1114111 :: Int)
-removeUnicodeEscape xs = xs
-
 
 
 {- |

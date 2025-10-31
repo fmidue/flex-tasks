@@ -23,7 +23,7 @@ import Control.Monad.Random         (RandT, StdGen, evalRandT, mkStdGen)
 import Control.OutputCapable.Blocks.Type
 import Control.OutputCapable.Blocks (OutputCapable, LangM)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
-import Data.List.Extra              (headDef, intercalate, replace)
+import Data.List.Extra              (headDef, intercalate)
 import Data.Map                     (elems)
 import Data.Maybe                   (isJust)
 import Data.Text                    (Text)
@@ -60,7 +60,6 @@ import FlexTask.Types (
   FlexInst(..),
   HtmlDict,
   )
-import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
@@ -291,7 +290,7 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
       interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
 
     tData = parens $ greadError taskData
-    input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
+    input = show submission
     path = show picPath
 
 
