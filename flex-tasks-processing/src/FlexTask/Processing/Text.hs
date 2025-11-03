@@ -51,7 +51,7 @@ The answer String contains control sequences which encode the structure of the i
 argDelimiter :: Text
 argDelimiter = ","
 
--- | Inner delimiter for elements of a field list.
+-- | Outer delimiters for elements of a field list.
 listDelimiters :: (Text,Text)
 listDelimiters = ("[","]")
 
