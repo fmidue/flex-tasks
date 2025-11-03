@@ -18,6 +18,7 @@ import Test.QuickCheck (
   suchThat,
   )
 import Test.QuickCheck.Instances.Text   ()
+import TextShow                         (showt)
 
 import FlexTask.Processing.Text
 
@@ -37,7 +38,7 @@ spec = do
       Just formatUnitTest
     modifyMaxSize (const 40) $
       prop "inserts delimiters and marks input correctly" $ \(NonEmpty nEs) ->
-        let tss = map (map getNonEmpty . getNonEmpty) nEs in
+        let tss = map (map (map emptyOrNone . getNonEmpty) . getNonEmpty) nEs in
           formatAnswer tss
           `shouldBe`
           Just (processArg $ map (processList . concat) tss)
@@ -45,25 +46,26 @@ spec = do
   describe "formatForJS" $ do
     it "does not change non unicode text and puts it in a printed list" $
       forAll (arbitrary `suchThat` noUnicode) $ \t ->
-        formatForJS (fromJust $ formatAnswer [[[t]]]) `shouldBe` T.pack (show [emptyOrNone t])
+        formatForJS (fromJust $ formatAnswer [[[T.pack $ show t]]]) `shouldBe` T.pack (show [emptyOrNone t])
     it "converts haskell unicode chars into JavaScript (\\u) for a unit test" $
-      formatForJS (fromJust $ formatAnswer [[[jsUnitTest]]]) `shouldBe` "[\"\\u04d2\\u29b6\"]"
+      formatForJS (fromJust $ formatAnswer [[[jsUnitTest]]]) `shouldBe` "[\"\\\\u04d2\\\\u29b6\"]"
   where
+    (open,close) = listDelimiters
     formatUnitTest = T.concat $ intersperse argDelimiter
       [ "one"
       , missingMarker
       , emptyMarker
-      , "[" <>
+      , open <>
         T.concat
         [ "two"
-        , listDelimiter
+        , argDelimiter
         , "three"
-        ] <> "]"
+        ] <> close
       ]
 
-    jsUnitTest = "\1234\10678"
+    jsUnitTest = showt ("\1234\10678" :: String)
 
-    noUnicode t = T.all isAscii t && not ("\\u" `isInfixOf` t)
+    noUnicode t = T.all isAscii t && not ("\\u" `isInfixOf` t) && not (T.null t)
 
 
 genEmpty :: Gen [[[Text]]]
@@ -81,9 +83,10 @@ processArg xs = T.intercalate argDelimiter (map emptyOrNone xs)
 processList :: [Text] -> Text
 processList [] = missingMarker
 processList [x] = x
-processList xs = "[" <> T.intercalate listDelimiter (map emptyOrNone xs) <> "]"
-
+processList xs = open <> T.intercalate argDelimiter xs <> close
+  where (open,close) = listDelimiters
 
 emptyOrNone :: Text -> Text
 emptyOrNone "Nothing" = emptyMarker
+emptyOrNone "" = emptyMarker
 emptyOrNone x = x

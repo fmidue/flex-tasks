@@ -66,7 +66,7 @@ import qualified Data.Text    as T
 import FlexTask.Processing.Text (
   argDelimiter,
   emptyMarker,
-  listDelimiter,
+  listDelimiters,
   )
 import FlexTask.Generic.FormInternal
   ( MultipleChoiceSelection
@@ -211,7 +211,8 @@ instance (Parse a, Parse b, Parse c, Parse d, Parse e, Parse f) => Parse (a,b,c,
 
 
 parseList :: Parse a => Parser [a]
-parseList = between (string "[") (string "]") $ sepBy formParser (parseText listDelimiter)
+parseList = between (parseText open) (parseText close) $ sepBy formParser (parseText argDelimiter)
+  where (open,close) = listDelimiters
 
 
 instance {-# Overlappable #-} Parse a => Parse [a] where
