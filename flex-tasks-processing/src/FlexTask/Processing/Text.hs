@@ -22,6 +22,11 @@ module FlexTask.Processing.Text
   , supportedLanguages
   ) where
 
+import Data.Char                        (isAscii)
+import Data.List.Extra                  (intercalate, replace, singleton)
+import Data.Text                        (Text)
+import Data.Tuple.Extra                 (both)
+import Numeric                          (showHex)
 import Text.Parsec
 import Text.Parsec.String
 import Text.ParserCombinators.Parsec.Language (
@@ -30,12 +35,8 @@ import Text.ParserCombinators.Parsec.Language (
 import Text.ParserCombinators.Parsec.Token (
   stringLiteral,
   )
-import Data.Char                        (isAscii)
-import Data.List.Extra                  (intercalate, replace, singleton)
-import Data.Text                        (Text)
-import Data.Tuple.Extra                 (both)
-import Numeric                          (showHex)
 import Text.Shakespeare.I18N            (Lang)
+import TextShow                         (showt)
 
 import qualified Data.Text as T
 
@@ -79,7 +80,7 @@ processParam getValues param = map decide <$> getValues param
     decide :: Text -> Text
     decide t
       | T.null t = emptyMarker
-      | plaintextTag `T.isSuffixOf` param = T.pack $ show t
+      | plaintextTag `T.isSuffixOf` param = showt t
       | otherwise = t
 
 
@@ -124,9 +125,9 @@ submissionToJs = sepBy1 (parseString <|> parseList <|> parseOther) (char ',')
 
 -- | Process Text containing Haskell Unicode representation for use in JavaScript.
 formatForJS :: Text -> Text
-formatForJS t = T.pack $ case parse submissionToJs "" (T.unpack t) of
-    Left e   -> show e
-    Right xs -> show $ map correctUnicodeEscape xs
+formatForJS t = case parse submissionToJs "" (T.unpack t) of
+    Left e   -> T.pack $ show e -- no TextShow instance
+    Right xs -> showt $ map correctUnicodeEscape xs
   where correctUnicodeEscape = replace "\\\\u" "\\u"
 
 
