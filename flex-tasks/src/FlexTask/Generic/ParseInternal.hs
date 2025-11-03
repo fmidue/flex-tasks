@@ -326,7 +326,9 @@ parseInstanceSingleInputList parser = contents <* spaces
 
 
 parseWithEmptyMarker :: Parser [Int]
-parseWithEmptyMarker = filter (>0) <$> formParser
+parseWithEmptyMarker = parseNoneSelected <|> filter (>0) <$> formParser
+  where
+    parseNoneSelected = char '0' >> pure []
 
 
 
