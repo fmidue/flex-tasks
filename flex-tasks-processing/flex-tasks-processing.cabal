@@ -29,6 +29,8 @@ library
   ghc-options: -Wall -Widentities -Werror
   build-depends:
       base
+    , blaze-html
+    , extra
     , shakespeare
     , text
   default-language: Haskell2010
@@ -55,6 +57,8 @@ test-suite flex-tasks-test
   build-depends:
       QuickCheck
     , base
+    , blaze-html
+    , extra
     , flex-tasks-processing
     , hspec
     , quickcheck-instances

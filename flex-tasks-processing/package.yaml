@@ -4,6 +4,8 @@ version: 0.1
 extra-source-files: [ ]
 dependencies:
   - base
+  - blaze-html
+  - extra
   - text
   - shakespeare
 default-extensions:
