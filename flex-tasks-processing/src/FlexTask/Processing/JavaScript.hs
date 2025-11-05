@@ -5,6 +5,7 @@ module FlexTask.Processing.JavaScript (
   setDefaultsJS,
   triggerDefaults,
   lockForm,
+  triggerLockForm,
   ) where
 
 
@@ -15,9 +16,9 @@ import qualified Data.Text as T
 import FlexTask.Processing.Text         (formatForJS)
 
 
-setDefaultsJS :: [[Text]] -> JavascriptUrl url
-setDefaultsJS names = [julius|
-  function setDefaults(values) {
+setDefaultsJS :: JavascriptUrl url
+setDefaultsJS = [julius|
+  function setDefaults(fieldNames, values) {
     const handlers = {
       radio:    (field, value) => { field.checked   = field.value == value; },
       select:   (field, value) => {
@@ -90,31 +91,35 @@ setDefaultsJS names = [julius|
       }
     });
   }
-  var fieldNames = #{rawJS (show names)};|]
+|]
 
 
-triggerDefaults :: Text -> JavascriptUrl url
-triggerDefaults t
-  | t == "[ ]" || T.length t < 2 = mempty
-  | otherwise = [julius|window.onload = setDefaults(#{rawJS (formatForJS t)});|]
+triggerDefaults :: [[Text]] -> Text -> JavascriptUrl url
+triggerDefaults names values
+  | values == "[ ]" || T.length values < 2 = mempty
+  | otherwise = [julius|window.onload = setDefaults(#{rawJS (show names)}, #{rawJS (formatForJS values)});|]
 
 
-lockForm :: Bool -> JavascriptUrl url
-lockForm lock
-  | lock = [julius|window.onload =
-    function () {
-      fieldNames.forEach(name => {
-        Array.from(document.getElementsByName(name))
-          .forEach(elem => {
-            if (elem.getAttribute("type")?.toLowerCase() === "radio" ||
-                elem.getAttribute("type")?.toLowerCase() === "checkbox" ||
-                elem.tagName.toLowerCase() === "select"){
-              elem.disabled = true;
-            }
-            else {
-              elem.readOnly = true;
-            }
-          });
-      });
-    };|]
+lockForm :: JavascriptUrl url
+lockForm = [julius|
+  function lockForm(fieldNames) {
+    fieldNames.forEach(name => {
+      Array.from(document.getElementsByName(name))
+        .forEach(elem => {
+          if (elem.getAttribute("type")?.toLowerCase() === "radio" ||
+              elem.getAttribute("type")?.toLowerCase() === "checkbox" ||
+              elem.tagName.toLowerCase() === "select"){
+            elem.disabled = true;
+          }
+          else {
+            elem.readOnly = true;
+          }
+        });
+    });
+  };|]
+
+
+triggerLockForm :: [[Text]] -> Bool -> JavascriptUrl url
+triggerLockForm fieldNames lock
+  | lock = [julius|window.onload = lockForm(#{rawJS (show fieldNames)});|]
   | otherwise = mempty
