@@ -136,6 +136,10 @@ removeUnicodeEscape xs = xs
 
 
 
+{- |
+Create an exact duplicate of the given form data, but append all field names with a unique identifier.
+This is used to render multiple views of the input form on the same page, e.g. the comments page in Autotool.
+-}
 uniqueFormCopy :: ([[Text]],Html) -> String -> ([[Text]],Html)
 uniqueFormCopy (params,html) uniqueId = (newParams, alteredHtml)
   where
