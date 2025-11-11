@@ -103,7 +103,7 @@ lockForm :: Bool -> JavascriptUrl url
 lockForm lock
   | lock = [julius|window.onload =
     function () {
-      fieldNames.forEach(name => {
+      fieldNames.flat().forEach(name => {
         Array.from(document.getElementsByName(name))
           .forEach(elem => {
             if (elem.getAttribute("type")?.toLowerCase() === "radio" ||
