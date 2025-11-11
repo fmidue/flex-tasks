@@ -22,7 +22,7 @@ module FlexTask.Types
 
 import Control.Monad                     (void)
 import Control.OutputCapable.Blocks      (LangM, OutputCapable, indent, refuse, translate, german, english)
-import Data.Char                         (isAscii, isLetter)
+import Data.Char                         (isAscii, isLetter, isNumber)
 import Data.List.Extra (
   dropEnd1,
   intercalate,
@@ -184,7 +184,7 @@ parseFlexConfig = do
       spaces
       discardString "taskName"
       discardString ":"
-      path <- lexeme $ many1 $ satisfy $ liftA2 (&&) isAscii isLetter
+      path <- lexeme $ many1 $ satisfy $ liftA2 (&&) isAscii (liftA2 (||) isLetter isNumber)
       void $ manyTill space $ try $ lookAhead atLeastThree
       atLeastThree
       pure path

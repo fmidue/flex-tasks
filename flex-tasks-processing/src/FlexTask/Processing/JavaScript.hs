@@ -103,7 +103,7 @@ triggerDefaults names values
 lockForm :: JavascriptUrl url
 lockForm = [julius|
   function lockForm(fieldNames) {
-    fieldNames.forEach(name => {
+    fieldNames.flat().forEach(name => {
       Array.from(document.getElementsByName(name))
         .forEach(elem => {
           if (elem.getAttribute("type")?.toLowerCase() === "radio" ||

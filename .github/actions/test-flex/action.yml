@@ -81,8 +81,29 @@ runs:
         sudo mv -f ./${{ inputs.config }}/stack.yaml ./haskell-template-setup
         sudo mv -f ./${{ inputs.config }}/package.yaml ./haskell-template-setup
         cd haskell-template-setup
-        awk '/extra-deps/ {f=1; next} f' ../stack.yaml |
-          awk 'NR==FNR {buffer=buffer $0 RS; next} /extra-deps/ {print; printf buffer; next}1' - stack.yaml > new_stack.yaml
+        awk '
+          NR==FNR {
+            if (/extra-deps/) f = 1
+            else if (f && !/allow-newer:[[:space:]]*true/) b = b $0 ORS
+            if (/allow-newer:[[:space:]]*true/) a = 1
+            next
+          }
+          {
+            if ($0 ~ /allow-newer:[[:space:]]*true/ && $0 !~ /^[[:space:]]*#/) local_has = 1
+          }
+          /extra-deps/ {
+            print
+            printf b
+            next
+          }
+          { print }
+          END {
+            if (a && !local_has) {
+              print ""
+              print "allow-newer: true"
+            }
+          }
+        ' ../stack.yaml stack.yaml > new_stack.yaml
         sudo mv -f new_stack.yaml stack.yaml
 
         raw="${{ inputs.subdirs }}"
