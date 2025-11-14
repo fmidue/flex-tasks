@@ -11,7 +11,6 @@ module FlexTask.Processing.JavaScript (
 
 import Data.Text                        (Text)
 import Text.Julius                      (JavascriptUrl, julius, rawJS)
-import qualified Data.Text as T
 
 import FlexTask.Processing.Text         (formatForJS)
 
@@ -54,50 +53,50 @@ setDefaultsJS = [julius|
       return "default";
     };
 
-    fieldNames.forEach((names, i) => {
-      const raw = values[i];
+    if(fieldNames.length == values.length) {
+      fieldNames.forEach((names, i) => {
+        const raw = values[i];
 
-      if (names.length > 1) {
-        names.forEach((name, j) => {
-          let val = Array.isArray(raw) ? raw[j] : JSON.parse(raw)[j];
-          document.getElementsByName(name).forEach(field => {
-            const key = getHandler(field);
-            if (key) handlers[key](field, val);
+        if (names.length > 1) {
+          names.forEach((name, j) => {
+            let val = Array.isArray(raw) ? raw[j] : JSON.parse(raw)[j];
+            document.getElementsByName(name).forEach(field => {
+              const key = getHandler(field);
+              if (key) handlers[key](field, val);
+            });
           });
-        });
-      }
-      else {
-        const name = names[0];
-        const fields = Array.from(document.getElementsByName(name));
-        const isList = Array.isArray(raw) || /^\[\"/.test(raw);
+        }
+        else {
+          const name = names[0];
+          const fields = Array.from(document.getElementsByName(name));
+          const isList = Array.isArray(raw) || /^\[\"/.test(raw);
 
-        fields.forEach((field, j) => {
-          let val;
-          const key = getHandler(field);
-          if (isList) {
-            const arr = Array.isArray(raw) ? raw : JSON.parse(raw);
-            if (key === "checkbox" || key === "select") {
-              val = arr;
+          fields.forEach((field, j) => {
+            let val;
+            const key = getHandler(field);
+            if (isList) {
+              const arr = Array.isArray(raw) ? raw : JSON.parse(raw);
+              if (key === "checkbox" || key === "select") {
+                val = arr;
+              }
+              else {
+                val = arr[j];
+              }
             }
             else {
-              val = arr[j];
+              val = raw;
             }
-          }
-          else {
-            val = raw;
-          }
-          if (key) handlers[key](field, val);
-        });
-      }
-    });
+            if (key) handlers[key](field, val);
+          });
+        }
+      });
+    }
   }
 |]
 
 
 triggerDefaults :: [[Text]] -> Text -> JavascriptUrl url
-triggerDefaults names values
-  | values == "[ ]" || T.length values < 2 = mempty
-  | otherwise = [julius|window.onload = setDefaults(#{rawJS (show names)}, #{rawJS (formatForJS values)});|]
+triggerDefaults names values = [julius|window.onload = setDefaults(#{rawJS (show names)}, #{rawJS (formatForJS values)});|]
 
 
 lockForm :: JavascriptUrl url
@@ -119,7 +118,5 @@ lockForm = [julius|
   };|]
 
 
-triggerLockForm :: [[Text]] -> Bool -> JavascriptUrl url
-triggerLockForm fieldNames lock
-  | lock = [julius|window.onload = lockForm(#{rawJS $ show $ concat fieldNames});|]
-  | otherwise = mempty
+triggerLockForm :: [[Text]] -> JavascriptUrl url
+triggerLockForm fieldNames = [julius|window.onload = lockForm(#{rawJS $ show $ concat fieldNames});|]
