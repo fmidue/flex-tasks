@@ -103,7 +103,7 @@ triggerDefaults names values
 lockForm :: JavascriptUrl url
 lockForm = [julius|
   function lockForm(fieldNames) {
-    fieldNames.flat().forEach(name => {
+    fieldNames.forEach(name => {
       Array.from(document.getElementsByName(name))
         .forEach(elem => {
           if (elem.getAttribute("type")?.toLowerCase() === "radio" ||
@@ -121,5 +121,5 @@ lockForm = [julius|
 
 triggerLockForm :: [[Text]] -> Bool -> JavascriptUrl url
 triggerLockForm fieldNames lock
-  | lock = [julius|window.onload = lockForm(#{rawJS (show fieldNames)});|]
+  | lock = [julius|window.onload = lockForm(#{rawJS $ show $ concat fieldNames});|]
   | otherwise = mempty
