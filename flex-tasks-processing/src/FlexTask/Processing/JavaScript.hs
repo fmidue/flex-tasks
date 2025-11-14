@@ -53,7 +53,7 @@ setDefaultsJS = [julius|
       return "default";
     };
 
-    if(fieldNames.length == values.length) {
+    if (fieldNames.length == values.length) {
       fieldNames.forEach((names, i) => {
         const raw = values[i];
 
