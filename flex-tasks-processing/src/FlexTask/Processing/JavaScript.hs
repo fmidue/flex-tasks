@@ -96,7 +96,9 @@ setDefaultsJS = [julius|
 
 
 triggerDefaults :: [[Text]] -> Text -> JavascriptUrl url
-triggerDefaults names values = [julius|window.onload = setDefaults(#{rawJS (show names)}, #{rawJS (formatForJS values)});|]
+triggerDefaults names values = [julius|
+  window.onload = setDefaults(#{rawJS (show names)}, #{rawJS (formatForJS values)});
+|]
 
 
 lockForm :: JavascriptUrl url
