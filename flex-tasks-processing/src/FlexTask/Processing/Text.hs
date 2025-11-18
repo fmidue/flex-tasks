@@ -103,19 +103,17 @@ asUnicode t = compress . map (T.concatMap toJSUnicode) <$> removeEscape t
   where
     compress x
       | length x > 1 = T.pack $ show x
-      | otherwise    = T.concat x
+      | otherwise    = T.pack $ show $ T.concat x
 
 
 correctUnicodeEscape :: Text -> Text
-correctUnicodeEscape t = T.replace "\\\\\\u" "\\\\u" stepOne
-  where
-    stepOne = T.replace "\\\\u" "\\u" t
+correctUnicodeEscape = T.replace "\\\\u" "\\u"
 
 
 
 -- | Process Text containing Haskell Unicode representation for use in JavaScript.
 formatForJS :: Text -> Text
-formatForJS t = correctUnicodeEscape $ T.pack $ show $ asUnicode t
+formatForJS t = "[" <> correctUnicodeEscape (T.intercalate "," $ asUnicode t) <> "]"
 
 
 
