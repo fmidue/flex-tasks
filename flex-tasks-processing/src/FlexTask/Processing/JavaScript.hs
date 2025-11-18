@@ -55,38 +55,35 @@ setDefaultsJS = [julius|
 
     if (fieldNames.length == values.length) {
       fieldNames.forEach((names, i) => {
-        const raw = values[i];
+        const value = values[i];
 
         if (names.length > 1) {
           names.forEach((name, j) => {
-            let val = Array.isArray(raw) ? raw[j] : JSON.parse(raw)[j];
             document.getElementsByName(name).forEach(field => {
               const key = getHandler(field);
-              if (key) handlers[key](field, val);
+              if (key) handlers[key](field, value[j]);
             });
           });
         }
         else {
           const name = names[0];
           const fields = Array.from(document.getElementsByName(name));
-          const isList = Array.isArray(raw) || /^\[\"/.test(raw);
 
           fields.forEach((field, j) => {
-            let val;
+            let nextValue;
             const key = getHandler(field);
-            if (isList) {
-              const arr = Array.isArray(raw) ? raw : JSON.parse(raw);
+            if (Array.isArray(value)) {
               if (key === "checkbox" || key === "select") {
-                val = arr;
+                nextValue = value;
               }
               else {
-                val = arr[j];
+                nextValue = value[j];
               }
             }
             else {
-              val = raw;
+              nextValue = value;
             }
-            if (key) handlers[key](field, val);
+            if (key) handlers[key](field, nextValue);
           });
         }
       });
