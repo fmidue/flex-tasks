@@ -71,7 +71,15 @@ runs:
       with:
         repository: fmidue/haskell-template-setup
         path: haskell-template-setup
-        ref: mult-key
+
+    - uses: webfactory/ssh-agent@v0.9.0
+      if: >
+        steps.restore-cache-db.outputs.cache-hit != 'true' &&
+        (inputs.ssh-key != '' || inputs.ssh-key2 != '')
+      with:
+        ssh-private-key: |
+          ${{ inputs.ssh-key }}
+          ${{ inputs.ssh-key2 }}
 
     - name: Setup DB
       if: steps.restore-cache-db.outputs.cache-hit != 'true'
@@ -116,25 +124,8 @@ runs:
           yaml="${yaml}"$'\n'"      - ${clean}"
         done
 
-        gh_reference='https://github.com/'
-
-        if [[ -n "${{ inputs.ssh-key }}" ]]; then
-          config=$(cat <<'EOF'
-        Host github-self
-          HostName github.com
-          User git
-          IdentityFile key_self
-          IdentitiesOnly yes
-        EOF
-        )
-          echo "$config" >>ssh-config
-          echo "${{ inputs.ssh-key }}" >>key_self
-          chmod 600 key_self
-          gh_reference='git@github-self:'
-        fi
-
         insert='\'\
-        "  - git: ${gh_reference}${{ github.repository }}.git\n"\
+        "  - git: https://github.com/${{ github.repository }}.git\n"\
         "    commit: ${{ inputs.commit }}\n"\
         "${yaml}"
         awk -v insert="$insert" '
@@ -145,13 +136,16 @@ runs:
           }
           { print }
         ' stack.yaml > stack.yaml.new && mv stack.yaml.new stack.yaml
-        sed -i "s@/autotool/default@$(realpath $PWD/../${{ inputs.tasks }}/root)@" env
-        eval "$(ssh-agent -s)"
-        if [[ -n "${{ inputs.ssh-key2 }}" ]]; then
-          ssh-add <(echo "${{ inputs.ssh-key2 }}")
-        fi
-        ./create.sh
-        sudo mv root ../${{ inputs.tasks }}
+        echo "system-ghc: true" >>stack.yaml
+
+        export ROOT="$(realpath ../${{ inputs.tasks }})/root"
+        export PKG_DB="$ROOT/pkgdb"
+
+        stack build --dry-run
+        make -f Makefile.build -e build
+        make -e install
+        bash -c "shopt -s globstar && cp -r $(stack path --stack-root)/**/include ${ROOT}" || true
+        stack exec -- ghc-pkg recache --package-db=${PKG_DB} && stack exec -- ghc-pkg check --package-db=${PKG_DB}
         set +ex
 
     - name: Determine GHC-Version
