@@ -13,3 +13,10 @@ horizontalRBStyle = [cassius|
     margin-left: 15px;
     margin-right: 5px;
   |]
+
+checkboxStyle :: render -> Css
+checkboxStyle = [cassius|
+  input[type="checkbox"]
+    margin-left: 15px;
+    margin-right: 5px;
+  |]
