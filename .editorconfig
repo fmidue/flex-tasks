@@ -14,5 +14,5 @@ max_line_length = 160
 [README.md]
 max_line_length = unset
 
-[{.github/{linters,actions/spelling,workflows}/*,flex-tasks/test-flex-action/runGhci.expect,flex-tasks/test-flex-action/mutator.expect}]
+[{.github/{linters,actions/spelling,workflows}/*,flex-tasks/test-flex-action/components/runGhci.expect,flex-tasks/test-flex-action/components/mutator.expect}]
 max_line_length = unset
