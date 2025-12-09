@@ -173,12 +173,11 @@ runs:
         set -ex
         sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
         cd ${{ inputs.tasks }}
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/runGhci.expect -o runGhci.expect
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/mutator.expect -o mutator.expect
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/test.sh -o test.sh
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/scan_check.sh -o scan_check.sh
-        curl -sSL https://raw.githubusercontent.com/fmidue/flex-tasks/main/flex-tasks/tasks/.hlint.yaml -o .hlint.yaml
-        chmod +x scan_check.sh
+        cp "$GITHUB_ACTION_PATH/components/runGhci.expect" runGhci.expect
+        cp "$GITHUB_ACTION_PATH/components/mutator.expect" mutator.expect
+        cp "$GITHUB_ACTION_PATH/components/test.sh" test.sh
+        cp "$GITHUB_ACTION_PATH/components/scan_check.sh" scan_check.sh
+        cp "$GITHUB_ACTION_PATH/components/.hlint.yaml" .hlint.yaml
         export GHC_PACKAGE_PATH=root/pkgdb
         for file in $(find . -name '*.flex'); do
           bash test.sh $file root "${{ github.workspace }}/${{ inputs.settings-gens }}/$(basename $file .flex).hs"
