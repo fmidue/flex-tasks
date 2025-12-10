@@ -60,37 +60,19 @@ joinWidgets = mapM_ (insertDiv . sequence_)
 
 
 horizontalRadioField :: Eq a => Handler (OptionList a) -> Field Handler a
-horizontalRadioField = withRadioFieldFlat
-      (\theId optionWidget -> [whamlet|
-$newline never
-<div .radio>
-    <label for=#{theId}-none>
-      ^{optionWidget}
-      _{MsgSelectNone}
-|])
-      (\theId value _isSel text optionWidget -> [whamlet|
-$newline never
-<label for=#{theId}-#{value}>
-  ^{optionWidget}
-  \#{text}
-|])
+horizontalRadioField = selectFieldHelper outside (\_ _ _ -> pure ()) inside Nothing
   where
-    withRadioFieldFlat nothingFun optFun =
-      selectFieldHelper outside onOpt inside Nothing
-        where
-          outside theId _name _attrs inside' =
-            toWidget horizontalRBStyle >> [whamlet|
+    outside theId _name _attrs inside' =
+      toWidget horizontalRBStyle >> [whamlet|
 $newline never
 <div>
   <span ##{theId}>^{inside'}
 |]
-          onOpt theId name isSel = nothingFun theId [whamlet|
+    inside theId name attrs value isSel display = [whamlet|
 $newline never
-<input id=#{theId}-none type=radio name=#{name} value=none :isSel:checked>
-|]
-          inside theId name attrs value isSel display =
-            optFun theId value isSel display [whamlet|
-<input id=#{theId}-#{(value)} type=radio name=#{name} value=#{(value)} :isSel:checked *{attrs}>
+<label for=#{theId}-#{value}>
+  <input id=#{theId}-#{(value)} type=radio name=#{name} value=#{(value)} :isSel:checked *{attrs}>
+  \#{display}
 |]
 
 
