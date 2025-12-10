@@ -1,7 +1,7 @@
 
 # Test Flex
 
-This action automates running the [test script found in this repository](https://github.com/fmidue/flex-tasks/blob/main/flex-tasks/tasks/README.md) on Flex tasks in .flex file format.
+This action automates running the [included test script](components/README.md) on Flex tasks in .flex file format.
 
 The action will install, build and cache all necessary components to execute the script. This includes `apt-get` packages, the package database and an optional `tex-live` installation.
 

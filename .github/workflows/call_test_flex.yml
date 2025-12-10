@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: fmidue/flex-tasks/.github/actions/test-flex@main
+      - uses: fmidue/flex-tasks/test-flex-action@main
         with:
           tasks: flex-tasks/tasks
           config: pkgdb-config
