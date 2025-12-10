@@ -174,12 +174,22 @@ Add your project's packages to the dependencies list.
 
 For private repositories you will need to use SSH keys. Follow these steps:
 
-  1. Generate a key pair __without password protection__
+  1. Generate a key pair __without password protection__ (`ssh-keygen -C "key comment"`)
   2. Configure the public key as a deploy-key in your private repository.
   3. Configure the private key as an action secret for the repository calling this action.
   4. Pass the secret to this action's input _ssh-key_.
 
 Note that the repositories in steps 2 and 3 could be the same.
+
+### Using multiple GitHub deploy keys
+
+If your setup includes multiple private GitHub repositories, then you will need to disambiguate which key is used for which URL.
+This is necessary because the GitHub servers will not try all available keys in order, but instead only the first, then fail if it does not match.
+To resolve this, include the repository URL in a key comment when generating the key pair, e.g.
+
+`ssh-keygen -C "https://github.com/owner/repo"`
+
+The action will then make sure GitHub uses the correct key for each repository.
 
 
 ## Recommended permissions
