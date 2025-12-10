@@ -5,9 +5,19 @@ packages:
   - flex-tasks-processing
 extra-deps:
   - git: https://github.com/fmidue/output-blocks.git
-    commit: 77d9867b1d872795064086836e1b0cf24bcfd296
+    commit: d67590cb2e1a72ed72437a8cfe2972b680405569
     subdirs:
       - output-blocks
+  # for output-blocks
+  - git: https://git.uni-due.de/fmi/autotool-dev.git
+    commit: 56e75cd74d44f81ae52baa3b886025bd4d158bbb
+    subdirs:
+      - base
+      - data
+      - reader
+      - todoc
+      - transport
+      - util
   - git: https://github.com/fmidue/autotool-capabilities.git
     commit: 8067088f23759d787c049677a26868df26c1676f
     subdirs:
