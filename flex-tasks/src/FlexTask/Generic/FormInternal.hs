@@ -54,12 +54,32 @@ import Data.Maybe           (fromMaybe)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
-import Yesod
+import Yesod (
+  AForm,
+  Field,
+  FieldSettings(..),
+  PathPiece(..),
+  SomeMessage,
+  Textarea,
+  areq,
+  aopt,
+  boolField,
+  convertField,
+  doubleField,
+  hiddenField,
+  intField,
+  multiSelectField,
+  optionsPairs,
+  renderMessage,
+  selectField,
+  textareaField,
+  textField,
+  )
 
 import FlexTask.FormUtil    (applyToWidget)
 import FlexTask.Widgets
   ( checkboxField
-  , horizontalRadioField
+  , radioField
   , joinWidgets
   , renderForm
   )
@@ -557,30 +577,33 @@ No option is selected when the form is loaded.
 
 >>> let labels = ["this one", "or rather that one", "I just cannot decide"]
 >>> printWidget "en" $ formify (Nothing @SingleChoiceSelection) [[buttons Vertical "Make your choice" labels]]
+...
 <div class="flex-form-div">
 ...
     <label for="flexident1">
       Make your choice
     </label>
-    <div id="flexident1">
-      <div class="radio">
-        <input id="flexident1-1" type="radio" ... value="1" ...>
-        <label for="flexident1-1">
-          this one
-        </label>
-      </div>
-      <div class="radio">
-        <input id="flexident1-2" type="radio" ... value="2" ...>
-        <label for="flexident1-2">
-          or rather that one
-        </label>
-      </div>
-      <div class="radio">
-        <input id="flexident1-3" type="radio" ... value="3" ...>
-        <label for="flexident1-3">
-          I just cannot decide
-        </label>
-      </div>
+    <div>
+      <span id="flexident1">
+        <div>
+          <label>
+            <input id="flexident1-1" type="radio" ... value="1" ...>
+            this one
+          </label>
+        </div>
+        <div>
+          <label>
+            <input id="flexident1-2" type="radio" ... value="2" ...>
+            or rather that one
+          </label>
+        </div>
+        <div>
+          <label>
+            <input id="flexident1-3" type="radio" ... value="3" ...>
+            I just cannot decide
+          </label>
+        </div>
+      </span>
     </div>
 ...
 </div>
@@ -745,19 +768,22 @@ that cannot use a bodyless `Formify` instance.
     <label for="flexident1">
       Choose one
     </label>
-...
-        <label for="flexident1-1">
+    <div>
+      <span id="flexident1">
+        <label>
           <input id="flexident1-1" type="radio" ... value="1" ...>
           One
         </label>
-        <label for="flexident1-2">
+        <label>
           <input id="flexident1-2" type="radio" ... value="2" checked ...>
           Two
         </label>
-        <label for="flexident1-3">
+        <label>
           <input id="flexident1-3" type="radio" ... value="3" ...>
           Three
         </label>
+      </span>
+    </div>
 ...
 </div>
 
@@ -804,8 +830,8 @@ renderNextSingleChoiceField pairsWith =
       ChoicesButtons align fs opts ->
         ( fs
         , areq $ case align of
-            Vertical -> radioField'
-            Horizontal -> horizontalRadioField
+            Vertical -> radioField True
+            Horizontal -> radioField False
           $ withOptions opts
         )
       _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
