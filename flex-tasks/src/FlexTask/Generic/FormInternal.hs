@@ -54,12 +54,32 @@ import Data.Maybe           (fromMaybe)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
-import Yesod
+import Yesod (
+  AForm,
+  Field,
+  FieldSettings(..),
+  PathPiece(..),
+  SomeMessage,
+  Textarea,
+  areq,
+  aopt,
+  boolField,
+  convertField,
+  doubleField,
+  hiddenField,
+  intField,
+  multiSelectField,
+  optionsPairs,
+  renderMessage,
+  selectField,
+  textareaField,
+  textField,
+  )
 
 import FlexTask.FormUtil    (applyToWidget)
 import FlexTask.Widgets
   ( checkboxField
-  , horizontalRadioField
+  , radioField
   , joinWidgets
   , renderForm
   )
@@ -804,8 +824,8 @@ renderNextSingleChoiceField pairsWith =
       ChoicesButtons align fs opts ->
         ( fs
         , areq $ case align of
-            Vertical -> radioField'
-            Horizontal -> horizontalRadioField
+            Vertical -> radioField True
+            Horizontal -> radioField False
           $ withOptions opts
         )
       _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."

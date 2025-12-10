@@ -59,8 +59,8 @@ joinWidgets = mapM_ (insertDiv . sequence_)
 
 
 
-horizontalRadioField :: Eq a => Handler (OptionList a) -> Field Handler a
-horizontalRadioField = selectFieldHelper outside (\_ _ _ -> pure ()) inside Nothing
+radioField :: Eq a => Bool -> Handler (OptionList a) -> Field Handler a
+radioField isVertical = selectFieldHelper outside (\_ _ _ -> pure ()) inside Nothing
   where
     outside theId _name _attrs inside' =
       toWidget horizontalRBStyle >> [whamlet|
@@ -68,11 +68,20 @@ $newline never
 <div>
   <span ##{theId}>^{inside'}
 |]
-    inside theId name attrs value isSel display = [whamlet|
+    inside theId name attrs value isSel display =
+      let radio = [whamlet|
 $newline never
 <label for=#{theId}-#{value}>
   <input id=#{theId}-#{(value)} type=radio name=#{name} value=#{(value)} :isSel:checked *{attrs}>
   \#{display}
+|]
+      in [whamlet|
+$newline never
+$if isVertical
+  <div>
+    ^{radio}
+$else
+  ^{radio}
 |]
 
 
