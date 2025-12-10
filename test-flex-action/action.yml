@@ -173,11 +173,7 @@ runs:
         set -ex
         sudo cp haskell-template-setup/stack.yaml ${{ inputs.tasks }}
         cd ${{ inputs.tasks }}
-        cp "$GITHUB_ACTION_PATH/components/runGhci.expect" runGhci.expect
-        cp "$GITHUB_ACTION_PATH/components/mutator.expect" mutator.expect
-        cp "$GITHUB_ACTION_PATH/components/test.sh" test.sh
-        cp "$GITHUB_ACTION_PATH/components/scan_check.sh" scan_check.sh
-        cp "$GITHUB_ACTION_PATH/components/.hlint.yaml" .hlint.yaml
+        cp -a "$GITHUB_ACTION_PATH/components/." .
         export GHC_PACKAGE_PATH=root/pkgdb
         for file in $(find . -name '*.flex'); do
           bash test.sh $file root "${{ github.workspace }}/${{ inputs.settings-gens }}/$(basename $file .flex).hs"
