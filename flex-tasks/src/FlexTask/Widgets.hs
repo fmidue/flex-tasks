@@ -71,7 +71,7 @@ $newline never
     inside theId name attrs value isSel display =
       let radio = [whamlet|
 $newline never
-<label for=#{theId}-#{value}>
+<label>
   <input id=#{theId}-#{(value)} type=radio name=#{name} value=#{(value)} :isSel:checked *{attrs}>
   \#{display}
 |]
