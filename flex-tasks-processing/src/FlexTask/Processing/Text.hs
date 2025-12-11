@@ -103,6 +103,7 @@ asUnicode t = compress . map (T.concatMap toJSUnicode) <$> removeEscape t
   where
     compress x
       | length x > 1 = T.pack $ show x
+      | x == [""]    = T.empty
       | otherwise    = T.pack $ show $ T.concat x
 
 
