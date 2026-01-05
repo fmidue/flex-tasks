@@ -238,6 +238,11 @@ validateFlexConfig FlexConf{commonModules = CommonModules{..},..}
   | nubOrd moduleNames /= moduleNames = reject $ do
     german "Mindestens zwei Zusatzmodule haben den gleichen Namen."
     english "At least two additional modules use the same name."
+  | any ('.' `elem`) moduleNames = reject $ do
+    german "Mindestens ein Name eines Zusatzmoduls ist hierarchisch (enthält das Zeichen '.'). "
+    german "Dies wird nicht unterstützt."
+    english "At least one additional module's name is hierarchical (contains a '.'). "
+    english "This is not supported."
   | otherwise = pure ()
   where
     reject = refuse . indent . translate
