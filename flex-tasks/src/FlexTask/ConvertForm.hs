@@ -34,8 +34,12 @@ resetIdentGen = do
 
 
 {- |
-Extract a form from the environment.
-The result is an IO embedded tuple of field IDs and a map of language and internationalized html pairs.
+Extract a form from the environment inside an IO context.
+The result is a tuple of field IDs and a map of language and internationalized html pairs.
+
+This is an internal function used in the Autotool Flex-Task implementation.
+You should never need to call this function yourself.
+Use `unsafeGetFormData` instead.
 -}
 getFormData :: Rendered Widget -> IO ([[Text]], HtmlDict)
 getFormData widget = do
@@ -68,13 +72,12 @@ getFormData widget = do
 Extract a form from the environment.
 The result is a tuple of field IDs and a map of language and internationalized html pairs.
 
-__This function employs `unsafePerformIO`!__
-It should never be used if `getFormData` is applicable instead.
+Intended to be used for Autotool's task interface.
 
-Intended to be used on non-randomized Autotool tasks (called "direct") where an IO context is not available.
-
-Generally, usage of this should be safe if the `Rendered Widget` argument does not incorporate `liftIO` calls.
-This will always be the case for non-custom forms.
+__Warning: This function employs `unsafePerformIO`!__
+It should nevertheless be safe to use
+as long as no lifted IO actions are executed while building the `Rendered` `Widget` argument.
+This will always be the case for generic forms.
 For custom forms, the user is responsible for making sure such calls are avoided or considered "safe".
 -}
 unsafeGetFormData :: Rendered Widget -> ([[Text]], HtmlDict)
