@@ -4,7 +4,11 @@
 module FlexTask.DefaultConfigSpec where
 
 
-import Control.OutputCapable.Blocks     (ReportT)
+import Control.OutputCapable.Blocks     (Language(..), ReportT)
+import Control.OutputCapable.Blocks.Debug (
+  checkConfigWith,
+  )
+
 import Test.Hspec (
   Spec,
   anyErrorCall,
@@ -12,6 +16,7 @@ import Test.Hspec (
   context,
   describe,
   it,
+  shouldReturn,
   )
 import Test.Hspec.Parsec                (shouldParse)
 import Text.Parsec                      (parse)
@@ -22,6 +27,7 @@ import FlexTask.Types (
   FlexInst(..),
   parseFlexConfig,
   showFlexConfig,
+  validateFlexConfig,
   )
 import FlexTask.Interpreter (
   checkSolution,
@@ -45,6 +51,8 @@ spec = do
     it "is parsed by the config parser" $
       parse parseFlexConfig "" (showFlexConfig defaultConfig)
       `shouldParse` defaultConfig
+    it "passes the config validation" $
+      checkConfigWith English defaultConfig validateFlexConfig `shouldReturn` True
     context "generates an instance without throwing an error..." $ do
       beforeAll genInst $ do
         it "and it can be used to build a description" $
