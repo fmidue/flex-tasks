@@ -41,4 +41,4 @@ The generic parsers and input forms can be used as a standalone feature, indepen
 
 The test suite for flex-tasks needs a specified external package database. Its path has to be set via the environment variable `FLEX_PKGDB` before running the tests. You can use the default database of the package by setting `FLEX_PKGDB` to `$(stack path --local-pkg-db)`.
 The test-suite also requires additional dependencies not needed for compiling the library.
-To execute the tests use the provided config file `stack-test.yaml` via `stack test --stack-yaml stack-test.yaml` instead.
+To execute the tests use the provided config file `stack-test.yaml` via `stack test -w stack-test.yaml` instead.
