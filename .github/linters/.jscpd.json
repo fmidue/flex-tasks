@@ -1,12 +1,7 @@
 {
   "threshold": 2,
-  "reporters": [
-    "consoleFull"
-  ],
-  "ignore": [
-    "**/__snapshots__/**",
-    "**/tasks/interpolation-test/**"
-  ],
+  "reporters": ["consoleFull"],
+  "ignore": ["**/__snapshots__/**", "**/tasks/interpolation-test/**"],
   "minLines": 2,
   "max-lines": 2000,
   "absolute": true
