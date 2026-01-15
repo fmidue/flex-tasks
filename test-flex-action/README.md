@@ -181,9 +181,9 @@ For private repositories you will need to use SSH keys. Follow these steps:
 
 Note that the repositories in steps 2 and 3 could be the same.
 
-### Using multiple GitHub deploy keys
+### Using GitHub deploy keys
 
-If your setup includes multiple private GitHub repositories, then you will need to disambiguate which key is used for which URL.
+If your setup includes private GitHub repositories, then you will need to clarify which key is used for which URL (__Yes, even if there's only one__).
 This is necessary because the GitHub servers will not try all available keys in order, but instead only the first, then fail if it does not match.
 To resolve this, include the repository URL in a key comment when generating the key pair, e.g.
 
