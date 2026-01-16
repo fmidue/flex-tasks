@@ -99,7 +99,7 @@ checkboxField isVertical optList = (multiSelectField optList)
   #{optionDisplay opt}
 |]
               toWidget checkboxStyle >> [whamlet|
-<span ##{theId}>
+<div ##{theId}>
   <input type=hidden name=#{title} value=0>
   $forall opt <- os
     $with box <- checkboxWidget opt
