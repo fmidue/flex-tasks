@@ -11,7 +11,7 @@ import FlexTask.FormUtil (
   newFlexId,
   newFlexName,
   )
-import FlexTask.Styling     (horizontalRBStyle)
+import FlexTask.Styling     (horizontalRBStyle, checkboxStyle)
 import FlexTask.YesodConfig (
   FlexForm,
   Handler,
@@ -98,8 +98,8 @@ checkboxField isVertical optList = (multiSelectField optList)
   <input type=checkbox name=#{title} value=#{optionExternalValue opt} *{attrs} :selected val opt:checked>
   #{optionDisplay opt}
 |]
-              [whamlet|
-<span ##{theId}>
+              toWidget checkboxStyle >> [whamlet|
+<div ##{theId}>
   <input type=hidden name=#{title} value=0>
   $forall opt <- os
     $with box <- checkboxWidget opt
