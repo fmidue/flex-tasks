@@ -7,45 +7,8 @@
 {-# language StandaloneDeriving #-}
 {-# language TypeOperators #-}
 
-module FlexTask.Generic.FormInternal
-  (
-    -- * Data Types
-    Alignment(..)
-  , FieldInfo
-  , SingleChoiceSelection
-  , MultipleChoiceSelection
-  , Hidden(..)
-  , SingleInputList(..)
-    -- * Type Classes
-  , BaseForm(..)
-  , Formify(..)
-  , formify
-  , formifyComponents
-  , formifyComponentsFlat
-    -- * Anonymous Enum Type Builders and Accessors.
-  , getAnswer
-  , getAnswers
-  , multipleChoiceAnswer
-  , multipleChoiceEmpty
-  , singleChoiceAnswer
-  , singleChoiceEmpty
-
-    -- * Field Builders
-  , buttons
-  , buttonsEnum
-  , dropdown
-  , dropdownEnum
-  , list
-  , listWithoutLabels
-  , repeatFieldInfo
-  , repeatBuilderOn
-  , single
-
-    -- * Formify Convenience Functions
-  , formifyInstanceBasicField
-  , formifyInstanceOptionalField
-  , formifyInstanceSingleChoice
-  , formifyInstanceMultiChoice
+module FlexTask.Generic.FormInternal (
+  module FlexTask.Generic.FormInternal
   ) where
 
 
