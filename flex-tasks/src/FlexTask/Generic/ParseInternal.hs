@@ -467,13 +467,18 @@ parseWithFallback ::
   => Parser a
   -- ^ Parser to use initially
   -> (String -> Maybe ParseError -> ParseError -> LangM (ReportT o m))
-  -- ^ How to produce an error report based on:
-  -- ^ 1. The input string
-  -- ^ 2. The possible parse error of the fallback parser
-  -- ^ 3. The original parse error
+  {- ^
+  How to produce an error report based on:
+
+      1. The input string
+      2. The possible parse error of the fallback parser
+      3. The original parse error
+  -}
   -> Parser ()
-  -- ^ The secondary parser to use in case of a parse error.
-  -- ^ Only used for generating possible further errors, thus does not return a value.
+  {- ^
+  The secondary parser to use in case of a parse error.
+  Only used for generating possible further errors, thus does not return a value.
+  -}
   -> String
   -- ^ The input
   -> LangM' (ReportT o m) a
