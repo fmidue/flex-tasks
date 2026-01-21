@@ -58,12 +58,14 @@ jobs:
 
       - name: Escape commit message
         id: escape
+        if: ${{ github.ref_name == github.event.repository.default_branch }}
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           echo "commit_msg=$(echo "$COMMIT_MSG" | jq -Rs '.|rtrimstr("\n")')" >> "$GITHUB_OUTPUT"
 
       - name: Trigger Test-Flex
+        if: ${{ github.ref_name == github.event.repository.default_branch }}
         uses: peter-evans/repository-dispatch@v3
         with:
           event-type: CI-Completed
