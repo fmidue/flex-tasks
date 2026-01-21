@@ -470,9 +470,9 @@ parseWithFallback ::
   {- ^
   How to produce an error report based on:
 
-     1. The input string
-     2. The possible parse error of the fallback parser
-     3. The original parse error
+      1. The input string
+      2. The possible parse error of the fallback parser
+      3. The original parse error
   -}
   -> Parser ()
   {- ^
