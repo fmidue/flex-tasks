@@ -69,7 +69,7 @@ Inner lists represent the rows of the form.
 All FieldInfo values in an inner list are rendered besides each other.
 Inner lists are rendered below each other.
 
-__Examples__
+=== __Examples__
 
 Input
 
@@ -155,7 +155,9 @@ Wrapper type for generating hidden fields.
 This can be used to transfer static information through the form to parsing.
 Note that the generated field still has a label.
 If the label is not left blank, then it will be displayed as normal.
+
 === __Example__
+
 >>> printWidget "en" $ formify (Just $ Hidden 3) [[single ""]]
 <div class="flex-form-div">
 ...
@@ -171,7 +173,9 @@ newtype Hidden a = Hidden {getHidden :: a} deriving (Eq,Show)
 {- |
 Wrapper type for lists. Use for a single field list input.
 Normally, lists are interpreted as multiple fields instead.
+
 === __Example__
+
 >>> printWidget "en" $ formify (Nothing @(SingleInputList String)) [[single "Input comma separated sentences"]]
 <div class="flex-form-div">
 ...
@@ -193,7 +197,9 @@ Generic single choice answer type.
 Use if both of the following is true:
   - You want an input that presents multiple answer choices, but only allows a single selection.
   - There's no specific data type associated with this selection.
+
 === __Example__
+
 >>> let labels = ["First Option", "Second Option", "Third Option"]
 >>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) [[dropdown "Choose one" labels]]
 <div class="flex-form-div">
@@ -223,7 +229,9 @@ Same as `SingleChoiceSelection`, but for multiple choice input.
 Use if both of the following is true:
   - You want an input that presents multiple answer choices and allows selecting any number of them.
   - There's no specific data type associated with this selection.
+
 === __Example__
+
 >>> let labels = ["First Option", "Second Option", "Third Option"]
 >>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) [[dropdown "Choose one" labels]]
 <div class="flex-form-div">
