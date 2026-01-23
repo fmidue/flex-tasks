@@ -53,7 +53,7 @@ joinWidgets = mapM_ (insertDiv . sequence_)
   where
     insertDiv w = [whamlet|
       $newline never
-      <div .flex-form-div>
+      <div .flex-form-div .form-group>
         ^{w}
     |]
 
