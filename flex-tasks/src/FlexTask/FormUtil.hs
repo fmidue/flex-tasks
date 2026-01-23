@@ -77,14 +77,14 @@ You may circumvent this via CSS rules on the 'flex-form-div' class.
 === __Example__
 
 >>> printWidget "de" $ myForm $$> myOtherForm
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       ...
     </label>
 ...
 </div>
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident2">
       ...
@@ -118,7 +118,7 @@ e.g. if some custom text is to be included with the element.
 <h1>
   Insert me at once!
 </h1>
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
 </div>
 -}
@@ -145,7 +145,7 @@ The content will be inserted in a \<style\> tag at the top of the document.
 <style>
   myClass{margin:2px}
 </style>
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
 </div>
 -}
@@ -165,7 +165,7 @@ The content will be inserted in a \<script\> tag at the bottom of the document.
 ==== __Example__
 
 >>> printWidget "de" $ addJs [julius|myFunc(){ console.log("Hi"); }|] myForm
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
 </div>
 <script>
@@ -303,7 +303,7 @@ Used for debugging.
 === __Example__
 
 >>> printWidget "en" $ formify (Nothing @Int) [[single "Number Please"]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
   <input type="hidden" name="_hasdata">
   <span class="required flex-form-span">
     <label for="flexident1">

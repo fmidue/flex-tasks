@@ -159,7 +159,7 @@ If the label is not left blank, then it will be displayed as normal.
 === __Example__
 
 >>> printWidget "en" $ formify (Just $ Hidden 3) [[single ""]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
     </label>
@@ -177,7 +177,7 @@ Normally, lists are interpreted as multiple fields instead.
 === __Example__
 
 >>> printWidget "en" $ formify (Nothing @(SingleInputList String)) [[single "Input comma separated sentences"]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Input comma separated sentences
@@ -202,7 +202,7 @@ Use if both of the following is true:
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
 >>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) [[dropdown "Choose one" labels]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Choose one
@@ -234,7 +234,7 @@ Use if both of the following is true:
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
 >>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) [[dropdown "Choose one" labels]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Choose one
@@ -506,7 +506,7 @@ indicating the form is faulty.
 Renders an input field with /type=number/ attribute, no default value and label /Age/.
 
 >>> printWidget "en" $ formify (Nothing @Int) [[single "Age"]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Age
@@ -522,22 +522,22 @@ are assigned the Css class \"helloInput\" and have no labels attached to them.
 
 >>> let defaults = ["Hallo", "Hello", "Hola", "Ciao"]
 >>> printWidget "en" $ formify (Just defaults) [[listWithoutLabels Vertical 4 [("class","helloInput")]]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <input id="flexident1" ... type="text" ... value="Hallo" class="helloInput">
 ...
 </div>
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <input id="flexident2" ... type="text" ... value="Hello" class="helloInput">
 ...
 </div>
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <input id="flexident3" ... type="text" ... value="Hola" class="helloInput">
 ...
 </div>
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <input id="flexident4" ... type="text" ... value="Ciao" class="helloInput">
 ...
@@ -549,7 +549,7 @@ No option is selected when the form is loaded.
 >>> let labels = ["this one", "or rather that one", "I just cannot decide"]
 >>> printWidget "en" $ formify (Nothing @SingleChoiceSelection) [[buttons Vertical "Make your choice" labels]]
 ...
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Make your choice
@@ -734,7 +734,7 @@ that cannot use a bodyless `Formify` instance.
 >>> instance Formify MyType where formifyImplementation = formifyInstanceSingleChoice
 >>> printWidget "en" $ formify (Just Two) [[buttonsEnum Horizontal "Choose one" (showToUniversalLabel @MyType)]]
 ...
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Choose one
@@ -759,7 +759,7 @@ that cannot use a bodyless `Formify` instance.
 </div>
 
 >>> printWidget "en" $ formify (Just Two) [[dropdownEnum "Choose one" (showToUniversalLabel @MyType)]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Choose one
@@ -845,7 +845,7 @@ Possible builders to use with instances are `buttonsEnum` (checkboxes) and `drop
 >>> instance Formify [MyType] where formifyImplementation = formifyInstanceMultiChoice
 >>> printWidget "en" $ formify (Just [Two,Three]) [[buttonsEnum Horizontal "Choose" (showToUniversalLabel @MyType)]]
 ...
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Choose
@@ -868,7 +868,7 @@ Possible builders to use with instances are `buttonsEnum` (checkboxes) and `drop
 </div>
 
 >>> printWidget "en" $ formify (Just [Two,Three]) [[dropdownEnum "Choose some" (showToUniversalLabel @MyType)]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Choose some
@@ -987,7 +987,7 @@ The length of the list is equal to the amount of labels provided.
 
 >>> let labels = ["Input 1", "Input 2", "Input 3"]
 >>> printWidget "en" $ formify (Nothing @[Double]) [[list Horizontal labels]]
-<div class="flex-form-div">
+<div class="flex-form-div form-group">
 ...
     <label for="flexident1">
       Input 1
