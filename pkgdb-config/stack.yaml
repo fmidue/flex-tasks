@@ -4,7 +4,7 @@ packages:
   - .
 extra-deps:
   - git: https://github.com/fmidue/autotool-capabilities.git
-    commit: 8067088f23759d787c049677a26868df26c1676f
+    commit: 73a7688fe3249b2bd20d44c3c3359e35e2529517
     subdirs:
       - autotool-capabilities
       - autotool-capabilities-io-instances
