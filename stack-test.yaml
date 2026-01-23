@@ -19,7 +19,7 @@ extra-deps:
       - transport
       - util
   - git: https://github.com/fmidue/autotool-capabilities.git
-    commit: 8067088f23759d787c049677a26868df26c1676f
+    commit: 936d0aab99e0d3f39968c5d61add8e56bfd9c93d
     subdirs:
       - autotool-capabilities
       - autotool-capabilities-io-instances
