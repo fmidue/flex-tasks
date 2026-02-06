@@ -137,7 +137,7 @@ genFlexInst
         setImports [
             "Capabilities.Alloy.IO"
           , "Capabilities.Diagrams.IO"
-          , "Capabilities.Exceptions.IO"
+          , "Capabilities.Exceptions.IO.Trans"
           , "Capabilities.Graphviz.IO"
           , "Control.Monad.Random"
           , "Data.Generics.Text"
