@@ -315,6 +315,9 @@ The function thus enables more complex reporting (e.g., of errors)
 than might be possible by purely using basic parsers alone.
 The final result is passed to the check functions to generate feedback.
 
+`parseSubmission` does not support additional Monad capabilities.
+It should still work if type variable `m` is replaced by the Identity Monad.
+
 The parsers used throughout are those of 'Text.Parsec'.
 Refer to its documentation if necessary.
 
