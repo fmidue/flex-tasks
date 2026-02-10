@@ -198,7 +198,7 @@ You may add additional Monad capability constraints from `autotool-capabilities`
   - MonadGraphviz
   - MonadCache
   - MonadLatexSvg
-  - MonadWriteFile
+  - MonadWriteFile (deprecated; try using MonadCache instead)
 
 As this function produces a String, you can also use interpolation.
 Use that to precompute data and interpolate the results directly into the module.
@@ -262,7 +262,7 @@ You may add additional Monad capability constraints from `autotool-capabilities`
   - MonadGraphviz
   - MonadCache
   - MonadLatexSvg
-  - MonadWriteFile
+  - MonadWriteFile (deprecated; try using MonadCache instead)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
