@@ -97,7 +97,7 @@ validateSettings taskName globalCode settingsCode extraCode = do
 {- |
 Use a `FlexConf` to generate a `FlexInst`.
 Interprets `taskDataModule` to generate the input form and task data.
-Apply the given method to run the generator with a seed.
+The given Integer is used as a seed for the generator.
 -}
 genFlexInst
   :: FlexConf
