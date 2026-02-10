@@ -26,6 +26,7 @@ import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (headDef, intercalate, replace)
 import Data.Map                     (elems)
 import Data.Maybe                   (isJust)
+import Data.String.Interpolate      (i)
 import Data.Text                    (Text)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
@@ -52,7 +53,6 @@ import System.Directory (
     )
 import System.Environment          (getEnv)
 import System.FilePath             ((</>), (<.>))
-import Text.RawString.QQ (rQ)
 
 import FlexTask.Types (
   CommonModules(..),
@@ -118,7 +118,7 @@ genFlexInst
         , ("TaskSettings", settingsModule)
         , ("TaskData", taskDataModule)
         ] ++ extraModules
-      helperPath <- cacheHelper
+      helperPath <- cacheHelper "GenerationHelper" []
       taskAndFormResult <- runWithPackageDB $
           loadModules (helperPath : filePaths) >> tfInter
       let gen = extract taskAndFormResult
@@ -133,7 +133,7 @@ genFlexInst
     where
       tfInter :: Interpreter (RandT StdGen IO GenOutput)
       tfInter = do
-        setTopLevelModules ["TaskData", "Global", "TaskSettings", "Helper"]
+        setTopLevelModules ["TaskData", "Global", "TaskSettings", "GenerationHelper"]
         setImports [
             "Control.Monad.Random"
           , "Data.Generics.Text"
@@ -267,7 +267,7 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
       , ("Parse", parseCode)
       , ("Check", checkCode)
       ] ++ extraCode
-    helperPath <- cacheHelper
+    helperPath <- cacheHelper "EvaluationHelper" ["syntaxAndSemantics"]
     runWithPackageDB (loadModules (helperPath : filePaths) >> runCheck) >>= sequence
   where
     runCheck = do
@@ -284,7 +284,7 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
         , "Data.Ratio"
         , "Data.Text"
         ]
-      setTopLevelModules ["Check", "Global", "Helper", "Parse"]
+      setTopLevelModules ["Check", "Global", "EvaluationHelper", "Parse"]
       interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
 
     tData = parens $ greadError taskData
@@ -346,18 +346,16 @@ imageLinks = concatMap $ foldMapOutputBy (++) (\case
   )
 
 
-cacheHelper :: IO FilePath
-cacheHelper = headDef cachingError <$>
-    writeUncachedAndGetPaths "" [("Helper",helperCode)]
+cacheHelper :: String -> [String] -> IO FilePath
+cacheHelper moduleName exports = headDef cachingError <$>
+    writeUncachedAndGetPaths "" [(moduleName,helperCode)]
   where
-    cachingError = error "Caching the internal Helper module failed."
+    cachingError = error [i|Caching the internal #{moduleName} module failed.|]
+    helperCode = [i|
+module #{moduleName} (#{intercalate "," exports}) where
 
-    helperCode = [rQ|
-module Helper (syntaxAndSemantics) where
-
-import FlexTask.InterpreterHelper
+import FlexTask.Interpreter.#{moduleName}
 |]
-
 
 
 {- |

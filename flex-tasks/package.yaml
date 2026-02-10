@@ -24,9 +24,9 @@ dependencies:
   - parsec
   - parsec-numbers
   - QuickCheck
-  - raw-strings-qq
   - SHA
   - shakespeare
+  - string-interpolate
   - text
   - transformers
   - utf8-string
@@ -50,7 +50,8 @@ library:
     - FlexTask.Generic.Form
     - FlexTask.Generic.Parse
     - FlexTask.GenUtil
-    - FlexTask.InterpreterHelper
+    - FlexTask.Interpreter.EvaluationHelper
+    - FlexTask.Interpreter.GenerationHelper
     - FlexTask.Interpreter
     - FlexTask.Types
     - FlexTask.YesodConfig

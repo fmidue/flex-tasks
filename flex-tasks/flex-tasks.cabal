@@ -18,7 +18,8 @@ library
       FlexTask.Generic.Form
       FlexTask.Generic.Parse
       FlexTask.GenUtil
-      FlexTask.InterpreterHelper
+      FlexTask.Interpreter.EvaluationHelper
+      FlexTask.Interpreter.GenerationHelper
       FlexTask.Interpreter
       FlexTask.Types
       FlexTask.YesodConfig
@@ -62,8 +63,8 @@ library
     , output-blocks
     , parsec
     , parsec-numbers
-    , raw-strings-qq
     , shakespeare
+    , string-interpolate
     , text
     , transformers
     , utf8-string
@@ -113,8 +114,8 @@ test-suite flex-tasks-doctest
     , output-blocks
     , parsec
     , parsec-numbers
-    , raw-strings-qq
     , shakespeare
+    , string-interpolate
     , text
     , transformers
     , utf8-string
@@ -171,7 +172,6 @@ test-suite flex-tasks-test
     , parsec
     , parsec-numbers
     , quickcheck-instances
-    , raw-strings-qq
     , shakespeare
     , string-interpolate
     , syb
