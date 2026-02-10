@@ -1,7 +1,6 @@
 {-# language ApplicativeDo #-}
-module FlexTask.InterpreterHelper (
+module FlexTask.Interpreter.EvaluationHelper (
   syntaxAndSemantics,
-  getFormData,
   ) where
 
 
@@ -12,8 +11,6 @@ import Control.OutputCapable.Blocks.Type (
   getOutputSequenceWithResult,
   getOutputSequenceWithRating,
   )
-
-import FlexTask.ConvertForm              (getFormData)
 
 
 

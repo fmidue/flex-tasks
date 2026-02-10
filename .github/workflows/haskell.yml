@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           set -ex
-          stack --no-terminal --install-ghc build --test --bench --only-dependencies --stack-yaml stack-test.yaml
+          stack --no-terminal --install-ghc build --test --bench --only-dependencies
           set +ex
         env:
           BUILD: ${{ matrix.plan.build }}
@@ -51,7 +51,7 @@ jobs:
         run: |
           set -ex
           export FLEX_PKGDB=$(stack path --local-pkg-db)
-          stack --no-terminal test --coverage --bench --no-run-benchmarks --haddock --no-haddock-deps --stack-yaml stack-test.yaml
+          stack --no-terminal test --coverage --bench --no-run-benchmarks --haddock --no-haddock-deps
           set +ex
         env:
           BUILD: ${{ matrix.plan.build }}
