@@ -135,11 +135,7 @@ genFlexInst
       tfInter = do
         setTopLevelModules ["TaskData", "Global", "TaskSettings", "Helper"]
         setImports [
-            "Capabilities.Alloy.IO.Trans"
-          , "Capabilities.Diagrams.IO.Trans"
-          , "Capabilities.Exceptions.IO.Trans"
-          , "Capabilities.Graphviz.IO.Trans"
-          , "Control.Monad.Random"
+            "Control.Monad.Random"
           , "Data.Generics.Text"
           , "Data.Map"
           , "Data.Text"

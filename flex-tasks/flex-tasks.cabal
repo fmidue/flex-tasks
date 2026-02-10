@@ -44,6 +44,8 @@ library
       MonadRandom
     , QuickCheck
     , SHA
+    , autotool-capabilities
+    , autotool-capabilities-io-instances
     , base
     , blaze-html
     , containers
@@ -90,6 +92,8 @@ test-suite flex-tasks-doctest
       MonadRandom
     , QuickCheck
     , SHA
+    , autotool-capabilities
+    , autotool-capabilities-io-instances
     , base
     , blaze-html
     , containers
