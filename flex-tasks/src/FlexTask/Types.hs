@@ -227,11 +227,13 @@ validateFlexConfig FlexConf{commonModules = CommonModules{..},..}
       listRequired
   | "Helper" `elem` moduleNames = reject $ do
     german $
-      "Eines der zusätzlichen Module wurde mit Namen \"Helper\" definiert. " ++
-      "Dieser Name ist für ein internes Modul reserviert."
+      "Eines der zusätzlichen Module wurde mit Namen " ++
+      "\"GenerationHelper\" oder \"EvaluationHelper\" definiert. " ++
+      "Diese Namen sind für interne Module reserviert."
     english $
-      "An additional Module was defined as \"Helper\". " ++
-      "This name is reserved for internal use."
+      "An additional Module was defined as " ++
+      "\"GenerationHelper\" or \"EvaluationHelper\". " ++
+      "These names are reserved for internal use."
   | any (`elem` required) moduleNames = reject $ do
     german "Eines der Zusatzmodule wurde wie ein festes Modul benannt."
     english "An additional module has the same name as a required one."

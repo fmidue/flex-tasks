@@ -391,7 +391,7 @@ You can add arbitrarily many additional modules after this point.
 They must be delimited by at least three `=` as before.
 These modules can be imported freely.
 Make sure their names do not overlap with those above.
-Also avoid the name `Helper`, which is already used internally.
+Also avoid the names `EvaluationHelper` and `GenerationHelper`, which are already used internally.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
