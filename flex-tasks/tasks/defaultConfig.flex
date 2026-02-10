@@ -41,6 +41,9 @@ Define a constant `validateSettings` which checks the values defined in this mod
 It can be defined as `pure ()` if no checks are required.
 `validateSettings` is meant for sanity checks preventing the lecturer from
 choosing inappropriate settings during task configuration.
+
+`validateSettings` does not support Monad capabilities.
+It should still work if type variable `m` is replaced by the Identity Monad.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 module TaskSettings where
@@ -66,6 +69,13 @@ This includes (in order):
 Provide a function
 getTask :: MonadRandom m => m (TaskData, String, Rendered Widget)
 implementing a generator for these elements.
+
+You may add additional Monad capability constraints from `autotool-capabilities` and `Control.Monad.Catch`:
+  - MonadAlloy
+  - MonadDiagrams
+  - MonadGraphviz
+  - MonadCatch
+  - MonadThrow
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
 based on the type of your input.
@@ -183,6 +193,13 @@ Refer to the library's documentation for help.
 LangM is feedback without a score.
 Rated is feedback with a final score as a fraction, i.e. 0 to 1.
 
+You may add additional Monad capability constraints from `autotool-capabilities`:
+  - MonadDiagrams
+  - MonadGraphviz
+  - MonadCache
+  - MonadLatexSvg
+  - MonadWriteFile
+
 As this function produces a String, you can also use interpolation.
 Use that to precompute data and interpolate the results directly into the module.
 This is most useful for static data that is not affected by random generation, and expensive calculations.
@@ -239,6 +256,13 @@ where FilePath, TaskData and LangM are as explained in the 'Check' module.
 This function is also supplied with static task data, the same as the check functions.
 If different data is required, consider splitting the type into a tuple of two different contents,
 one for each of the modules.
+
+You may add additional Monad capability constraints from `autotool-capabilities`:
+  - MonadDiagrams
+  - MonadGraphviz
+  - MonadCache
+  - MonadLatexSvg
+  - MonadWriteFile
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
