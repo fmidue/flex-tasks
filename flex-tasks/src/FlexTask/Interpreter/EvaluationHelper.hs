@@ -4,8 +4,8 @@ module FlexTask.Interpreter.EvaluationHelper (
   ) where
 
 
+import Control.Monad.Identity           (Identity, runIdentity)
 import Control.OutputCapable.Blocks     (LangM, LangM', Rated, ReportT)
-import Control.OutputCapable.Blocks.Generic (($>>=))
 import Control.OutputCapable.Blocks.Type (
   Output,
   getOutputSequenceWithResult,
@@ -14,24 +14,29 @@ import Control.OutputCapable.Blocks.Type (
 
 
 
-type Report = ReportT Output IO
+type Report a = ReportT Output a
 
 
 syntaxAndSemantics
-  :: (String -> LangM' Report b)
-  -> (FilePath -> a -> b -> LangM Report)
-  -> (FilePath -> a -> b -> Rated Report)
+  :: (String -> LangM' (Report Identity) b)
+  -> (FilePath -> a -> b -> LangM (Report IO))
+  -> (FilePath -> a -> b -> Rated (Report IO))
   -> String
   -> FilePath
   -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
 syntaxAndSemantics preprocess syntax semantics input path tData = do
-  let parseRes = preprocess input
-  let syn = syntax path tData
-  (synSuccess,synRes) <- getOutputSequenceWithResult (parseRes $>>= syn)
-  case synSuccess of
-    Nothing -> pure (synRes,Nothing)
-    Just () -> do
-      let sem = semantics path tData
-      semRes <- getOutputSequenceWithRating (parseRes $>>= sem)
-      pure (synRes, Just semRes)
+  let (mParseRes, parseOutput) = runIdentity $
+        getOutputSequenceWithResult $ preprocess input
+  case mParseRes of
+    Nothing -> pure (parseOutput, Nothing)
+    Just parseRes -> do
+      let syn = syntax path tData
+      (synSuccess,synRes) <- getOutputSequenceWithResult $ syn parseRes
+      let syntaxOutput = parseOutput ++ synRes
+      case synSuccess of
+        Nothing -> pure (syntaxOutput,Nothing)
+        Just () -> do
+          let sem = semantics path tData
+          semRes <- getOutputSequenceWithRating $ sem parseRes
+          pure (syntaxOutput, Just semRes)
