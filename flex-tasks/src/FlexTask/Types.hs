@@ -225,7 +225,7 @@ validateFlexConfig FlexConf{commonModules = CommonModules{..},..}
       "The names or order of required modules was changed. " ++
       "They have to be defined with exactly the following names and order: " ++
       listRequired
-  | "Helper" `elem` moduleNames = reject $ do
+  | any (`elem` ["GenerationHelper", "EvaluationHelper"]) moduleNames = reject $ do
     german $
       "Eines der zusätzlichen Module wurde mit Namen " ++
       "\"GenerationHelper\" oder \"EvaluationHelper\" definiert. " ++
