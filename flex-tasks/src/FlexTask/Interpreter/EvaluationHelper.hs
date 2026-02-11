@@ -31,9 +31,10 @@ syntaxAndSemantics preprocess syntax semantics input path tData = do
       let syn = syntax path tData
       (syntaxSuccess,syntaxOutput) <- getOutputSequenceWithResult $ syn parseResult
       let syntaxResult = parseOutput ++ syntaxOutput
-      case syntaxSuccess of
-        Nothing -> pure (syntaxResult,Nothing)
+      (syntaxResult,) <$>
+       case syntaxSuccess of
+        Nothing -> pure Nothing
         Just () -> do
           let sem = semantics path tData
           semanticsResult <- getOutputSequenceWithRating $ sem parseResult
-          pure (syntaxResult, Just semanticsResult)
+          pure (Just semanticsResult)
