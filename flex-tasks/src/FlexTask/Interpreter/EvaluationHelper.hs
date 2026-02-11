@@ -19,16 +19,15 @@ import Control.OutputCapable.Blocks.Type (
 
 syntaxAndSemantics
   :: (String -> LangM' (ReportT Output Identity) b)
-  -> (FilePath -> a -> b -> LangM (ReportT Output Identity))
+  -> (a -> b -> LangM (ReportT Output Identity))
   -> (FilePath -> a -> b -> Rated (ReportT Output IO))
   -> String
   -> FilePath
   -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
 syntaxAndSemantics preprocess syntax semantics input path tData = do
-  let syn = syntax path tData
   let (syntaxResult,syntaxOutput) = runIdentity $ getOutputSequenceWithResult $
-        preprocess input $>>= \res -> res <$ syn res
+        preprocess input $>>= \result -> result <$ syntax tData result
   (syntaxOutput,) <$> case syntaxResult of
     Nothing -> pure Nothing
     Just a -> do

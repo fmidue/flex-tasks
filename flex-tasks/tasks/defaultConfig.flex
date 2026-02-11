@@ -168,7 +168,7 @@ The entire module is first created as a String.
 It will later be written to file as an actual module.
 This module must contain two functions:
 
-checkSyntax :: OutputCapable m => FilePath -> TaskData -> Submission -> LangM m
+checkSyntax :: OutputCapable m => TaskData -> Submission -> LangM m
 
 checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
 
@@ -182,23 +182,24 @@ data constructors need to be in scope in the `Global` module.
 
 The `Submission` type is the actual type of the student submission after parsing and possibly post-processing.
 The `FilePath` argument is the server path for storing and loading images and other data.
-It is supplied by the caller of the checker functions and can be used as is, if file creation is required.
-The type signature must also be adjusted in this case.
-A 'MonadIO m' constraint must be set for file operations to work (including an import of the type class).
+It is supplied by the caller of the `checkSemantics` functions and can be used as is, if file creation is required.
 Otherwise, the FilePath argument can be completely ignored.
+
+`checkSyntax` does not support Monad capabilities.
+It should still work if type variable `m` is replaced by the Identity Monad.
+
+You may add additional Monad capability constraints from `autotool-capabilities` to `checkSemantics`:
+  - MonadDiagrams
+  - MonadGraphviz
+  - MonadCache
+  - MonadLatexSvg
+  - MonadWriteFile (deprecated; try using MonadCache instead)
 
 The functions' result types are taken from 'Control.OutputCapable.Blocks'.
 They model a type-independent representation of checks and corresponding feedback.
 Refer to the library's documentation for help.
 LangM is feedback without a score.
 Rated is feedback with a final score as a fraction, i.e. 0 to 1.
-
-You may add additional Monad capability constraints from `autotool-capabilities`:
-  - MonadDiagrams
-  - MonadGraphviz
-  - MonadCache
-  - MonadLatexSvg
-  - MonadWriteFile (deprecated; try using MonadCache instead)
 
 As this function produces a String, you can also use interpolation.
 Use that to precompute data and interpolate the results directly into the module.
@@ -228,8 +229,8 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> TaskData -> Submission -> LangM m
-checkSyntax _ _ _  = pure ()  -- nothing to check here
+checkSyntax :: OutputCapable m => TaskData -> Submission -> LangM m
+checkSyntax _ _  = pure ()  -- nothing to check here
 
 
 checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
