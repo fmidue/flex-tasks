@@ -14,13 +14,10 @@ import Control.OutputCapable.Blocks.Type (
 
 
 
-type Report a = ReportT Output a
-
-
 syntaxAndSemantics
-  :: (String -> LangM' (Report Identity) b)
-  -> (FilePath -> a -> b -> LangM (Report IO))
-  -> (FilePath -> a -> b -> Rated (Report IO))
+  :: (String -> LangM' (ReportT Output Identity) b)
+  -> (FilePath -> a -> b -> LangM (ReportT Output IO))
+  -> (FilePath -> a -> b -> Rated (ReportT Output IO))
   -> String
   -> FilePath
   -> a
