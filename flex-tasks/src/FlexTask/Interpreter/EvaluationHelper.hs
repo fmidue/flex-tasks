@@ -6,6 +6,9 @@ module FlexTask.Interpreter.EvaluationHelper (
 
 import Control.Monad.Identity           (Identity, runIdentity)
 import Control.OutputCapable.Blocks     (LangM, LangM', Rated, ReportT)
+import Control.OutputCapable.Blocks.Generic (
+  ($>>=),
+  )
 import Control.OutputCapable.Blocks.Type (
   Output,
   getOutputSequenceWithResult,
@@ -16,24 +19,19 @@ import Control.OutputCapable.Blocks.Type (
 
 syntaxAndSemantics
   :: (String -> LangM' (ReportT Output Identity) b)
-  -> (FilePath -> a -> b -> LangM (ReportT Output IO))
+  -> (FilePath -> a -> b -> LangM (ReportT Output Identity))
   -> (FilePath -> a -> b -> Rated (ReportT Output IO))
   -> String
   -> FilePath
   -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
 syntaxAndSemantics preprocess syntax semantics input path tData = do
-  let (mParseResult, parseOutput) = runIdentity $
-        getOutputSequenceWithResult $ preprocess input
-  case mParseResult of
-    Nothing -> pure (parseOutput, Nothing)
-    Just parseResult -> do
-      let syn = syntax path tData
-      (syntaxSuccess,syntaxOutput) <- getOutputSequenceWithResult $ syn parseResult
-      let syntaxResult = parseOutput ++ syntaxOutput
-      (syntaxResult,) <$> case syntaxSuccess of
-        Nothing -> pure Nothing
-        Just () -> do
-          let sem = semantics path tData
-          semanticsResult <- getOutputSequenceWithRating $ sem parseResult
-          pure (Just semanticsResult)
+  let syn = syntax path tData
+  let (syntaxResult,syntaxOutput) = runIdentity $ getOutputSequenceWithResult $
+        preprocess input $>>= \res -> res <$ syn res
+  (syntaxOutput,) <$> case syntaxResult of
+    Nothing -> pure Nothing
+    Just a -> do
+      let sem = semantics path tData
+      semanticsResult <- getOutputSequenceWithRating $ sem a
+      pure (Just semanticsResult)
