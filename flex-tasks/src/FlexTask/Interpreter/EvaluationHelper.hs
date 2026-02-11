@@ -28,9 +28,6 @@ syntaxAndSemantics
 syntaxAndSemantics preprocess syntax semantics input path tData = do
   let (syntaxResult,syntaxOutput) = runIdentity $ getOutputSequenceWithResult $
         preprocess input $>>= \result -> result <$ syntax tData result
-  (syntaxOutput,) <$> case syntaxResult of
-    Nothing -> pure Nothing
-    Just a -> do
-      let sem = semantics path tData
-      semanticsResult <- getOutputSequenceWithRating $ sem a
-      pure (Just semanticsResult)
+  (syntaxOutput,) <$> mapM
+    (getOutputSequenceWithRating . semantics path tData)
+    syntaxResult
