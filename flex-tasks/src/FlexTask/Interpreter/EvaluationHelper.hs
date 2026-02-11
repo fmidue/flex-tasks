@@ -6,9 +6,7 @@ module FlexTask.Interpreter.EvaluationHelper (
 
 import Control.Monad.Identity           (Identity, runIdentity)
 import Control.OutputCapable.Blocks     (LangM, LangM', Rated, ReportT)
-import Control.OutputCapable.Blocks.Generic (
-  ($>>=),
-  )
+import Control.OutputCapable.Blocks.Generic (($>>=))
 import Control.OutputCapable.Blocks.Type (
   Output,
   getOutputSequenceWithResult,
@@ -25,9 +23,9 @@ syntaxAndSemantics
   -> FilePath
   -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
-syntaxAndSemantics preprocess syntax semantics input path tData = do
-  let (syntaxResult,syntaxOutput) = runIdentity $ getOutputSequenceWithResult $
+syntaxAndSemantics preprocess syntax semantics input path tData =
+  let (maybeSyntaxResult, syntaxOutput) = runIdentity $ getOutputSequenceWithResult $
         preprocess input $>>= \result -> result <$ syntax tData result
-  (syntaxOutput,) <$> mapM
-    (getOutputSequenceWithRating . semantics path tData)
-    syntaxResult
+  in (syntaxOutput,) <$> mapM
+                          (getOutputSequenceWithRating . semantics path tData)
+                          maybeSyntaxResult
