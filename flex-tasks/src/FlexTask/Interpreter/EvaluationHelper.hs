@@ -26,17 +26,17 @@ syntaxAndSemantics
   -> a
   -> IO ([Output], Maybe (Maybe Rational, [Output]))
 syntaxAndSemantics preprocess syntax semantics input path tData = do
-  let (mParseRes, parseOutput) = runIdentity $
+  let (mParseResult, parseOutput) = runIdentity $
         getOutputSequenceWithResult $ preprocess input
-  case mParseRes of
+  case mParseResult of
     Nothing -> pure (parseOutput, Nothing)
-    Just parseRes -> do
+    Just parseResult -> do
       let syn = syntax path tData
-      (synSuccess,synRes) <- getOutputSequenceWithResult $ syn parseRes
-      let syntaxOutput = parseOutput ++ synRes
-      case synSuccess of
-        Nothing -> pure (syntaxOutput,Nothing)
+      (syntaxSuccess,syntaxOutput) <- getOutputSequenceWithResult $ syn parseResult
+      let syntaxResult = parseOutput ++ syntaxOutput
+      case syntaxSuccess of
+        Nothing -> pure (syntaxResult,Nothing)
         Just () -> do
           let sem = semantics path tData
-          semRes <- getOutputSequenceWithRating $ sem parseRes
-          pure (syntaxOutput, Just semRes)
+          semanticsResult <- getOutputSequenceWithRating $ sem parseResult
+          pure (syntaxResult, Just semanticsResult)
