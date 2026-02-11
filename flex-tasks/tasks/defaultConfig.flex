@@ -182,7 +182,7 @@ data constructors need to be in scope in the `Global` module.
 
 The `Submission` type is the actual type of the student submission after parsing and possibly post-processing.
 The `FilePath` argument is the server path for storing and loading images and other data.
-It is supplied by the caller of the `checkSemantics` functions and can be used as is, if file creation is required.
+It is supplied by the caller of the `checkSemantics` function and can be used as is, if file creation is required.
 Otherwise, the FilePath argument can be completely ignored.
 
 `checkSyntax` does not support Monad capabilities.
