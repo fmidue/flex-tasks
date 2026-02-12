@@ -12,7 +12,7 @@ import Global
 
 
 checkSyntax :: OutputCapable m => a -> b -> LangM m
-checkSyntax _ _ _ = pure ()
+checkSyntax _ _ = pure ()
 
 
 checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m

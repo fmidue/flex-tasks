@@ -64,7 +64,7 @@ import Global
 
 
 checkSyntax :: OutputCapable m => a -> Submission -> LangM m
-checkSyntax _ _ (a,b)= do
+checkSyntax _ (a,b)= do
     assertion (all (`elem` #{solution}) [a,b]) $ --ignore-length
       translate $ do
         german "Das Tupel kommt im Kreuzprodukt vor?"

@@ -102,7 +102,7 @@ import Global
 
 
 checkSyntax :: OutputCapable m => a -> Submission -> LangM m
-checkSyntax _ _ _ = pure ()
+checkSyntax _ _ = pure ()
 
 
 checkSemantics :: OutputCapable m => FilePath -> a -> Submission -> Rated m
