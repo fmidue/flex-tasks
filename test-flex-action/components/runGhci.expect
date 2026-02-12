@@ -88,7 +88,7 @@ send "(configRes,configOut) <- getOutputSequenceWithResult \$ validateFlexConfig
 expect "ghci> "
 send "when (isNothing configRes) \$ throw \$ AssertionFailed \$ \"Refusal in validateFlexConfig: \" ++ show configOut\r"
 expect "ghci> "
-send "getOutputSequence (TaskSettings.validateSettings :: LangM (ReportT Output Identity))\r"
+send "getOutputSequence (TaskSettings.validateSettings :: Monad m => LangM (ReportT Output m))\r"
 expect "ghci> "
 send "let taskDataGen = TaskData.getTask :: (MonadRandom m, MonadAlloy m, MonadDiagrams m, MonadGraphviz m, MonadThrow m, MonadCatch m) => m (TaskData,String,Rendered Widget)\r"
 send "taskData <- evalRandTIO taskDataGen\r"
