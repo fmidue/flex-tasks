@@ -63,7 +63,7 @@ import Global
 
 
 
-checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
+checkSyntax :: OutputCapable m => a -> Submission -> LangM m
 checkSyntax _ _ (a,b)= do
     assertion (all (`elem` #{solution}) [a,b]) $ --ignore-length
       translate $ do

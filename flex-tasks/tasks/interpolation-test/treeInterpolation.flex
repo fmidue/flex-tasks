@@ -101,7 +101,7 @@ import Control.OutputCapable.Blocks
 import Global
 
 
-checkSyntax :: OutputCapable m => FilePath -> a -> Submission -> LangM m
+checkSyntax :: OutputCapable m => a -> Submission -> LangM m
 checkSyntax _ _ _ = pure ()
 
 
