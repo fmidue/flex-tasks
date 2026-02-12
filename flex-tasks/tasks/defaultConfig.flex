@@ -185,7 +185,7 @@ The `FilePath` argument is the server path for storing and loading images and ot
 It is supplied by the caller of the `checkSemantics` function and can be used as is, if file creation is required.
 Otherwise, the FilePath argument can be completely ignored.
 
-`checkSyntax` does not support Monad capabilities.
+`checkSyntax` does not support type classes from autotool-capabilities.
 It should still work if type variable `m` is replaced by the Identity Monad.
 
 You may add additional Monad capability constraints from `autotool-capabilities` to `checkSemantics`:
@@ -194,6 +194,8 @@ You may add additional Monad capability constraints from `autotool-capabilities`
   - MonadCache
   - MonadLatexSvg
   - MonadWriteFile (deprecated; try using MonadCache instead)
+
+`Alternative` can also be added to either type signature if required by an output-blocks function.
 
 The functions' result types are taken from 'Control.OutputCapable.Blocks'.
 They model a type-independent representation of checks and corresponding feedback.
