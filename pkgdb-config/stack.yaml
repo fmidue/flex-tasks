@@ -2,5 +2,6 @@
 resolver: nightly-2025-10-07
 packages:
   - .
+extra-deps:
 
 allow-newer: true
