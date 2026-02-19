@@ -49,7 +49,6 @@ setDefaultsJS = [julius|
       if (t === "radio")    return "radio";
       if (tag === "select") return "select";
       if (t === "checkbox") return "checkbox";
-      if (t === "hidden")   return null;  // skip hidden
       return "default";
     };
 
