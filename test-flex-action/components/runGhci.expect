@@ -119,7 +119,7 @@ send "when (isNothing descRes) \$ throw \$ AssertionFailed \$ \"Refusal in Descr
 expect "ghci> "
 send "parseContents <- readFile \"Parse.hs\"\r"
 expect "ghci> "
-send "let parseSubmissionTest = Parse.parseSubmission \"\" :: Monad m => LangM' (ReportT Output m) Submission\r"
+send "let parseSubmissionTest = Parse.parseSubmission \"\" :: (Monad m, OutputCapable (ReportT o m)) => LangM' (ReportT o m) Submission\r"
 expect "ghci> "
 send "let (result,parseOut) = if \"parseInfallibly\" `isInfixOf` parseContents then (Nothing,\[\]) else runIdentity \$ getOutputSequenceWithResult parseSubmissionTest\r"
 expect "ghci> "
