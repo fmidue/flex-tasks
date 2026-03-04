@@ -93,8 +93,11 @@ expect "ghci> "
 send "getOutputSequence (TaskSettings.validateSettings :: OutputCapable m => LangM m)\r"
 expect "ghci> "
 send "let taskDataGen = TaskData.getTask :: (MonadRandom m, MonadAlloy m, MonadDiagrams m, MonadGraphviz m, MonadCatch m) => m (TaskData, String, Rendered Widget)\r"
-send "taskData <- evalRandTIO taskDataGen\r"
 expect "ghci> "
+send "taskData <- evalRandTIO taskDataGen\r"
+set timeout 30
+expect "ghci> "
+set timeout 3
 send "let taskDataTypeTest = fst3 taskData :: TaskData\r"
 expect "ghci> "
 send "let taskDataString = gshow taskDataTypeTest\r"
