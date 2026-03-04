@@ -46,7 +46,7 @@ runs:
 
     - name: Setup LaTeX
       if: ${{ inputs.latex-setup == 'true' }}
-      uses: TeX-Live/setup-texlive-action@v3
+      uses: zauguin/install-texlive@v4
       with:
         packages: |
           scheme-basic
