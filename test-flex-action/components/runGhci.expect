@@ -5,7 +5,7 @@ set ver [lindex $argv 0];
 set timeout 3
 
 log_user 0
-spawn ghci-$ver Global TaskSettings TaskData Description Parse -Wall -Wno-orphans
+spawn ghci-$ver +RTS -M3G -RTS Global TaskSettings TaskData Description Parse -Wall -Wno-orphans
 log_user 1
 expect_before timeout { exit 1 }
 
@@ -96,11 +96,7 @@ send "let taskDataGen = TaskData.getTask :: (MonadRandom m, MonadAlloy m, MonadD
 expect "ghci> "
 send "taskData <- evalRandTIO taskDataGen\r"
 set timeout 600
-expect {
-    "ghci> " { }
-    eof      { puts stderr "GHCi died (possible OOM kill)"; exit 2 }
-    timeout  { puts stderr "Timed out waiting for GHCi prompt"; exit 1 }
-}
+expect "ghci> "
 set timeout 3
 send "let taskDataTypeTest = fst3 taskData :: TaskData\r"
 expect "ghci> "
