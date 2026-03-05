@@ -166,20 +166,20 @@ for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
   fi
 done
 
-echo -e "${CYAN}Deleting intermediate files...\n${NC}"
-
-rm -f Check.hs
-rm -f settings_variants.txt
-if ! $hlint_hints && ! $ghc_hints && ! $scan_hints && ! $leave_check; then
-  cd ..
-  rm -f -r "$base_name"
-else
-  files=("${files[@]#$base_name/}")
-  rm -f config.txt
-  for file in "${files[@]}"; do
-    rm -f "$file"
-  done
-  find . -type d -empty -delete
-fi
+#echo -e "${CYAN}Deleting intermediate files...\n${NC}"
+#
+#rm -f Check.hs
+#rm -f settings_variants.txt
+#if ! $hlint_hints && ! $ghc_hints && ! $scan_hints && ! $leave_check; then
+#  cd ..
+#  rm -f -r "$base_name"
+#else
+#  files=("${files[@]#$base_name/}")
+#  rm -f config.txt
+#  for file in "${files[@]}"; do
+#    rm -f "$file"
+#  done
+#  find . -type d -empty -delete
+#fi
 
 echo -e "${LIGHT_GREEN}Done! Check the reports in ghc.html, hlint.html and scan_check.html.\n${NC}"
