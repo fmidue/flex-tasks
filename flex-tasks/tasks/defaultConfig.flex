@@ -193,6 +193,7 @@ You may add additional Monad capability constraints from `autotool-capabilities`
   - MonadGraphviz
   - MonadCache
   - MonadLatexSvg
+  - MonadPlantUml
   - MonadWriteFile (deprecated; try using MonadCache instead)
 
 `Alternative` can also be added to either type signature if required by an output-blocks function.
@@ -265,6 +266,7 @@ You may add additional Monad capability constraints from `autotool-capabilities`
   - MonadGraphviz
   - MonadCache
   - MonadLatexSvg
+  - MonadPlantUml
   - MonadWriteFile (deprecated; try using MonadCache instead)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
