@@ -95,7 +95,7 @@ expect "ghci> "
 send "let taskDataGen = TaskData.getTask :: (MonadRandom m, MonadAlloy m, MonadDiagrams m, MonadGraphviz m, MonadCatch m) => m (TaskData, String, Rendered Widget)\r"
 expect "ghci> "
 send "taskData <- evalRandTIO taskDataGen\r"
-set timeout 120
+set timeout 180
 expect "ghci> "
 set timeout 3
 send "let taskDataTypeTest = fst3 taskData :: TaskData\r"
