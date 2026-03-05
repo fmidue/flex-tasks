@@ -96,7 +96,11 @@ send "let taskDataGen = TaskData.getTask :: (MonadRandom m, MonadAlloy m, MonadD
 expect "ghci> "
 send "taskData <- evalRandTIO taskDataGen\r"
 set timeout 600
-expect "ghci> "
+expect {
+    "ghci> " { }
+    eof      { puts stderr "GHCi died (possible OOM kill)"; exit 2 }
+    timeout  { puts stderr "Timed out waiting for GHCi prompt"; exit 1 }
+}
 set timeout 3
 send "let taskDataTypeTest = fst3 taskData :: TaskData\r"
 expect "ghci> "
