@@ -133,7 +133,7 @@ for i in $(seq 1 "$(grep -c ^ settings_variants.txt)"); do
     sed -e 's/.*\*\*\*/\*\*\*/g' -e '/GHCi, version/d' -e '/ghci> /d' -e '/modules loaded./d' |
     ansi2html >"$i/ghc.html"
   if [ "$(grep -vw "Compiling" -c "$i/ghc.html")" -eq 51 ]; then
-    rm "$i/ghc.html"
+#    rm "$i/ghc.html"
     echo -e "${GREEN}No Warnings!\n${NC}"
   else
     echo -e "${RED}GHC reported warnings!\n${NC}"
