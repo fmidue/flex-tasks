@@ -17,6 +17,7 @@ RWS
 syb
 subdirs
 TIO
+uml
 uncons
 unsnoc
 usr
