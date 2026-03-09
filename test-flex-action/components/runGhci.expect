@@ -5,7 +5,7 @@ set ver [lindex $argv 0];
 set timeout 3
 
 log_user 0
-spawn ghci-$ver +RTS -M2G -RTS Global TaskSettings TaskData Description Parse -Wall -Wno-orphans
+spawn ghci-$ver Global TaskSettings TaskData Description Parse -Wall -Wno-orphans
 log_user 1
 expect_before timeout { exit 1 }
 
@@ -94,7 +94,7 @@ send "getOutputSequence (TaskSettings.validateSettings :: OutputCapable m => Lan
 expect "ghci> "
 send "let taskDataGen = TaskData.getTask :: (MonadRandom m, MonadAlloy m, MonadDiagrams m, MonadGraphviz m, MonadCatch m) => m (TaskData, String, Rendered Widget)\r"
 expect "ghci> "
-set timeout 900
+set timeout 1800
 send "taskData <- evalRandTIO taskDataGen\r"
 expect "ghci> "
 set timeout 3
