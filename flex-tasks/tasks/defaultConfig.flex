@@ -188,13 +188,14 @@ Otherwise, the FilePath argument can be completely ignored.
 `checkSyntax` does not support type classes from autotool-capabilities.
 It should still work if type variable `m` is replaced by the Identity Monad.
 
-You may add additional Monad capability constraints from `autotool-capabilities` to `checkSemantics`:
+You may add additional Monad capability constraints from `autotool-capabilities` and `exceptions` to `checkSemantics`:
   - MonadDiagrams
   - MonadGraphviz
   - MonadCache
   - MonadLatexSvg
   - MonadPlantUml
   - MonadWriteFile (deprecated; try using MonadCache instead)
+  - MonadThrow
 
 `Alternative` can also be added to either type signature if required by an output-blocks function.
 
@@ -261,13 +262,14 @@ This function is also supplied with static task data, the same as the check func
 If different data is required, consider splitting the type into a tuple of two different contents,
 one for each of the modules.
 
-You may add additional Monad capability constraints from `autotool-capabilities`:
+You may add additional Monad capability constraints from `autotool-capabilities` and `exceptions`:
   - MonadDiagrams
   - MonadGraphviz
   - MonadCache
   - MonadLatexSvg
   - MonadPlantUml
   - MonadWriteFile (deprecated; try using MonadCache instead)
+  - MonadThrow
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
 
