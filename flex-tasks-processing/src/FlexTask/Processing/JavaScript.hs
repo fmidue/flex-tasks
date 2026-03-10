@@ -87,6 +87,9 @@ setDefaultsJS = [julius|
         }
       });
     }
+
+  // fire custom event after script finishes
+  document.dispatchEvent(new CustomEvent("flex-form:submission-loaded", {bubbles : true}));
   }
 |]
 
