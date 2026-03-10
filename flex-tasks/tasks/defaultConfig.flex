@@ -67,15 +67,24 @@ This includes (in order):
 - The input form given by a Flex-Tasks defined data type. (Rendered Widget)
 
 Provide a function
-getTask :: MonadRandom m => m (TaskData, String, Rendered Widget)
+getTask :: m (TaskData, String, Rendered Widget)
 implementing a generator for these elements.
 
-You may add additional Monad capability constraints from `autotool-capabilities` and `Control.Monad.Catch`:
+You may add additional Monad capability constraints from `autotool-capabilities`, `exceptions` and `MonadRandom`:
+  - MonadRandom
   - MonadAlloy
   - MonadDiagrams
   - MonadGraphviz
   - MonadCatch
   - MonadThrow
+
+In most cases, you will want to use at least `MonadRandom` to allow for random generation.
+Test.QuickCheck.Gen offers a more expressive set of functions than the comparatively bare-bones Control.Monad.Random.
+You may use
+
+fromGen :: MonadRandom m => Gen a -> m a
+
+from `FlexTask.GenUtil` to convert a QuickCheck `Gen` to the `MonadRandom` interface.
 
 If no specific form is required, you may use 'formify' to generate a generic form for you,
 based on the type of your input.
@@ -116,9 +125,8 @@ Apply 'getFormData' to your finished form to obtain the data for the generator.
 module TaskData (getTask) where
 
 
-import Control.Monad.Random    (MonadRandom)
+import Control.Monad.Random    (MonadRandom, getRandomR)
 import FlexTask.Generic.Form
-import FlexTask.GenUtil        (fromGen)
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Data.String.Interpolate (i)
 import Test.QuickCheck.Gen
@@ -142,12 +150,12 @@ instance RenderMessage a Label where
 
 
 getTask :: MonadRandom m => m (TaskData, String, Rendered Widget)
-getTask = fromGen $ do
+getTask = do
     numbers@(n1,n2,n3) <- (,,) <$> intInRange <*> intInRange <*> intInRange
     let checkData = (product [n1,n2,n3], sum [n1,n2,n3])
     pure ((numbers,checkData), checkers, form)
   where
-    intInRange = chooseInt (1,6)
+    intInRange =  getRandomR (1,6)
 
 
 fieldNames :: [[FieldInfo]]
