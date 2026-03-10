@@ -79,7 +79,7 @@ true >"${files[0]}"
 
 while IFS= read -r line || [ -n "$line" ]; do
   # Check for module separator
-  if [[ "$line" =~ === ]]; then
+  if [[ "$line" =~ ^===+$ ]]; then
     ((current_file++))
     true >"${files[$current_file]}"
     continue
