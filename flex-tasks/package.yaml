@@ -46,6 +46,7 @@ library:
   exposed-modules:
     - FlexTask.ConvertForm
     - FlexTask.DefaultConfig
+    - FlexTask.FormHelpers
     - FlexTask.FormUtil
     - FlexTask.Generic.Form
     - FlexTask.Generic.Parse
