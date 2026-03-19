@@ -33,7 +33,8 @@ labeledCheckboxes
   -> [String]
   -- ^ individual option labels
   -> Rendered Widget
-labeledCheckboxes alignment fSettings labels = formify (Nothing @MultipleChoiceSelection)
+labeledCheckboxes alignment fSettings labels = formify
+  (Nothing @MultipleChoiceSelection)
   [[buttons
       alignment
       fSettings
