@@ -1,5 +1,9 @@
 {-# language TypeApplications #-}
 
+{- |
+Helpers for commonly used form patterns.
+-}
+
 module FlexTask.FormHelpers (
   anonymousRadioButtons,
   labeledRadioButtons,
