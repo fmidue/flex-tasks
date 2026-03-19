@@ -53,6 +53,7 @@ Buttons are labeled with just their index number.
 anonymousRadioButtons
   :: Integral i
   => Alignment
+  -- ^ vertical or horizontal
   -> FieldSettings FlexForm
   -- ^ heading label, attributes, etc.
   -> i
@@ -72,8 +73,11 @@ Buttons are labeled with the given multilingual labels.
 -}
 labeledRadioButtons
   :: Alignment
+  -- ^ vertical or horizontal
   -> FieldSettings FlexForm
+  -- ^ heading label, attributes, etc.
   -> [SomeMessage FlexForm]
+  -- ^ individual option labels
   -> Rendered Widget
 labeledRadioButtons alignment fSettings labels = formify
   (Nothing :: Maybe SingleChoiceSelection)
