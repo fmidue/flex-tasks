@@ -129,7 +129,6 @@ import Control.Monad.Random    (MonadRandom, getRandomR)
 import FlexTask.Generic.Form
 import FlexTask.YesodConfig    (Rendered, Widget)
 import Data.String.Interpolate (i)
-import Test.QuickCheck.Gen
 import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 
 import Global
