@@ -34,5 +34,5 @@ labeledCheckboxes alignment fSettings labels = formify (Nothing @MultipleChoiceS
   [[buttons
       alignment
       fSettings
-      $ zipWith (\a b -> universalLabel $ show a ++ ". " ++ b) [1 :: Integer] labels
+      $ zipWith (\a b -> universalLabel $ show a ++ ". " ++ b) [1 :: Integer ..] labels
   ]]
