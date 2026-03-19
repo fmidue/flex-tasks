@@ -1,16 +1,19 @@
 {-# language TypeApplications #-}
 
 module FlexTask.FormHelpers (
+  anonymousRadioButtons,
+  labeledRadioButtons,
   labeledCheckboxes,
   ) where
 
 
-import Yesod                            (FieldSettings)
+import Yesod                            (FieldSettings, SomeMessage)
 
-import FlexTask.FormUtil                (universalLabel)
+import FlexTask.FormUtil                (showToUniversalLabel, universalLabel)
 import FlexTask.Generic.Form (
   Alignment,
   MultipleChoiceSelection,
+  SingleChoiceSelection,
   buttons,
   formify,
   )
@@ -36,3 +39,37 @@ labeledCheckboxes alignment fSettings labels = formify (Nothing @MultipleChoiceS
       fSettings
       $ zipWith (\a b -> universalLabel $ show a ++ ". " ++ b) [1 :: Integer ..] labels
   ]]
+
+
+{- |
+A single choice radio button field.
+Buttons are labeled with just their index number.
+-}
+anonymousRadioButtons
+  :: Integral i
+  => Alignment
+  -> FieldSettings FlexForm
+  -- ^ heading label, attributes, etc.
+  -> i
+  -- ^ the amount of options to provide
+  -> Rendered Widget
+anonymousRadioButtons alignment fSettings amount = formify (Nothing @SingleChoiceSelection)
+  [[buttons
+    alignment
+    fSettings
+    $ map showToUniversalLabel [1.. toInteger amount]
+  ]]
+
+
+{- |
+A single choice radio button field.
+Buttons are labeled with the given multilingual labels.
+-}
+labeledRadioButtons
+  :: Alignment
+  -> FieldSettings FlexForm
+  -> [SomeMessage FlexForm]
+  -> Rendered Widget
+labeledRadioButtons alignment fSettings labels = formify
+  (Nothing :: Maybe SingleChoiceSelection)
+  [[buttons alignment fSettings labels]]
