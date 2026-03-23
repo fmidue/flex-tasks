@@ -22,9 +22,5 @@ uncons
 unsnoc
 usr
 wbr
-Wno
-XOverloaded
-XQuasi
-XType
 YOURFORM
 yss
