@@ -39,3 +39,6 @@ https?://[-+0-9a-zA-Z?&=_\/%.]*
 
 # marker to ignore all code on line
 ^.*-- no-spell-check$
+
+# Compiler flags
+(?:^|[\t ,"'`=(])-[DPWXYLlf](?=[A-Z]{2,}|[A-Z][a-z]|[a-z]{2,})
