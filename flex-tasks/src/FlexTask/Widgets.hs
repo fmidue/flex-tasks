@@ -60,13 +60,24 @@ joinWidgets = mapM_ (insertDiv . sequence_)
 
 
 radioField :: Eq a => Bool -> Handler (OptionList a) -> Field Handler a
-radioField isVertical = selectFieldHelper outside (\_ _ _ -> pure ()) inside Nothing
+radioField isVertical = selectFieldHelper outside onOpt inside Nothing
   where
     outside theId _name _attrs inside' =
       toWidget horizontalRBStyle >> [whamlet|
 $newline never
 <div>
   <span ##{theId}>^{inside'}
+|]
+    onOpt theId name isSel = nothingFun theId [whamlet|
+$newline never
+<input id=#{theId}-none type=radio name=#{name} value="" :isSel:checked>
+|]
+    nothingFun theId optionWidget = [whamlet|
+$newline never
+<.radio>
+  ^{optionWidget}
+  <label for=#{theId}-none>
+    _{MsgSelectNone}
 |]
     inside theId name attrs value isSel display =
       let radio = [whamlet|
@@ -110,3 +121,29 @@ checkboxField isVertical optList = (multiSelectField optList)
         ^{box}
 |]
       }
+
+
+selectField
+  :: (Eq a, RenderMessage site FormMessage)
+  => Bool
+  -> HandlerFor site (OptionList a)
+  -> Field (HandlerFor site) a
+selectField req = selectFieldHelper
+    (\theId name attrs inside -> [whamlet|
+$newline never
+<select ##{theId} name=#{name} :req:required *{attrs}>
+$if req
+  <option value="" selected disabled>_{MsgSelectNone}
+^{inside}
+|]) -- outside
+    (\_theId _name isSel -> [whamlet|
+$newline never
+<option value="None" :isSel:selected>_{MsgSelectNone}
+|]) -- onOpt
+    (\_theId _name _attrs value isSel text -> toWidget [whamlet|
+$newline never
+<option value=#{value} :isSel:selected>#{text}
+|]) -- inside
+    (Just $ \label -> [whamlet|
+<optgroup label=#{label}>
+|]) -- group label

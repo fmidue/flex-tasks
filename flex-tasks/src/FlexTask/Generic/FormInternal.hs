@@ -34,7 +34,6 @@ import Yesod (
   multiSelectField,
   optionsPairs,
   renderMessage,
-  selectField,
   textareaField,
   textField,
   )
@@ -45,6 +44,7 @@ import FlexTask.Widgets
   , radioField
   , joinWidgets
   , renderForm
+  , selectField
   )
 import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
@@ -476,7 +476,7 @@ instance Formify [String] where
   formifyImplementation = formifyInstanceList
 
 
-instance (BaseForm a, Formify a) => Formify (Maybe a) where
+instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify (Maybe a) where
   formifyImplementation = formifyInstanceOptionalField
 
 
@@ -491,7 +491,8 @@ instance Formify SingleChoiceSelection where
 instance Formify MultipleChoiceSelection where
   formifyImplementation = renderNextMultipleChoiceField (`zip` [1..]) . fmap getAnswers
 
-
+instance Formify (Maybe SingleChoiceSelection) where
+  formifyImplementation = renderNextOptionalSingleChoiceField (`zip` [1..]) . (=<<) (fmap getAnswer)
 
 {- |
 This is the main way to build generic forms.
@@ -796,11 +797,35 @@ renderNextSingleChoiceField pairsWith =
   (\case
       ChoicesDropdown fs opts ->
         ( fs
-        , areq $ selectField $ withOptions opts
+        , areq $ selectField True $ withOptions opts
         )
       ChoicesButtons align fs opts ->
         ( fs
         , areq $ case align of
+            Vertical -> radioField True
+            Horizontal -> radioField False
+          $ withOptions opts
+        )
+      _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
+  )
+  where withOptions = optionsPairs . pairsWith
+
+renderNextOptionalSingleChoiceField
+    :: Eq a
+    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
+    -> Maybe (Maybe a)
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], Rendered [[Widget]])
+renderNextOptionalSingleChoiceField pairsWith =
+  renderNextField
+  (\case
+      ChoicesDropdown fs opts ->
+        ( fs
+        , aopt $ selectField False $ withOptions opts
+        )
+      ChoicesButtons align fs opts ->
+        ( fs
+        , aopt $ case align of
             Vertical -> radioField True
             Horizontal -> radioField False
           $ withOptions opts
