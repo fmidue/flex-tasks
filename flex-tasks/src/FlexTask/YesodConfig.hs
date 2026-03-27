@@ -1,5 +1,6 @@
 {-# language InstanceSigs #-}
 {-# language TypeFamilies #-}
+{-# language OverloadedStrings #-}
 {-# language PatternSynonyms #-}
 
 {-|
@@ -29,7 +30,7 @@ import Control.Monad.Reader (Reader)
 import Data.Text (Text)
 import Yesod
 import Yesod.Core.Types (Logger)
-
+import Yesod.Form.I18n.German (germanFormMessage)
 
 
 
@@ -74,4 +75,5 @@ instance Yesod FlexForm
 
 
 instance RenderMessage FlexForm FormMessage where
-  renderMessage _ _ = defaultFormMessage
+  renderMessage _ ("de":_) = germanFormMessage
+  renderMessage _ _        = defaultFormMessage
