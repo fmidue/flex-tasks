@@ -72,12 +72,20 @@ $newline never
 $newline never
 <input id=#{theId}-none type=radio name=#{name} value="" :isSel:checked>
 |]
-    nothingFun theId optionWidget = [whamlet|
+    nothingFun _ optionWidget =
+      let emptyRadio = [whamlet|
 $newline never
-<.radio>
+<label>
   ^{optionWidget}
-  <label for=#{theId}-none>
-    _{MsgSelectNone}
+  _{MsgSelectNone}
+|]
+      in [whamlet|
+$newline never
+$if isVertical
+  <div>
+    ^{emptyRadio}
+$else
+  ^{emptyRadio}
 |]
     inside theId name attrs value isSel display =
       let radio = [whamlet|
