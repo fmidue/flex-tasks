@@ -225,7 +225,7 @@ Use if both of the following is true:
 </div>
 -}
 newtype SingleChoiceSelection = SingleChoiceSelection
-  {getAnswer :: Maybe Int -- ^ Retrieve the selected option. @Nothing@ if none.
+  {getAnswer :: Int -- ^ Retrieve the selected option.
   } deriving (Show,Eq,Generic)
 {- |
 Same as `SingleChoiceSelection`, but for multiple choice input.
@@ -257,18 +257,20 @@ Use if both of the following is true:
 </div>
 -}
 newtype MultipleChoiceSelection = MultipleChoiceSelection
-  { getAnswers :: [Int] -- ^ Retrieve the list of selected options. @[]@ if none.
+  { getAnswers :: [Int] -- ^ Retrieve the list of selected options. @[]@ if none are selected.
   } deriving (Show,Eq,Generic)
 
 
+{-# DEPRECATED singleChoiceEmpty
+  "This function only existed to satisfy a legacy interface in Autotool. It will be removed in a future version."
+  #-}
 -- | Value with no option selected.
 singleChoiceEmpty :: SingleChoiceSelection
-singleChoiceEmpty = SingleChoiceSelection Nothing
-
+singleChoiceEmpty = singleChoiceAnswer 0
 
 -- | Value with given number option selected.
 singleChoiceAnswer :: Int -> SingleChoiceSelection
-singleChoiceAnswer = SingleChoiceSelection . Just
+singleChoiceAnswer = SingleChoiceSelection
 
 
 -- | Value with no options selected.
@@ -488,14 +490,14 @@ instance Formify (Maybe a) => Formify [Maybe a] where
 
 
 instance Formify SingleChoiceSelection where
-  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . (=<<) getAnswer
+  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . (=<<) (Just . getAnswer)
 
 
 instance Formify MultipleChoiceSelection where
   formifyImplementation = renderNextMultipleChoiceField (`zip` [1..]) . fmap getAnswers
 
 instance Formify (Maybe SingleChoiceSelection) where
-  formifyImplementation = renderNextOptionalSingleChoiceField (`zip` [1..]) . (=<<) (fmap getAnswer)
+  formifyImplementation = renderNextOptionalSingleChoiceField (`zip` [1..]) . (=<<) (fmap (Just . getAnswer))
 
 {- |
 This is the main way to build generic forms.
