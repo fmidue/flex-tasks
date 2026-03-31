@@ -132,9 +132,9 @@ selectField req = selectFieldHelper
     (\theId name attrs inside -> [whamlet|
 $newline never
 <select ##{theId} name=#{name} :req:required *{attrs}>
-$if req
-  <option value="" selected disabled>_{MsgSelectNone}
-^{inside}
+  $if req
+    <option value="" selected disabled>_{MsgSelectNone}
+  ^{inside}
 |]) -- outside
     (\_theId _name isSel -> [whamlet|
 $newline never

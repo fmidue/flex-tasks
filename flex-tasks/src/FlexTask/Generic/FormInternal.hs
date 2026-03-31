@@ -208,6 +208,9 @@ Use if both of the following is true:
       Choose one
     </label>
     <select id="flexident1" ...>
+      <option value="" selected disabled>
+        &lt;None&gt;
+      </option>
       <option value="1">
         First Option
       </option>
@@ -766,6 +769,9 @@ that cannot use a bodyless `Formify` instance.
       Choose one
     </label>
     <select id="flexident1" ...>
+      <option value="" selected disabled>
+        &lt;None&gt;
+      </option>
       <option value="1">
         One
       </option>
