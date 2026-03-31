@@ -13,6 +13,7 @@ hasdata
 img
 lindex
 lucius
+optgroup
 RWS
 syb
 subdirs
