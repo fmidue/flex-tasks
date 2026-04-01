@@ -794,6 +794,75 @@ formifyInstanceSingleChoice
     -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
+
+{- |
+Same as `formifyInstanceSingleChoice`, but makes the choice optional.
+The resulting form will include a \<None\> option to make no selection.
+This option will be initially selected if no default is given.
+
+=== __Example__
+
+>>> instance Formify (Maybe MyType) where formifyImplementation = formifyInstanceOptionalSingleChoice
+>>> printWidget "en" $ formify (Just $ Just Two) [[buttonsEnum Horizontal "Choose one or abstain" (showToUniversalLabel @MyType)]]
+...
+<div class="flex-form-div form-group">
+...
+    <label for="flexident1">
+      Choose one or abstain
+    </label>
+    <div>
+      <span id="flexident1">
+        <label>
+          <input id="flexident1-none" type="radio" ... value="None">
+          &lt;None&gt;
+        </label>
+        <label>
+          <input id="flexident1-1" type="radio" ... value="1">
+          One
+        </label>
+        <label>
+          <input id="flexident1-2" type="radio" ... value="2" checked>
+          Two
+        </label>
+        <label>
+          <input id="flexident1-3" type="radio" ... value="3">
+          Three
+        </label>
+      </span>
+    </div>
+...
+</div>
+
+>>> printWidget "en" $ formify (Nothing @(Maybe MyType)) [[dropdownEnum "Choose one or abstain" (showToUniversalLabel @MyType)]]
+<div class="flex-form-div form-group">
+...
+    <label for="flexident1">
+      Choose one or abstain
+    </label>
+    <select id="flexident1" ...>
+      <option value="None" selected>
+        &lt;None&gt;
+      </option>
+      <option value="1">
+        One
+      </option>
+      <option value="2">
+        Two
+      </option>
+      <option value="3">
+        Three
+      </option>
+    </select>
+...
+</div>
+-}
+formifyInstanceOptionalSingleChoice
+    :: (Bounded a, Enum a, Eq a)
+    => Maybe (Maybe a)
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], Rendered [[Widget]])
+formifyInstanceOptionalSingleChoice = renderNextOptionalSingleChoiceField zipWithEnum
+
 renderNextSingleChoiceField
     :: Eq a
     => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
