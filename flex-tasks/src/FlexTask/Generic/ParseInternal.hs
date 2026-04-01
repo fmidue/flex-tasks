@@ -72,7 +72,6 @@ import FlexTask.Generic.FormInternal
   , SingleInputList(..)
   , multipleChoiceAnswer
   , singleChoiceAnswer
-  , singleChoiceEmpty
   )
 
 
@@ -233,7 +232,7 @@ instance Parse a => Parse (Maybe a) where
 
 
 instance Parse SingleChoiceSelection where
-  formParser = maybe singleChoiceEmpty singleChoiceAnswer <$> formParser
+  formParser = singleChoiceAnswer <$> formParser
 
 
 instance Parse MultipleChoiceSelection where
@@ -414,7 +413,7 @@ the input form is "infallible" since only constructed from String text fields, s
 >>> import Control.OutputCapable.Blocks.Debug (run)
 
 >>> run German $ parseInfallibly (formParser @SingleChoiceSelection) $ asSubmission [["1"]]
-Just (SingleChoiceSelection {getAnswer = Just 1})
+Just (SingleChoiceSelection {getAnswer = 1})
 
 >>> run English $ parseInfallibly (formParser @(SingleInputList Double)) $ asSubmission [["Wrong input"]]
 *** Exception: The impossible happened: (line 1, column 3):

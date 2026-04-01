@@ -44,6 +44,7 @@ module FlexTask.Generic.Form (
   , formifyInstanceBasicField
   , formifyInstanceOptionalField
   , formifyInstanceSingleChoice
+  , formifyInstanceOptionalSingleChoice
   , formifyInstanceMultiChoice
   ) where
 

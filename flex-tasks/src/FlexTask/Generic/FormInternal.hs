@@ -34,7 +34,6 @@ import Yesod (
   multiSelectField,
   optionsPairs,
   renderMessage,
-  selectField,
   textareaField,
   textField,
   )
@@ -45,6 +44,7 @@ import FlexTask.Widgets
   , radioField
   , joinWidgets
   , renderForm
+  , selectField
   )
 import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
@@ -208,6 +208,9 @@ Use if both of the following is true:
       Choose one
     </label>
     <select id="flexident1" ...>
+      <option value="" selected disabled>
+        &lt;None&gt;
+      </option>
       <option value="1">
         First Option
       </option>
@@ -222,7 +225,7 @@ Use if both of the following is true:
 </div>
 -}
 newtype SingleChoiceSelection = SingleChoiceSelection
-  {getAnswer :: Maybe Int -- ^ Retrieve the selected option. @Nothing@ if none.
+  {getAnswer :: Int -- ^ Retrieve the selected option.
   } deriving (Show,Eq,Generic)
 {- |
 Same as `SingleChoiceSelection`, but for multiple choice input.
@@ -254,18 +257,20 @@ Use if both of the following is true:
 </div>
 -}
 newtype MultipleChoiceSelection = MultipleChoiceSelection
-  { getAnswers :: [Int] -- ^ Retrieve the list of selected options. @[]@ if none.
+  { getAnswers :: [Int] -- ^ Retrieve the list of selected options. @[]@ if none are selected.
   } deriving (Show,Eq,Generic)
 
 
+{-# DEPRECATED singleChoiceEmpty
+  "This function only existed to satisfy a legacy interface in Autotool. It will be removed in a future version."
+  #-}
 -- | Value with no option selected.
 singleChoiceEmpty :: SingleChoiceSelection
-singleChoiceEmpty = SingleChoiceSelection Nothing
-
+singleChoiceEmpty = singleChoiceAnswer 0
 
 -- | Value with given number option selected.
 singleChoiceAnswer :: Int -> SingleChoiceSelection
-singleChoiceAnswer = SingleChoiceSelection . Just
+singleChoiceAnswer = SingleChoiceSelection
 
 
 -- | Value with no options selected.
@@ -476,7 +481,7 @@ instance Formify [String] where
   formifyImplementation = formifyInstanceList
 
 
-instance (BaseForm a, Formify a) => Formify (Maybe a) where
+instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify (Maybe a) where
   formifyImplementation = formifyInstanceOptionalField
 
 
@@ -485,13 +490,14 @@ instance Formify (Maybe a) => Formify [Maybe a] where
 
 
 instance Formify SingleChoiceSelection where
-  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . (=<<) getAnswer
+  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . fmap getAnswer
 
 
 instance Formify MultipleChoiceSelection where
   formifyImplementation = renderNextMultipleChoiceField (`zip` [1..]) . fmap getAnswers
 
-
+instance Formify (Maybe SingleChoiceSelection) where
+  formifyImplementation = renderNextOptionalSingleChoiceField (`zip` [1..]) . fmap (fmap getAnswer)
 
 {- |
 This is the main way to build generic forms.
@@ -742,15 +748,15 @@ that cannot use a bodyless `Formify` instance.
     <div>
       <span id="flexident1">
         <label>
-          <input id="flexident1-1" type="radio" ... value="1" ...>
+          <input id="flexident1-1" type="radio" ... value="1" required...>
           One
         </label>
         <label>
-          <input id="flexident1-2" type="radio" ... value="2" checked ...>
+          <input id="flexident1-2" type="radio" ... value="2" checked required...>
           Two
         </label>
         <label>
-          <input id="flexident1-3" type="radio" ... value="3" ...>
+          <input id="flexident1-3" type="radio" ... value="3" required...>
           Three
         </label>
       </span>
@@ -765,6 +771,9 @@ that cannot use a bodyless `Formify` instance.
       Choose one
     </label>
     <select id="flexident1" ...>
+      <option value="" selected disabled>
+        &lt;None&gt;
+      </option>
       <option value="1">
         One
       </option>
@@ -785,6 +794,75 @@ formifyInstanceSingleChoice
     -> ([[FieldInfo]], Rendered [[Widget]])
 formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
 
+
+{- |
+Same as `formifyInstanceSingleChoice`, but makes the choice optional.
+The resulting form will include a \<None\> option to make no selection.
+This option will be initially selected if no default is given.
+
+=== __Example__
+
+>>> instance Formify (Maybe MyType) where formifyImplementation = formifyInstanceOptionalSingleChoice
+>>> printWidget "en" $ formify (Just $ Just Two) [[buttonsEnum Horizontal "Choose one or abstain" (showToUniversalLabel @MyType)]]
+...
+<div class="flex-form-div form-group">
+...
+    <label for="flexident1">
+      Choose one or abstain
+    </label>
+    <div>
+      <span id="flexident1">
+        <label>
+          <input id="flexident1-none" type="radio" ... value="None">
+          &lt;None&gt;
+        </label>
+        <label>
+          <input id="flexident1-1" type="radio" ... value="1">
+          One
+        </label>
+        <label>
+          <input id="flexident1-2" type="radio" ... value="2" checked>
+          Two
+        </label>
+        <label>
+          <input id="flexident1-3" type="radio" ... value="3">
+          Three
+        </label>
+      </span>
+    </div>
+...
+</div>
+
+>>> printWidget "en" $ formify (Nothing @(Maybe MyType)) [[dropdownEnum "Choose one or abstain" (showToUniversalLabel @MyType)]]
+<div class="flex-form-div form-group">
+...
+    <label for="flexident1">
+      Choose one or abstain
+    </label>
+    <select id="flexident1" ...>
+      <option value="None" selected>
+        &lt;None&gt;
+      </option>
+      <option value="1">
+        One
+      </option>
+      <option value="2">
+        Two
+      </option>
+      <option value="3">
+        Three
+      </option>
+    </select>
+...
+</div>
+-}
+formifyInstanceOptionalSingleChoice
+    :: (Bounded a, Enum a, Eq a)
+    => Maybe (Maybe a)
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], Rendered [[Widget]])
+formifyInstanceOptionalSingleChoice = renderNextOptionalSingleChoiceField zipWithEnum
+
 renderNextSingleChoiceField
     :: Eq a
     => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
@@ -796,7 +874,7 @@ renderNextSingleChoiceField pairsWith =
   (\case
       ChoicesDropdown fs opts ->
         ( fs
-        , areq $ selectField $ withOptions opts
+        , areq $ selectField True $ withOptions opts
         )
       ChoicesButtons align fs opts ->
         ( fs
@@ -806,6 +884,30 @@ renderNextSingleChoiceField pairsWith =
           $ withOptions opts
         )
       _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
+  )
+  where withOptions = optionsPairs . pairsWith
+
+renderNextOptionalSingleChoiceField
+    :: Eq a
+    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
+    -> Maybe (Maybe a)
+    -> [[FieldInfo]]
+    -> ([[FieldInfo]], Rendered [[Widget]])
+renderNextOptionalSingleChoiceField pairsWith =
+  renderNextField
+  (\case
+      ChoicesDropdown fs opts ->
+        ( fs
+        , aopt $ selectField False $ withOptions opts
+        )
+      ChoicesButtons align fs opts ->
+        ( fs
+        , aopt $ case align of
+            Vertical -> radioField True
+            Horizontal -> radioField False
+          $ withOptions opts
+        )
+      _ -> error "Incorrect FieldInfo for an optional single choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith
 
