@@ -907,7 +907,7 @@ renderNextOptionalSingleChoiceField pairsWith =
             Horizontal -> radioField False
           $ withOptions opts
         )
-      _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
+      _ -> error "Incorrect FieldInfo for an optional single choice field! Use one of the 'buttons' or 'dropdown' functions."
   )
   where withOptions = optionsPairs . pairsWith
 
