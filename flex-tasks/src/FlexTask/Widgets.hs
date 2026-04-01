@@ -147,7 +147,7 @@ $newline never
     (\_theId _name isSel -> [whamlet|
 $newline never
 <option value="None" :isSel:selected>_{MsgSelectNone}
-|]) -- onOpt
+|]) -- when optional
     (\_theId _name _attrs value isSel text -> toWidget [whamlet|
 $newline never
 <option value=#{value} :isSel:selected>#{text}
