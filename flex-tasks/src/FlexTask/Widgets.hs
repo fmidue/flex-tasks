@@ -70,7 +70,7 @@ $newline never
 |]
     onOpt theId name isSel = nothingFun theId [whamlet|
 $newline never
-<input id=#{theId}-none type=radio name=#{name} value="" :isSel:checked>
+<input id=#{theId}-none type=radio name=#{name} value="None" :isSel:checked>
 |]
     nothingFun _ optionWidget =
       let emptyRadio = [whamlet|
