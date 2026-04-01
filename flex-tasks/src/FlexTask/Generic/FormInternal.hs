@@ -490,14 +490,14 @@ instance Formify (Maybe a) => Formify [Maybe a] where
 
 
 instance Formify SingleChoiceSelection where
-  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . (=<<) (Just . getAnswer)
+  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . fmap getAnswer
 
 
 instance Formify MultipleChoiceSelection where
   formifyImplementation = renderNextMultipleChoiceField (`zip` [1..]) . fmap getAnswers
 
 instance Formify (Maybe SingleChoiceSelection) where
-  formifyImplementation = renderNextOptionalSingleChoiceField (`zip` [1..]) . (=<<) (fmap (Just . getAnswer))
+  formifyImplementation = renderNextOptionalSingleChoiceField (`zip` [1..]) . fmap (fmap getAnswer)
 
 {- |
 This is the main way to build generic forms.
