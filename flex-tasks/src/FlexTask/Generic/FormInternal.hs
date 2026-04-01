@@ -748,15 +748,15 @@ that cannot use a bodyless `Formify` instance.
     <div>
       <span id="flexident1">
         <label>
-          <input id="flexident1-1" type="radio" ... value="1" ...>
+          <input id="flexident1-1" type="radio" ... value="1" required...>
           One
         </label>
         <label>
-          <input id="flexident1-2" type="radio" ... value="2" checked ...>
+          <input id="flexident1-2" type="radio" ... value="2" checked required...>
           Two
         </label>
         <label>
-          <input id="flexident1-3" type="radio" ... value="3" ...>
+          <input id="flexident1-3" type="radio" ... value="3" required...>
           Three
         </label>
       </span>
