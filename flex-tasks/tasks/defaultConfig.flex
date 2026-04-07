@@ -115,6 +115,10 @@ and interpolate the HTML argument at the top of the contained widget:
 
 You can compose multiple forms using the '$$>' infix function.
 This will mostly be necessary when using a generated form together with a custom one.
+
+If your form incorporates JavaScript then you may add an event listener for custom event "flex-form:submission-loaded".
+This event will be emitted by the HTML document once all form elements are populated with the most recent submission.
+
 Apply 'getFormData' to your finished form to obtain the data for the generator.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 -}
