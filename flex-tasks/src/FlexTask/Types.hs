@@ -13,6 +13,7 @@ module FlexTask.Types
   , FlexInst(..)
   , FlexConf(..)
   , delimiter
+  , moduleName
 
   , parseFlexConfig
   , showFlexConfig
@@ -153,7 +154,7 @@ parseFlexConfig = do
         , descriptionModule
         , parseModule
         ], extra) -> do
-        let extraModules = mapMaybe getModName extra
+        let extraModules = mapMaybe (\x -> (,x) <$> moduleName x) extra
         pure $
           FlexConf {
             taskDataModule,
@@ -196,10 +197,10 @@ parseFlexConfig = do
     discardString = discard . string
 
 
-getModName :: String -> Maybe (String, String)
-getModName code = do
+moduleName :: String -> Maybe String
+moduleName code = do
   (_,nameAtFront) <- stripInfix "module" $ removeComments code
-  Just (fst $ word1 nameAtFront, code)
+  Just $ fst $ word1 nameAtFront
 
 
 removeComments :: String -> String
@@ -252,7 +253,7 @@ validateFlexConfig FlexConf{commonModules = CommonModules{..},..}
     required = ["Global","TaskSettings","TaskData","Description","Parse","Check"]
     requiredConfig = dropEnd1 required
     listRequired = intercalate ", " requiredConfig
-    requiredNames = mapMaybe (fmap fst . getModName)
+    requiredNames = mapMaybe moduleName
       [ globalModule
       , settingsModule
       , taskDataModule
