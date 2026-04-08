@@ -197,6 +197,12 @@ parseFlexConfig = do
     discardString = discard . string
 
 
+{- |
+Returns the argument Haskell module's name if one is given in the file
+and `Nothing` otherwise.
+
+All code comments are stripped before inspection.
+-}
 moduleName :: String -> Maybe String
 moduleName code = do
   (_,nameAtFront) <- stripInfix "module" $ removeComments code
