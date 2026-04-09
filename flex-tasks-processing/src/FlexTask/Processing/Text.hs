@@ -136,22 +136,25 @@ removeUnicodeEscape xs = xs
 
 
 {- |
-Create an exact duplicate of the given form data, but append all field names with a unique identifier.
+Create an exact duplicate of the given form data,
+but append all field names and IDs with a unique identifier.
 This is used to render multiple views of the input form on the same page, e.g. the comments page in Autotool.
 -}
-uniqueFormCopy :: ([[Text]],Html) -> String -> ([[Text]],Html)
-uniqueFormCopy (params,html) uniqueId = (newParams, alteredHtml)
+uniqueFormCopy :: [Text] -> ([[Text]],Html) -> String -> ([[Text]],Html)
+uniqueFormCopy ids (params,html) uniqueId = (newParams, alteredHtml)
   where
     suffix = '-' : uniqueId
-    newParams = map (map (<> T.pack suffix)) params
+    replacement = (<> T.pack suffix)
+    newParams = map (map replacement) params
+    appendSuffix delimiter it = replace
+      (delimiter <> it <> delimiter)
+      (delimiter <> it <> suffix <> delimiter)
     alteredHtml = preEscapedToHtml $ foldr
-      ( (\param -> replace ("'" <> param <> "'") ("'" <> param <> suffix <> "'") .
-            replace ("\"" <> param <> "\"") ("\"" <> param <> suffix <> "\"")
-        ) .
+      ( (\search -> appendSuffix "'" search . appendSuffix "\"" search) .
         T.unpack
       )
       (renderHtml html)
-      $ concat params
+      $ ids ++ concat params
 
 
 {- |
