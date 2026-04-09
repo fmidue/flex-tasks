@@ -34,7 +34,7 @@ import Data.Containers.ListUtils       (nubOrd)
 import Data.List.Extra                 (isInfixOf, isPrefixOf, trimEnd, splitOn)
 import Data.String                     (fromString)
 import Data.Text                       (Text, pack)
-import Data.Tuple.Extra                (second)
+import Data.Tuple.Extra                (third3)
 import Text.Cassius                    (Css)
 import Text.Julius                     (Javascript)
 import Yesod
@@ -102,9 +102,9 @@ f1 $$> f2 = do
     res1 <- f1
     res2 <- f2
     pure $ do
-      (names1,wid1) <- res1
-      (names2,wid2) <- res2
-      pure (nubOrd $ names1 ++ names2, wid1 >> wid2)
+      (ids1,names1,wid1) <- res1
+      (ids2,names2,wid2) <- res2
+      pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, wid1 >> wid2)
 
 
 {- |
@@ -123,7 +123,7 @@ e.g. if some custom text is to be included with the element.
 </div>
 -}
 applyToWidget :: Functor m => (w -> w') -> Rendered' m w -> Rendered' m w'
-applyToWidget f form = fmap (second f) <$> form
+applyToWidget f form = fmap (third3 f) <$> form
 
 
 addContent
@@ -315,7 +315,7 @@ Used for debugging.
 -}
 printWidget :: Lang -> Rendered Widget -> IO ()
 printWidget lang render  = do
-  (_, dict) <- getFormData render
+  (_,_, dict) <- getFormData render
   putStrLn $ maybe "Form not available in this language."
     (trimEnd . unlines . addIndent 0 . intoLines)
     $ M.lookup lang dict

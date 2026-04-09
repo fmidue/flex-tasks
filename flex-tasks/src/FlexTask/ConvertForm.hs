@@ -13,6 +13,7 @@ import Control.Monad.Reader             (runReader)
 import Data.Map                         (fromList)
 import Data.IORef                       (readIORef, writeIORef)
 import Data.Text                        (Text)
+import Data.Tuple.Extra                 (thd3)
 import System.IO.Unsafe                 (unsafePerformIO)
 import System.Log.FastLogger            (defaultBufSize, newStdoutLoggerSet)
 import Text.Blaze.Html.Renderer.String  (renderHtml)
@@ -41,7 +42,7 @@ This is an internal function used in the Autotool Flex-Task implementation.
 You should never need to call this function yourself.
 Use `unsafeGetFormData` instead.
 -}
-getFormData :: Rendered Widget -> IO ([[Text]], HtmlDict)
+getFormData :: Rendered Widget -> IO ([Text],[[Text]], HtmlDict)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     Unsafe.fakeHandlerGetLogger
@@ -49,23 +50,23 @@ getFormData widget = do
       FlexForm {appLogger = logger}
       writeHtml
   where
-    writeHtml :: Handler ([[Text]], HtmlDict)
+    writeHtml :: Handler ([Text],[[Text]], HtmlDict)
     writeHtml = case supportedLanguages of
       (l:ls) -> do
-        (names,first) <- withLang l
-        rest <- traverse (fmap snd . withLang) ls
-        return (names, fromList $ first:rest)
+        (ids,names,first) <- withLang l
+        rest <- traverse (fmap thd3 . withLang) ls
+        return (ids,names, fromList $ first:rest)
       _ -> error "No supported languages found!"
 
-    withLang :: Lang -> Handler ([[Text]], (Lang, String))
+    withLang :: Lang -> Handler ([Text],[[Text]], (Lang, String))
     withLang lang = setRequestLang lang $ do
       resetIdentGen
-      (names,wid) <- fst <$> runFormGet (runReader widget)
+      (ids,names,wid) <- fst <$> runFormGet (runReader widget)
       content <- widgetToPageContent wid
       html <- withUrlRenderer [hamlet|
         ^{pageHead content}
         ^{pageBody content}|]
-      return (names, (lang, concat $ lines $ renderHtml html))
+      return (ids, names, (lang, concat $ lines $ renderHtml html))
 
 
 {- |
@@ -80,7 +81,7 @@ as long as no lifted IO actions are executed while building the `Rendered` `Widg
 This will always be the case for generic forms.
 For custom forms, the user is responsible for making sure such calls are avoided or considered "safe".
 -}
-unsafeGetFormData :: Rendered Widget -> ([[Text]], HtmlDict)
+unsafeGetFormData :: Rendered Widget -> ([Text],[[Text]], HtmlDict)
 unsafeGetFormData = unsafePerformIO . getFormData
 
 

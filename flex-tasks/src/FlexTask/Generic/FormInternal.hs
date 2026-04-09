@@ -396,12 +396,12 @@ f1 `horizontally` f2 = do
     res1 <- f1
     res2 <- f2
     pure $ do
-      (names1,xss) <- res1
-      (names2,yss) <- res2
+      (ids1,names1,xss) <- res1
+      (ids2,names2,yss) <- res2
       let
         (leftInit, leftLast) = fromMaybe (xss,[]) $ unsnoc xss
         (rightHead, rightTail) = fromMaybe ([],yss) $ uncons yss
-      pure (nubOrd $ names1 ++ names2, leftInit ++ [leftLast ++ rightHead] ++ rightTail)
+      pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, leftInit ++ [leftLast ++ rightHead] ++ rightTail)
 
 
 
@@ -413,9 +413,9 @@ f1 `vertically` f2 = do
     res1 <- f1
     res2 <- f2
     pure $ do
-      (names1,xss) <- res1
-      (names2,yss) <- res2
-      pure (nubOrd $ names1 ++ names2, xss ++ yss)
+      (ids1,names1,xss) <- res1
+      (ids2,names2,yss) <- res2
+      pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, xss ++ yss)
 
 
 
@@ -710,10 +710,11 @@ formifyInstanceList mas ((List align fs : xs) : xss) =
       res1 <- f1
       res2 <- f2
       pure $ do
-        (names1,wid1) <- res1
-        (names2,wid2) <- res2
+        (ids1,names1,wid1) <- res1
+        (ids2,names2,wid2) <- res2
         pure
-          ( [nubOrd $ concat $ names1 ++ names2]
+          ( ids1 ++ ids2
+          , [nubOrd $ concat $ names1 ++ names2]
           , case align of
               Vertical   -> wid1 ++ wid2
               Horizontal -> [concat (wid1 ++ wid2)]

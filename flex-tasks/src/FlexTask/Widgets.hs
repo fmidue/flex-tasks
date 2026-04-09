@@ -44,7 +44,7 @@ $forall view <- views
         $maybe err <- fvErrors view
             <div .errors>#{err}
 |]
-      return ([[name]],widget)
+      return ([ident],[[name]],widget)
 
 
 
