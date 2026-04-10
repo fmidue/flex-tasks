@@ -50,7 +50,7 @@ getFormData widget = do
       FlexForm {appLogger = logger}
       writeHtml
   where
-    writeHtml :: Handler ([Text],[[Text]], HtmlDict)
+    writeHtml :: Handler ([Text], [[Text]], HtmlDict)
     writeHtml = case supportedLanguages of
       (l:ls) -> do
         (ids,names,first) <- withLang l
@@ -58,7 +58,7 @@ getFormData widget = do
         return (ids,names, fromList $ first:rest)
       _ -> error "No supported languages found!"
 
-    withLang :: Lang -> Handler ([Text],[[Text]], (Lang, String))
+    withLang :: Lang -> Handler ([Text], [[Text]], (Lang, String))
     withLang lang = setRequestLang lang $ do
       resetIdentGen
       (ids,names,wid) <- fst <$> runFormGet (runReader widget)
