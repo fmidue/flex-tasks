@@ -42,7 +42,7 @@ This is an internal function used in the Autotool Flex-Task implementation.
 You should never need to call this function yourself.
 Use `unsafeGetFormData` instead.
 -}
-getFormData :: Rendered Widget -> IO ([Text],[[Text]], HtmlDict)
+getFormData :: Rendered Widget -> IO ([Text], [[Text]], HtmlDict)
 getFormData widget = do
     logger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     Unsafe.fakeHandlerGetLogger
@@ -81,7 +81,7 @@ as long as no lifted IO actions are executed while building the `Rendered` `Widg
 This will always be the case for generic forms.
 For custom forms, the user is responsible for making sure such calls are avoided or considered "safe".
 -}
-unsafeGetFormData :: Rendered Widget -> ([Text],[[Text]], HtmlDict)
+unsafeGetFormData :: Rendered Widget -> ([Text], [[Text]], HtmlDict)
 unsafeGetFormData = unsafePerformIO . getFormData
 
 
