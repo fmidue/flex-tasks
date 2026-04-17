@@ -15,6 +15,7 @@ module FlexTask.FormUtil
   , addCssAndJsWithIds
   , applyToWidget
   , applyToWidgetWithFields
+  , updateForm
   -- * Convenience functions for Yesod FieldSettings
   , addAttribute
   , addAttributes
@@ -37,7 +38,7 @@ import Data.Containers.ListUtils       (nubOrd)
 import Data.List.Extra                 (isInfixOf, isPrefixOf, trimEnd, splitOn)
 import Data.String                     (fromString)
 import Data.Text                       (Text, pack)
-import Data.Tuple.Extra                (third3)
+import Data.Tuple.Extra                (third3, uncurry3)
 import Text.Cassius                    (Css)
 import Text.Julius                     (Javascript)
 import Yesod
@@ -162,8 +163,42 @@ applyToWidgetWithFields
   -> Rendered' m w
   -- ^ the form
   -> Rendered' m w'
-applyToWidgetWithFields f = fmap . fmap
-  $ \(ids,names,widget) -> (ids,names,f ids names widget)
+applyToWidgetWithFields f = updateForm
+  $ \ids names widget -> (ids,names,f ids names widget)
+
+{- |
+Applies a function to update each component of the form.
+
+==== __Example__
+
+>>>let divId = "added-div"
+>>> :{
+let addDiv ids names widget =
+      ( divId : ids
+      , names
+      , widget >> [whamlet|
+          <div ##{divId}>
+            I just added this
+          |]
+      )
+:}
+
+>>> printWidget "de" $ updateForm addDiv myForm
+<div class="flex-form-div form-group">
+...
+</div>
+<div id="added-div">
+  I just added this
+</div>
+-}
+updateForm
+  :: Functor m
+  => ([Text] -> [[Text]] -> w -> ([Text], [[Text]], w'))
+  -- ^ how to update each component of the form
+  -> Rendered' m w
+  -- ^ the form
+  -> Rendered' m w'
+updateForm = fmap . fmap . uncurry3
 
 
 addContent
