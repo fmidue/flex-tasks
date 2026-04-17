@@ -10,8 +10,11 @@ module FlexTask.FormUtil
     ($$>)
   , addCss
   , addJs
+  , addJsWithIds
   , addCssAndJs
+  , addCssAndJsWithIds
   , applyToWidget
+  , applyToWidgetWithFields
   -- * Convenience functions for Yesod FieldSettings
   , addAttribute
   , addAttributes
@@ -59,6 +62,7 @@ import FlexTask.YesodConfig (
 >>> :set -XOverloadedStrings
 >>> :set -XQuasiQuotes
 >>> :set -XTypeApplications
+>>> import qualified Data.Text
 >>> import FlexTask.Generic.Form
 >>> let myForm = formify (Nothing @Int) [[single "input"]]
 >>> let myOtherForm = formify (Nothing @String) [[single "input2"]]
@@ -126,6 +130,42 @@ applyToWidget :: Functor m => (w -> w') -> Rendered' m w -> Rendered' m w'
 applyToWidget f form = fmap (third3 f) <$> form
 
 
+{- |
+Like `applyToWidget`, but also takes the field IDs and field names into account
+when constructing the new Widget.
+
+==== __Example__
+
+>>> :{
+let displayIds ids _ = ([whamlet|
+  <h1>Here's all of the IDs
+  $forall id <- ids
+    <p>#{id}
+  |] >>)
+:}
+
+>>> printWidget "de" $ applyToWidgetWithFields displayIds myForm
+<h1>
+  Here's all of the IDs
+</h1>
+<p>
+  flexident1
+</p>
+<div class="flex-form-div form-group">
+...
+</div>
+-}
+applyToWidgetWithFields
+  :: Functor m
+  => ([Text] -> [[Text]] -> w -> w')
+  -- ^ how to create a new widget from field IDs, field names and the original widget
+  -> Rendered' m w
+  -- ^ the form
+  -> Rendered' m w'
+applyToWidgetWithFields f = fmap . fmap
+  $ \(ids,names,widget) -> (ids,names,f ids names widget)
+
+
 addContent
   :: (ToWidget FlexForm (render -> a), Functor m)
   => (render -> a)
@@ -156,7 +196,6 @@ addCss
   -> Rendered' m Widget
 addCss = addContent
 
-
 {- |
 Add JavaScript to a form.
 Use with `Yesod` Julius Shakespeare quasi quoters.
@@ -179,6 +218,34 @@ addJs
   -> Rendered' m Widget
 addJs = addContent
 
+{- |
+Like `addJs`, but also takes the field IDs into account
+when constructing the new Widget.
+
+==== __Example__
+
+>>> :{
+let logIds ids = [julius|
+console.log(#{Data.Text.intercalate "," ids});
+  |]
+:}
+
+>>> printWidget "de" $ addJsWithIds logIds myForm
+<div class="flex-form-div form-group">
+...
+</div>
+<script>
+  console.log("flexident1");
+</script>
+-}
+addJsWithIds
+  :: (render ~ RY FlexForm, Functor m)
+  => ([Text] -> render -> Javascript)
+  -- ^ Javascript template depending on form's field IDs and names
+  -> Rendered' m Widget
+  -- ^ Form to add to
+  -> Rendered' m Widget
+addJsWithIds f = applyToWidgetWithFields (const . (<*) . toWidget . f)
 
 {- |
 Like `addCss` and `addJs`, but for including CSS and JavaScript in one step.
@@ -190,6 +257,21 @@ addCssAndJs
   -> Rendered' m Widget -- ^ Form to add to
   -> Rendered' m Widget
 addCssAndJs css js = applyToWidget ((<* toWidget css) . (<* toWidget js))
+
+{- |
+Like `addCss` and `addJsWithIds`, but for including both in one step.
+-}
+addCssAndJsWithIds
+  :: (render ~ RY FlexForm, Functor m)
+  => (render -> Css)
+  -- ^ CSS template
+  -> ([Text] -> [[Text]] -> render -> Javascript)
+  -- ^ Javascript template depending on form's field IDs and names
+  -> Rendered' m Widget
+  -- ^ Form to add to
+  -> Rendered' m Widget
+addCssAndJsWithIds css js = applyToWidgetWithFields
+  $ \ids names -> (<* toWidget css) . (<* toWidget (js ids names))
 
 
 {- |
