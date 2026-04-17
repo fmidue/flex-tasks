@@ -28,6 +28,7 @@ standalone
 typeclasses
 thd
 uncached
+uncurry
 unlines
 Wahrheitswerte
 whamlet
