@@ -174,14 +174,6 @@ addContent
 addContent content = applyToWidget (<* toWidget content)
 
 
-addContentWithFields
-  :: (ToWidget FlexForm (render -> a), Functor m)
-  => ([Text] -> render -> a)
-  -> Rendered' m Widget
-  -> Rendered' m Widget
-addContentWithFields f = applyToWidgetWithFields (const . (<*) . toWidget . f)
-
-
 {- |
 Add CSS to a form.
 Use with `Yesod` Cassius or Lucius Shakespeare quasi quoters.
@@ -253,7 +245,7 @@ addJsWithIds
   -> Rendered' m Widget
   -- ^ Form to add to
   -> Rendered' m Widget
-addJsWithIds = addContentWithFields
+addJsWithIds f = applyToWidgetWithFields (const . (<*) . toWidget . f)
 
 {- |
 Like `addCss` and `addJs`, but for including CSS and JavaScript in one step.
