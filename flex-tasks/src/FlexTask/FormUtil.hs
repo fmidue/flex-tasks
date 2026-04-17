@@ -265,13 +265,13 @@ addCssAndJsWithIds
   :: (render ~ RY FlexForm, Functor m)
   => (render -> Css)
   -- ^ CSS template
-  -> ([Text] -> [[Text]] -> render -> Javascript)
+  -> ([Text] -> render -> Javascript)
   -- ^ Javascript template depending on form's field IDs and names
   -> Rendered' m Widget
   -- ^ Form to add to
   -> Rendered' m Widget
 addCssAndJsWithIds css js = applyToWidgetWithFields
-  $ \ids names -> (<* toWidget css) . (<* toWidget (js ids names))
+  $ \ids _ -> (<* toWidget css) . (<* toWidget (js ids))
 
 
 {- |
