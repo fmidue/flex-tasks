@@ -219,7 +219,7 @@ addJs
 addJs = addContent
 
 {- |
-Like `addJs`, but also takes the field IDs and field names into account
+Like `addJs`, but also takes the field IDs into account
 when constructing the new Widget.
 
 ==== __Example__
