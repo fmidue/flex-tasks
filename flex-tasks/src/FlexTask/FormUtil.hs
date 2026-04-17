@@ -9,7 +9,6 @@ module FlexTask.FormUtil
   -- * Functions for Rendered
     ($$>)
   , addCss
-  , addCssWithFields
   , addJs
   , addJsWithFields
   , addCssAndJs
@@ -63,6 +62,7 @@ import FlexTask.YesodConfig (
 >>> :set -XOverloadedStrings
 >>> :set -XQuasiQuotes
 >>> :set -XTypeApplications
+>>> import qualified Data.Text
 >>> import FlexTask.Generic.Form
 >>> let myForm = formify (Nothing @Int) [[single "input"]]
 >>> let myOtherForm = formify (Nothing @String) [[single "input2"]]
@@ -205,19 +205,6 @@ addCss
 addCss = addContent
 
 {- |
-Like `addCss`, but also takes the field IDs and field names into account
-when constructing the Css.
--}
-addCssWithFields
-  :: (render ~ RY FlexForm, Functor m)
-  => ([Text] -> [[Text]] -> render -> Css)
-  -- ^ Css template depending on form's field IDs and names
-  -> Rendered' m Widget
-  -- ^ Form to add to
-  -> Rendered' m Widget
-addCssWithFields = addContentWithFields
-
-{- |
 Add JavaScript to a form.
 Use with `Yesod` Julius Shakespeare quasi quoters.
 The content will be inserted in a \<script\> tag at the bottom of the document.
@@ -242,6 +229,22 @@ addJs = addContent
 {- |
 Like `addJs`, but also takes the field IDs and field names into account
 when constructing the new Widget.
+
+==== __Example__
+
+>>> :{
+let logIds ids _ = [julius|
+console.log(#{Data.Text.intercalate "," ids});
+  |]
+:}
+
+>>> printWidget "de" $ addJsWithFields logIds myForm
+<div class="flex-form-div form-group">
+...
+</div>
+<script>
+  console.log("flexident1");
+</script>
 -}
 addJsWithFields
   :: (render ~ RY FlexForm, Functor m)
@@ -268,15 +271,15 @@ Like `addCssWithFields` and `addJsWithFields`, but for including both in one ste
 -}
 addCssAndJsWithFields
   :: (render ~ RY FlexForm, Functor m)
-  => ([Text] -> [[Text]] -> render -> Css)
+  => (render -> Css)
   -- ^ CSS template
   -> ([Text] -> [[Text]] -> render -> Javascript)
-  -- ^ Javascript template
+  -- ^ Javascript template depending on form's field IDs and names
   -> Rendered' m Widget
   -- ^ Form to add to
   -> Rendered' m Widget
 addCssAndJsWithFields css js = applyToWidgetWithFields
-  $ \ids names -> (<* toWidget (css ids names)) . (<* toWidget (js ids names))
+  $ \ids names -> (<* toWidget css) . (<* toWidget (js ids names))
 
 
 {- |
