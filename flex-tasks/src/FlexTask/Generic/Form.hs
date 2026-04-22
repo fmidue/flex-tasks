@@ -23,7 +23,9 @@ module FlexTask.Generic.Form (
   , formifyComponentsFlat
     -- * Anonymous Enum Type Builders and Accessors.
   , getAnswer
+  , getAnswerAsIndex
   , getAnswers
+  , getAnswersAsIndices
   , multipleChoiceAnswer
   , multipleChoiceEmpty
   , singleChoiceAnswer

@@ -225,8 +225,17 @@ Use if both of the following is true:
 </div>
 -}
 newtype SingleChoiceSelection = SingleChoiceSelection
-  {getAnswer :: Int -- ^ Retrieve the selected option.
+  {getAnswer :: Int
+  -- ^ Retrieve the selected option. (The first selectable option is @1@)
   } deriving (Show,Eq,Generic)
+
+{- |
+Same as `getAnswer` but the selections are counted from @0@ instead of from @1@.
+Use if you want to pass the selected answer to an indexing function like `!!` or `Data.List.!?`.
+-}
+getAnswerAsIndex :: SingleChoiceSelection -> Int
+getAnswerAsIndex = subtract 1 . getAnswer
+
 {- |
 Same as `SingleChoiceSelection`, but for multiple choice input.
 Use if both of the following is true:
@@ -257,9 +266,16 @@ Use if both of the following is true:
 </div>
 -}
 newtype MultipleChoiceSelection = MultipleChoiceSelection
-  { getAnswers :: [Int] -- ^ Retrieve the list of selected options. @[]@ if none are selected.
+  { getAnswers :: [Int]
+  -- ^ Retrieve the list of selected options. The first selectable option is @1@ . @[]@ if none are selected.
   } deriving (Show,Eq,Generic)
 
+{- |
+Same as `getAnswers` but the selections are counted from @0@ instead of from @1@.
+Use if you want to pass the selected answers to an indexing function like `!!` or `Data.List.!?`.
+-}
+getAnswersAsIndices :: MultipleChoiceSelection -> [Int]
+getAnswersAsIndices = map (subtract 1) . getAnswers
 
 {-# DEPRECATED singleChoiceEmpty
   "This function only existed to satisfy a legacy interface in Autotool. It will be removed in a future version."
