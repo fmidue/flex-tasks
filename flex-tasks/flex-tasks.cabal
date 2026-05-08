@@ -19,17 +19,17 @@ library
       FlexTask.Form.ToHtml
       FlexTask.Form.Types
       FlexTask.Form.Util
-      FlexTask.Generic.Parse
       FlexTask.GenUtil
       FlexTask.Interpreter.EvaluationHelper
       FlexTask.Interpreter.GenerationHelper
       FlexTask.Interpreter
+      FlexTask.Parser
   other-modules:
       FlexTask.Form.Internal
       FlexTask.Form.Styling
       FlexTask.Form.Widgets
       FlexTask.FormTypes
-      FlexTask.Generic.ParseInternal
+      FlexTask.Parser.Internal
       Paths_flex_tasks
   hs-source-dirs:
       src
@@ -135,7 +135,7 @@ test-suite flex-tasks-test
       FlexTask.Config.TypesSpec
       FlexTask.Form.UtilSpec
       FlexTask.FormSpec
-      FlexTask.Generic.ParseSpec
+      FlexTask.ParserSpec
       FlexTask.TestUtil
       Paths_flex_tasks
   hs-source-dirs:

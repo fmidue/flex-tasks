@@ -4,8 +4,8 @@
 {-# language TypeOperators #-}
 
 
-module FlexTask.Generic.ParseInternal (
-  module FlexTask.Generic.ParseInternal
+module FlexTask.Parser.Internal (
+  module FlexTask.Parser.Internal
   ) where
 
 

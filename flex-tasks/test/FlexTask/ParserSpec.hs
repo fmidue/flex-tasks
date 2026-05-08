@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module FlexTask.Generic.ParseSpec where
+module FlexTask.ParserSpec where
 
 
 import Data.List.Extra                  (dropEnd, singleton, trim)
@@ -28,7 +28,7 @@ import FlexTask.Form (
   singleChoiceAnswer,
   multipleChoiceAnswer,
   )
-import FlexTask.Generic.Parse
+import FlexTask.Parser
 import FlexTask.Processing.Text         (formatAnswer)
 
 

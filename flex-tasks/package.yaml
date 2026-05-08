@@ -52,11 +52,11 @@ library:
     - FlexTask.Form.ToHtml
     - FlexTask.Form.Types
     - FlexTask.Form.Util
-    - FlexTask.Generic.Parse
     - FlexTask.GenUtil
     - FlexTask.Interpreter.EvaluationHelper
     - FlexTask.Interpreter.GenerationHelper
     - FlexTask.Interpreter
+    - FlexTask.Parser
   ghc-options:
     - -Wall
     - -Widentities
