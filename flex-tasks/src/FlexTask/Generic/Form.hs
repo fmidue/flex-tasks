@@ -53,6 +53,7 @@ module FlexTask.Generic.Form (
 
 import GHC.TypeLits (TypeError, ErrorMessage(Text,(:$$:)))
 
+import FlexTask.FormTypes
 import FlexTask.Generic.FormInternal
 
 

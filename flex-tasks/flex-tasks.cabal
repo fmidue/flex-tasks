@@ -25,6 +25,7 @@ library
       FlexTask.Types
       FlexTask.YesodConfig
   other-modules:
+      FlexTask.FormTypes
       FlexTask.Generic.FormInternal
       FlexTask.Generic.ParseInternal
       FlexTask.Styling
