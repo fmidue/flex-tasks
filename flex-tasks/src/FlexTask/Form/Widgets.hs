@@ -12,7 +12,7 @@ import FlexTask.Form.Util (
   newFlexName,
   )
 import FlexTask.Form.Styling (horizontalRBStyle, checkboxStyle)
-import FlexTask.YesodConfig (
+import FlexTask.Form.Types (
   FlexForm,
   Handler,
   Rendered,

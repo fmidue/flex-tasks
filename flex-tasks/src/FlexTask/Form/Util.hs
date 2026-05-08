@@ -48,8 +48,8 @@ import qualified Control.Monad.Trans.RWS as RWS   (get)
 import qualified Data.Map                as M     (lookup)
 import qualified Data.Text               as T     (replace)
 
-import FlexTask.ConvertForm            (getFormData)
-import FlexTask.YesodConfig (
+import FlexTask.Form.ToHtml            (getFormData)
+import FlexTask.Form.Types (
   FlexForm(..),
   Handler,
   Rendered,

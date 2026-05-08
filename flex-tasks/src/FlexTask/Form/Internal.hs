@@ -43,6 +43,12 @@ import FlexTask.FormTypes (
   SingleInputList(..),
   Hidden(..),
   )
+import FlexTask.Form.Types (
+  FlexForm(..),
+  Handler,
+  Rendered,
+  Widget,
+  )
 import FlexTask.Form.Util    (applyToWidget)
 import FlexTask.Form.Widgets
   ( checkboxField
@@ -51,7 +57,6 @@ import FlexTask.Form.Widgets
   , renderForm
   , selectField
   )
-import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
 
 {- $setup

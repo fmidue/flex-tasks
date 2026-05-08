@@ -29,9 +29,9 @@ import Test.QuickCheck.Instances.Text   ()
 import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
-import FlexTask.ConvertForm             (getFormData)
 import FlexTask.Form
-import FlexTask.YesodConfig             (FlexForm)
+import FlexTask.Form.ToHtml             (getFormData)
+import FlexTask.Form.Types              (FlexForm)
 
 
 

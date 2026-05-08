@@ -22,8 +22,8 @@ import FlexTask.Form.Internal (
   buttons,
   formify,
   )
+import FlexTask.Form.Types              (FlexForm, Rendered, Widget)
 import FlexTask.Form.Util               (showToUniversalLabel, universalLabel)
-import FlexTask.YesodConfig             (FlexForm, Rendered, Widget)
 
 
 

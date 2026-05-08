@@ -4,11 +4,11 @@
 {-# language PatternSynonyms #-}
 
 {-|
-Default Yesod configuration for form generating environment.
-Also exports some convenient type synonyms hiding underlying complexity.
+Exports some convenient type synonyms hiding underlying complexity and
+default Yesod configuration for form generating environment.
 -}
 
-module FlexTask.YesodConfig
+module FlexTask.Form.Types
   ( FlexForm(..)
   -- * Yesod type synonyms
   , Handler

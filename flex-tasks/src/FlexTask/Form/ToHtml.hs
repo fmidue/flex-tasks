@@ -1,7 +1,7 @@
 {-# language QuasiQuotes #-}
 {-# language RecordWildCards #-}
 
-module FlexTask.ConvertForm (
+module FlexTask.Form.ToHtml (
   getFormData,
   unsafeGetFormData,
   ) where
@@ -22,8 +22,8 @@ import Yesod.Core.Types                 (HandlerData(..), HandlerFor(..), ghsIde
 import Yesod.Default.Config2            (makeYesodLogger)
 
 import FlexTask.Config.Types            (HtmlDict)
+import FlexTask.Form.Types              (FlexForm(..), Handler, Rendered, Widget)
 import FlexTask.Processing.Text         (supportedLanguages)
-import FlexTask.YesodConfig             (FlexForm(..), Handler, Rendered, Widget)
 
 
 

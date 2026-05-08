@@ -47,16 +47,16 @@ library:
   exposed-modules:
     - FlexTask.Config.Default
     - FlexTask.Config.Types
-    - FlexTask.ConvertForm
     - FlexTask.Form
     - FlexTask.Form.Helpers
+    - FlexTask.Form.ToHtml
+    - FlexTask.Form.Types
     - FlexTask.Form.Util
     - FlexTask.Generic.Parse
     - FlexTask.GenUtil
     - FlexTask.Interpreter.EvaluationHelper
     - FlexTask.Interpreter.GenerationHelper
     - FlexTask.Interpreter
-    - FlexTask.YesodConfig
   ghc-options:
     - -Wall
     - -Widentities
