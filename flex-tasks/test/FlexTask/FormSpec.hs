@@ -2,7 +2,7 @@
 {-# language AllowAmbiguousTypes #-}
 {-# language OverloadedStrings #-}
 
-module FlexTask.Generic.FormSpec where
+module FlexTask.FormSpec where
 
 
 import Data.Maybe                       (fromMaybe)
@@ -30,7 +30,7 @@ import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
 import FlexTask.ConvertForm             (getFormData)
-import FlexTask.Generic.Form
+import FlexTask.Form
 import FlexTask.YesodConfig             (FlexForm)
 
 

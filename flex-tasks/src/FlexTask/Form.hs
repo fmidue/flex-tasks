@@ -7,7 +7,7 @@
 Generic `Yesod` input form generation and related utility functions.
 -}
 
-module FlexTask.Generic.Form (
+module FlexTask.Form (
   -- * Data Types
     Alignment(..)
   , FieldInfo
@@ -54,7 +54,7 @@ module FlexTask.Generic.Form (
 import GHC.TypeLits (TypeError, ErrorMessage(Text,(:$$:)))
 
 import FlexTask.FormTypes
-import FlexTask.Generic.FormInternal
+import FlexTask.Form.Internal
 
 
 instance {-# Overlappable #-} TypeError (

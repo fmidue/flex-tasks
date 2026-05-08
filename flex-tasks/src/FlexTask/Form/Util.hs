@@ -4,7 +4,7 @@
 {- | Functions for creating and composing forms.
 -}
 
-module FlexTask.FormUtil
+module FlexTask.Form.Util
   (
   -- * Functions for Rendered
     ($$>)
@@ -64,7 +64,7 @@ import FlexTask.YesodConfig (
 >>> :set -XQuasiQuotes
 >>> :set -XTypeApplications
 >>> import qualified Data.Text
->>> import FlexTask.Generic.Form
+>>> import FlexTask.Form.Internal
 >>> let myForm = formify (Nothing @Int) [[single "input"]]
 >>> let myOtherForm = formify (Nothing @String) [[single "input2"]]
 -}

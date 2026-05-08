@@ -6,8 +6,8 @@
 {-# language StandaloneDeriving #-}
 {-# language TypeOperators #-}
 
-module FlexTask.Generic.FormInternal (
-  module FlexTask.Generic.FormInternal
+module FlexTask.Form.Internal (
+  module FlexTask.Form.Internal
   ) where
 
 
@@ -43,8 +43,8 @@ import FlexTask.FormTypes (
   SingleInputList(..),
   Hidden(..),
   )
-import FlexTask.FormUtil    (applyToWidget)
-import FlexTask.Widgets
+import FlexTask.Form.Util    (applyToWidget)
+import FlexTask.Form.Widgets
   ( checkboxField
   , radioField
   , joinWidgets
@@ -57,7 +57,7 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 {- $setup
 >>> :set -XOverloadedStrings
 >>> :set -XTypeApplications
->>> import FlexTask.FormUtil
+>>> import FlexTask.Form.Util
 >>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
 >>> newtype MyCoolType = CType { getString :: String}
 >>> let toCool = CType

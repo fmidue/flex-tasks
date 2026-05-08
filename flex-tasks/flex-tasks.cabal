@@ -15,9 +15,9 @@ library
       FlexTask.Config.Default
       FlexTask.Config.Types
       FlexTask.ConvertForm
-      FlexTask.FormHelpers
-      FlexTask.FormUtil
-      FlexTask.Generic.Form
+      FlexTask.Form
+      FlexTask.Form.Helpers
+      FlexTask.Form.Util
       FlexTask.Generic.Parse
       FlexTask.GenUtil
       FlexTask.Interpreter.EvaluationHelper
@@ -25,11 +25,11 @@ library
       FlexTask.Interpreter
       FlexTask.YesodConfig
   other-modules:
+      FlexTask.Form.Internal
+      FlexTask.Form.Styling
+      FlexTask.Form.Widgets
       FlexTask.FormTypes
-      FlexTask.Generic.FormInternal
       FlexTask.Generic.ParseInternal
-      FlexTask.Styling
-      FlexTask.Widgets
       Paths_flex_tasks
   hs-source-dirs:
       src
@@ -133,8 +133,8 @@ test-suite flex-tasks-test
   other-modules:
       FlexTask.Config.DefaultSpec
       FlexTask.Config.TypesSpec
-      FlexTask.FormUtilSpec
-      FlexTask.Generic.FormSpec
+      FlexTask.Form.UtilSpec
+      FlexTask.FormSpec
       FlexTask.Generic.ParseSpec
       FlexTask.TestUtil
       Paths_flex_tasks

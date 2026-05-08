@@ -1,17 +1,17 @@
 {-# language QuasiQuotes #-}
 
-module FlexTask.Widgets where
+module FlexTask.Form.Widgets where
 
 
 
 import Control.Monad.Reader (reader)
 import Yesod
 
-import FlexTask.FormUtil (
+import FlexTask.Form.Util (
   newFlexId,
   newFlexName,
   )
-import FlexTask.Styling     (horizontalRBStyle, checkboxStyle)
+import FlexTask.Form.Styling (horizontalRBStyle, checkboxStyle)
 import FlexTask.YesodConfig (
   FlexForm,
   Handler,

@@ -48,9 +48,9 @@ library:
     - FlexTask.Config.Default
     - FlexTask.Config.Types
     - FlexTask.ConvertForm
-    - FlexTask.FormHelpers
-    - FlexTask.FormUtil
-    - FlexTask.Generic.Form
+    - FlexTask.Form
+    - FlexTask.Form.Helpers
+    - FlexTask.Form.Util
     - FlexTask.Generic.Parse
     - FlexTask.GenUtil
     - FlexTask.Interpreter.EvaluationHelper

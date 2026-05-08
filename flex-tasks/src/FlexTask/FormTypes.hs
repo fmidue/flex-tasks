@@ -10,8 +10,8 @@ import GHC.Generics                     (Generic)
 
 
 {- $setup
->>> import FlexTask.FormUtil
->>> import FlexTask.Generic.Form
+>>> import FlexTask.Form.Util
+>>> import FlexTask.Form.Internal
 -}
 
 
