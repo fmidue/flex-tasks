@@ -45,8 +45,9 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
+    - FlexTask.Config.Default
+    - FlexTask.Config.Types
     - FlexTask.ConvertForm
-    - FlexTask.DefaultConfig
     - FlexTask.FormHelpers
     - FlexTask.FormUtil
     - FlexTask.Generic.Form
@@ -55,7 +56,6 @@ library:
     - FlexTask.Interpreter.EvaluationHelper
     - FlexTask.Interpreter.GenerationHelper
     - FlexTask.Interpreter
-    - FlexTask.Types
     - FlexTask.YesodConfig
   ghc-options:
     - -Wall

@@ -2,7 +2,7 @@
 {-# language NamedFieldPuns #-}
 {-# language RecordWildCards #-}
 
-module FlexTask.TypesSpec where
+module FlexTask.Config.TypesSpec where
 
 
 import Data.Char                        (isAscii, isLetter, toUpper)
@@ -22,7 +22,7 @@ import Test.QuickCheck (
 import Test.QuickCheck.Arbitrary        (Arbitrary(..))
 import Text.Parsec                      (parse)
 
-import FlexTask.Types
+import FlexTask.Config.Types
 
 
 spec :: Spec

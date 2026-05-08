@@ -21,7 +21,7 @@ import Yesod
 import Yesod.Core.Types                 (HandlerData(..), HandlerFor(..), ghsIdent)
 import Yesod.Default.Config2            (makeYesodLogger)
 
-import FlexTask.Types                   (HtmlDict)
+import FlexTask.Config.Types            (HtmlDict)
 import FlexTask.Processing.Text         (supportedLanguages)
 import FlexTask.YesodConfig             (FlexForm(..), Handler, Rendered, Widget)
 
