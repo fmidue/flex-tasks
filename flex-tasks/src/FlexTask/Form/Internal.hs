@@ -37,7 +37,7 @@ import Yesod (
   textField,
   )
 
-import FlexTask.FormTypes (
+import FlexTask.InputTypes (
   MultipleChoiceSelection(..),
   SingleChoiceSelection(..),
   SingleInputList(..),

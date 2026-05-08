@@ -66,7 +66,7 @@ import FlexTask.Processing.Text (
   listDelimiter,
   missingMarker,
   )
-import FlexTask.FormTypes
+import FlexTask.InputTypes
   ( MultipleChoiceSelection
   , SingleChoiceSelection
   , SingleInputList(..)

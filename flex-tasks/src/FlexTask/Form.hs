@@ -11,25 +11,13 @@ module FlexTask.Form (
   -- * Data Types
     Alignment(..)
   , FieldInfo
-  , SingleChoiceSelection
-  , MultipleChoiceSelection
-  , Hidden(..)
-  , SingleInputList(..)
+
     -- * Type Classes
   , BaseForm(..)
   , Formify(..)
   , formify
   , formifyComponents
   , formifyComponentsFlat
-    -- * Anonymous Enum Type Builders and Accessors.
-  , getAnswer
-  , getAnswerAsIndex
-  , getAnswers
-  , getAnswersAsIndices
-  , multipleChoiceAnswer
-  , multipleChoiceEmpty
-  , singleChoiceAnswer
-  , singleChoiceEmpty
 
     -- * Field Builders
   , buttons
@@ -53,7 +41,6 @@ module FlexTask.Form (
 
 import GHC.TypeLits (TypeError, ErrorMessage(Text,(:$$:)))
 
-import FlexTask.FormTypes
 import FlexTask.Form.Internal
 
 

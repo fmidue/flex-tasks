@@ -28,10 +28,14 @@ import Test.QuickCheck (
 import Test.QuickCheck.Instances.Text   ()
 import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
-import FlexTask.TestUtil                (shouldNotThrow)
 import FlexTask.Form
 import FlexTask.Form.ToHtml             (getFormData)
 import FlexTask.Form.Types              (FlexForm)
+import FlexTask.InputTypes (
+  SingleChoiceSelection,
+  MultipleChoiceSelection,
+  )
+import FlexTask.TestUtil                (shouldNotThrow)
 
 
 

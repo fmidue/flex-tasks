@@ -53,6 +53,7 @@ library:
     - FlexTask.Form.Types
     - FlexTask.Form.Util
     - FlexTask.GenUtil
+    - FlexTask.InputTypes
     - FlexTask.Interpreter.EvaluationHelper
     - FlexTask.Interpreter.GenerationHelper
     - FlexTask.Interpreter

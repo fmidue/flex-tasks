@@ -1,7 +1,25 @@
 {-# Language DeriveGeneric #-}
 
-module FlexTask.FormTypes (
-  module FlexTask.FormTypes,
+{- |
+Data types for use in input forms and related functions.
+-}
+
+module FlexTask.InputTypes (
+  -- * Data Types
+  SingleChoiceSelection,
+  MultipleChoiceSelection,
+  Hidden(..),
+  SingleInputList(..),
+
+  -- * Anonymous Enum Type Builders and Accessors
+  getAnswer,
+  getAnswerAsIndex,
+  getAnswers,
+  getAnswersAsIndices,
+  multipleChoiceAnswer,
+  multipleChoiceEmpty,
+  singleChoiceAnswer,
+  singleChoiceEmpty,
   ) where
 
 

@@ -13,7 +13,7 @@ module FlexTask.Form.Helpers (
 
 import Yesod                            (FieldSettings, SomeMessage)
 
-import FlexTask.FormTypes (
+import FlexTask.InputTypes (
   MultipleChoiceSelection,
   SingleChoiceSelection,
   )

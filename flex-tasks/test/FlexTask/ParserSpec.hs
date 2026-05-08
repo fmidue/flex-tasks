@@ -24,7 +24,7 @@ import Text.Parsec                      (ParseError, eof, digit, many1, parse)
 import Text.Parsec.String               (Parser)
 import Yesod (Textarea(..))
 
-import FlexTask.Form (
+import FlexTask.InputTypes (
   singleChoiceAnswer,
   multipleChoiceAnswer,
   )
