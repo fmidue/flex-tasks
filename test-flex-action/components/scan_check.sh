@@ -20,6 +20,7 @@ echo "<style>" \
 awk -v max="$MAX_LENGTH" -v min_clone="$MIN_CLONE" -v report="$REPORT" '
 {
     line = $0
+    sub(/^[[:space:]]+/, "", line)
     L = length(line)
     # Save each line for later extension.
     lines[NR] = line
