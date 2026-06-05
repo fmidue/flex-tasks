@@ -94,7 +94,7 @@ partialLX1205 =
   [SeatDescription (LX1205 RightSide) r s | r <- [1,3..21], s <- [1,3..9]]
 
 
--- atendees (order should be randomized beforehand)
+-- attendees (order should be randomized beforehand)
 shuffledAttendees :: [Integer]
 shuffledAttendees = [3000001..3000250] -- dummy values
 
