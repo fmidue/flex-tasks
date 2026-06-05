@@ -220,7 +220,9 @@ description _ _ = do
   paragraph $ translate $ do
     german "Geben Sie dafür Ihre Matrikelnummer in das gegebene Textfeld ein. "
     english "Enter your matriculation number into the given text field. "
-    german "Wenn Ihre Nummer für die Klausur angemeldet ist, enthält das anschließende Feedback eine Beschreibung Ihres Sitzplatzes."
+    german $
+      "Wenn Ihre Nummer für die Klausur angemeldet ist, " ++
+      "enthält das anschließende Feedback eine Beschreibung Ihres Sitzplatzes."
     english "The resulting feedback will contain a description of your seat if your number is registered for the exam."
   pure ()
 
