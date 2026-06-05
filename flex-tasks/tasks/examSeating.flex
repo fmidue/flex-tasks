@@ -3,7 +3,6 @@ taskName: ExamSeatInfo
 =============================================
 
 {-# language DeriveGeneric #-}
-{-# language OverloadedLists #-}
 {-# language RecordWildCards #-}
 
 module Global where
@@ -166,7 +165,7 @@ checkSyntax _ _  = pure ()  -- nothing to check here
 
 
 checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
-checkSemantics _ _ (MatriculationNumber num) = case lookup num #{seatingArrangement} of
+checkSemantics _ _ (MatriculationNumber num) = case lookup num #{seatingArrangement} of --ignore-length
   Nothing      -> do
     refuse $ paragraph $ translate $ do
       german $
@@ -206,7 +205,6 @@ module Description (description) where
 
 
 import Control.OutputCapable.Blocks
-import Data.String.Interpolate                   (i)
 
 import Global
 
@@ -231,7 +229,6 @@ description _ _ = do
 module Parse (parseSubmission) where
 
 
-import Control.Monad                    (void)
 import Control.OutputCapable.Blocks (
   LangM',
   ReportT,
