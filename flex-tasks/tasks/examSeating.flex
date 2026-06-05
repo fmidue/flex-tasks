@@ -55,7 +55,15 @@ type TaskData = ()
 module TaskSettings where
 
 
-import Control.OutputCapable.Blocks (LangM, OutputCapable, indent, refuse, translate, german, english)
+import Control.OutputCapable.Blocks (
+  LangM,
+  OutputCapable,
+  indent,
+  refuse,
+  translate,
+  german,
+  english,
+  )
 
 import Global
 
