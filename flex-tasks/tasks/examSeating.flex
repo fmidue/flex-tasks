@@ -64,9 +64,20 @@ import Control.OutputCapable.Blocks (
   german,
   english,
   )
+import System.Random                    (mkStdGen, uniformShuffleList)
 
 import Global
 
+
+
+-- dummy values
+attendees :: [Integer]
+attendees = [3000001..3000250]
+
+
+-- static seed for attendee permutation
+shuffleSeed :: Int
+shuffleSeed = 0
 
 
 seatingArrangement :: [(Integer,SeatDescription)]
@@ -101,9 +112,8 @@ partialLX1205 =
   [SeatDescription (LX1205 RightSide) r s | r <- [1,3..21], s <- [1,3..9]]
 
 
--- attendees (order should be randomized beforehand)
 shuffledAttendees :: [Integer]
-shuffledAttendees = [3000001..3000250] -- dummy values
+shuffledAttendees = fst $ uniformShuffleList attendees $ mkStdGen shuffleSeed
 
 
 validateSettings :: OutputCapable m => LangM m
