@@ -215,8 +215,8 @@ import Global
 description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ _ = do
   paragraph $ translate $ do
-    german "Mittels dieser Aufgabe erhalten Sie Informationen über Ihren Sitzplatz in der Modellierungsklausur."
-    english "You will be given information concerning your seat during the modelling exam through this task."
+    german "Mittels dieser Aufgabe erhalten Sie Informationen über Ihren Sitzplatz in der Klausur."
+    english "You will be given information concerning your seat during the exam through this task."
   paragraph $ translate $ do
     german "Geben Sie dafür Ihre Matrikelnummer in das gegebene Textfeld ein. "
     english "Enter your matriculation number into the given text field. "
