@@ -3,7 +3,6 @@ taskName: ExamSeatInfo
 =============================================
 
 {-# language DeriveGeneric #-}
-{-# language OverloadedLists #-}
 {-# language RecordWildCards #-}
 
 module Global where
@@ -45,10 +44,10 @@ blockToTranslation Middle    = ("middle block", "mittlerer Block")
 blockToTranslation RightSide = ("right block", "rechter Block")
 
 
-newtype MNr = MNr Integer deriving (Generic,Eq)
+newtype MatriculationNumber = MatriculationNumber Integer deriving (Generic,Eq)
 
 
-type Submission = MNr
+type Submission = MatriculationNumber
 type TaskData = ()
 
 =============================================
@@ -94,7 +93,7 @@ partialLX1205 =
   [SeatDescription (LX1205 RightSide) r s | r <- [1,3..21], s <- [1,3..9]]
 
 
--- atendees (order should be randomized beforehand)
+-- attendees (order should be randomized beforehand)
 shuffledAttendees :: [Integer]
 shuffledAttendees = [3000001..3000250] -- dummy values
 
@@ -124,16 +123,16 @@ import Global
 import TaskSettings
 
 
-data Label = MNumber
+data Label = MatriculationNumberInput
 
 
 
 instance RenderMessage a Label where
-  renderMessage _ ("de":_) MNumber = "Matrikelnummer"
-  renderMessage _ _        MNumber = "Matriculation number"
+  renderMessage _ ("de":_) MatriculationNumberInput = "Matrikelnummer"
+  renderMessage _ _        MatriculationNumberInput = "Matriculation number"
 
 
-instance Formify MNr
+instance Formify MatriculationNumber
 
 
 getTask :: Monad m => m (TaskData, String, Rendered Widget)
@@ -143,7 +142,7 @@ getTask = pure ((), checkers, form)
 form :: Rendered Widget
 form = formify
   (Nothing :: Maybe Submission)
-  [[single $ fieldSettingsLabel MNumber]]
+  [[single $ fieldSettingsLabel MatriculationNumberInput]]
 
 
 checkers :: String
@@ -166,7 +165,7 @@ checkSyntax _ _  = pure ()  -- nothing to check here
 
 
 checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
-checkSemantics _ _ (MNr num) = case lookup num #{seatingArrangement} of
+checkSemantics _ _ (MatriculationNumber num) = case lookup num #{seatingArrangement} of --ignore-length
   Nothing      -> do
     refuse $ paragraph $ translate $ do
       german $
@@ -206,7 +205,6 @@ module Description (description) where
 
 
 import Control.OutputCapable.Blocks
-import Data.String.Interpolate                   (i)
 
 import Global
 
@@ -215,12 +213,14 @@ import Global
 description :: OutputCapable m => FilePath -> TaskData -> LangM m
 description _ _ = do
   paragraph $ translate $ do
-    german "Mittels dieser Aufgabe erhalten Sie Informationen über Ihren Sitzplatz in der Modellierungsklausur."
-    english "You will be given information concerning your seat during the modelling exam through this task."
+    german "Mittels dieser Aufgabe erhalten Sie Informationen über Ihren Sitzplatz in der Klausur."
+    english "You will be given information concerning your seat during the exam through this task."
   paragraph $ translate $ do
     german "Geben Sie dafür Ihre Matrikelnummer in das gegebene Textfeld ein. "
     english "Enter your matriculation number into the given text field. "
-    german "Wenn Ihre Nummer für die Klausur angemeldet ist, enthält das anschließende Feedback eine Beschreibung Ihres Sitzplatzes."
+    german $
+      "Wenn Ihre Nummer für die Klausur angemeldet ist, " ++
+      "enthält das anschließende Feedback eine Beschreibung Ihres Sitzplatzes."
     english "The resulting feedback will contain a description of your seat if your number is registered for the exam."
   pure ()
 
@@ -229,7 +229,6 @@ description _ _ = do
 module Parse (parseSubmission) where
 
 
-import Control.Monad                    (void)
 import Control.OutputCapable.Blocks (
   LangM',
   ReportT,
@@ -257,7 +256,7 @@ This number still incidentally continues with another 2 afterwards,
 but it is unclear, if those numbers always contain a 0, 1 or 2 in their second digit.
 The parsing rules should therefore be checked again and adjusted if necessary when this task is next deployed.
 -}
-instance Parse MNr where
+instance Parse MatriculationNumber where
   formParser = escaped $ do
     prefix <- char '2' <|>  char '3'
     next <- oneOf ['0', '1', '2'] <|>
@@ -269,7 +268,7 @@ instance Parse MNr where
       then unexpected "end of input"
       else if length rest > 5
         then unexpected "additional digits"
-        else pure (MNr $ read $ prefix:next:rest)
+        else pure (MatriculationNumber $ read $ prefix:next:rest)
 
 parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
