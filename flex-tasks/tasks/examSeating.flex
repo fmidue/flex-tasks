@@ -44,7 +44,7 @@ blockToTranslation Middle    = ("middle block", "mittlerer Block")
 blockToTranslation RightSide = ("right block", "rechter Block")
 
 
-newtype MatriculationNumber = MatriculationNumber Integer deriving (Generic,Eq)
+newtype MatriculationNumber = MatriculationNumber Integer deriving (Generic,Eq,Show)
 
 
 type Submission = MatriculationNumber
@@ -71,8 +71,8 @@ import Global
 
 
 -- dummy values
-attendees :: [Integer]
-attendees = [3000001..3000250]
+attendees :: [MatriculationNumber]
+attendees = map MatriculationNumber [3000001..3000250]
 
 
 -- static seed for attendee permutation
@@ -80,7 +80,7 @@ shuffleSeed :: Int
 shuffleSeed = 0
 
 
-seatingArrangement :: [(Integer,SeatDescription)]
+seatingArrangement :: [(MatriculationNumber,SeatDescription)]
 seatingArrangement = zip shuffledAttendees $ fullLX1203 ++ partialLX1205
 
 
@@ -112,7 +112,7 @@ partialLX1205 =
   [SeatDescription (LX1205 RightSide) r s | r <- [1,3..21], s <- [1,3..9]]
 
 
-shuffledAttendees :: [Integer]
+shuffledAttendees :: [MatriculationNumber]
 shuffledAttendees = fst $ uniformShuffleList attendees $ mkStdGen shuffleSeed
 
 
@@ -183,7 +183,7 @@ checkSyntax _ _  = pure ()  -- nothing to check here
 
 
 checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
-checkSemantics _ _ (MatriculationNumber num) = case lookup num #{seatingArrangement} of --ignore-length
+checkSemantics _ _ num = case lookup num #{seatingArrangement} of --ignore-length
   Nothing      -> do
     refuse $ paragraph $ translate $ do
       german $
