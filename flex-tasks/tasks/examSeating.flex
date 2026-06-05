@@ -45,10 +45,10 @@ blockToTranslation Middle    = ("middle block", "mittlerer Block")
 blockToTranslation RightSide = ("right block", "rechter Block")
 
 
-newtype MNr = MNr Integer deriving (Generic,Eq)
+newtype MatriculationNumber = MatriculationNumber Integer deriving (Generic,Eq)
 
 
-type Submission = MNr
+type Submission = MatriculationNumber
 type TaskData = ()
 
 =============================================
@@ -124,16 +124,16 @@ import Global
 import TaskSettings
 
 
-data Label = MNumber
+data Label = MatriculationNumberInput
 
 
 
 instance RenderMessage a Label where
-  renderMessage _ ("de":_) MNumber = "Matrikelnummer"
-  renderMessage _ _        MNumber = "Matriculation number"
+  renderMessage _ ("de":_) MatriculationNumberInput = "Matrikelnummer"
+  renderMessage _ _        MatriculationNumberInput = "Matriculation number"
 
 
-instance Formify MNr
+instance Formify MatriculationNumber
 
 
 getTask :: Monad m => m (TaskData, String, Rendered Widget)
@@ -143,7 +143,7 @@ getTask = pure ((), checkers, form)
 form :: Rendered Widget
 form = formify
   (Nothing :: Maybe Submission)
-  [[single $ fieldSettingsLabel MNumber]]
+  [[single $ fieldSettingsLabel MatriculationNumberInput]]
 
 
 checkers :: String
@@ -166,7 +166,7 @@ checkSyntax _ _  = pure ()  -- nothing to check here
 
 
 checkSemantics :: OutputCapable m => FilePath -> TaskData -> Submission -> Rated m
-checkSemantics _ _ (MNr num) = case lookup num #{seatingArrangement} of
+checkSemantics _ _ (MatriculationNumber num) = case lookup num #{seatingArrangement} of
   Nothing      -> do
     refuse $ paragraph $ translate $ do
       german $
@@ -257,7 +257,7 @@ This number still incidentally continues with another 2 afterwards,
 but it is unclear, if those numbers always contain a 0, 1 or 2 in their second digit.
 The parsing rules should therefore be checked again and adjusted if necessary when this task is next deployed.
 -}
-instance Parse MNr where
+instance Parse MatriculationNumber where
   formParser = escaped $ do
     prefix <- char '2' <|>  char '3'
     next <- oneOf ['0', '1', '2'] <|>
@@ -269,7 +269,7 @@ instance Parse MNr where
       then unexpected "end of input"
       else if length rest > 5
         then unexpected "additional digits"
-        else pure (MNr $ read $ prefix:next:rest)
+        else pure (MatriculationNumber $ read $ prefix:next:rest)
 
 parseSubmission ::
   (Monad m, OutputCapable (ReportT o m))
