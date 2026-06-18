@@ -91,20 +91,40 @@ runs:
         cd haskell-template-setup
         awk '
           NR==FNR {
-            if (/extra-deps/) f = 1
-            else if (f && !/allow-newer:[[:space:]]*true/) b = b $0 ORS
-            if (/allow-newer:[[:space:]]*true/) a = 1
+            if ($0 ~ /^extra-deps:[[:space:]]*$/) {
+              in_extra = 1
+              next
+            }
+
+            if (in_extra && $0 ~ /^[^[:space:]#][^:]*:/) {
+              in_extra = 0
+            }
+
+            if (in_extra) {
+              b = b $0 ORS
+            }
+
+            if ($0 ~ /^allow-newer:[[:space:]]*true([[:space:]]*(#.*)?)?$/) {
+              a = 1
+            }
+
             next
           }
+
           {
-            if ($0 ~ /allow-newer:[[:space:]]*true/ && $0 !~ /^[[:space:]]*#/) local_has = 1
+            if ($0 ~ /^allow-newer:[[:space:]]*true([[:space:]]*(#.*)?)?$/ && $0 !~ /^[[:space:]]*#/) {
+              local_has = 1
+            }
           }
-          /extra-deps/ {
+
+          /^extra-deps:[[:space:]]*$/ {
             print
-            printf b
+            printf "%s", b
             next
           }
+
           { print }
+
           END {
             if (a && !local_has) {
               print ""
