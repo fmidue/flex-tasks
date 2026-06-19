@@ -110,21 +110,17 @@ runs:
 
             next
           }
-
           {
             if ($0 ~ /^allow-newer:[[:space:]]*true([[:space:]]*(#.*)?)?$/ && $0 !~ /^[[:space:]]*#/) {
               local_has = 1
             }
           }
-
           /^extra-deps:[[:space:]]*$/ {
             print
             printf "%s", b
             next
           }
-
           { print }
-
           END {
             if (a && !local_has) {
               print ""
