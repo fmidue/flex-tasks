@@ -95,19 +95,15 @@ runs:
               in_extra = 1
               next
             }
-
             if (in_extra && $0 ~ /^[^[:space:]#][^:]*:/) {
               in_extra = 0
             }
-
             if (in_extra) {
               b = b $0 ORS
             }
-
             if ($0 ~ /^allow-newer:[[:space:]]*true([[:space:]]*(#.*)?)?$/) {
               a = 1
             }
-
             next
           }
           {
