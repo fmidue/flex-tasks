@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module FlexTask.Generic.ParseSpec where
+module FlexTask.ParserSpec where
 
 
 import Data.List.Extra                  (dropEnd, singleton, trim)
@@ -24,11 +24,11 @@ import Text.Parsec                      (ParseError, eof, digit, many1, parse)
 import Text.Parsec.String               (Parser)
 import Yesod (Textarea(..))
 
-import FlexTask.Generic.Form (
+import FlexTask.InputTypes (
   singleChoiceAnswer,
   multipleChoiceAnswer,
   )
-import FlexTask.Generic.Parse
+import FlexTask.Parser
 import FlexTask.Processing.Text         (formatAnswer)
 
 

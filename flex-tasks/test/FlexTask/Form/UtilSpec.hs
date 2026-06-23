@@ -1,7 +1,7 @@
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 
-module FlexTask.FormUtilSpec where
+module FlexTask.Form.UtilSpec where
 
 
 import Test.Hspec (
@@ -13,10 +13,10 @@ import Test.Hspec (
 import Text.Cassius                     (Css, cassius)
 import Text.Julius                      (JavascriptUrl, julius)
 
-import FlexTask.ConvertForm
 import FlexTask.TestUtil                (shouldNotThrow, shouldReturnSame)
-import FlexTask.FormUtil
-import FlexTask.Generic.Form
+import FlexTask.Form
+import FlexTask.Form.ToHtml             (getFormData)
+import FlexTask.Form.Util
 
 
 

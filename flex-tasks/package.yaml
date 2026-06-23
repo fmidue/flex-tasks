@@ -45,18 +45,19 @@ default-extensions:
 library:
   source-dirs: src
   exposed-modules:
-    - FlexTask.ConvertForm
-    - FlexTask.DefaultConfig
-    - FlexTask.FormHelpers
-    - FlexTask.FormUtil
-    - FlexTask.Generic.Form
-    - FlexTask.Generic.Parse
+    - FlexTask.Config.Default
+    - FlexTask.Config.Types
+    - FlexTask.Form
+    - FlexTask.Form.Helpers
+    - FlexTask.Form.ToHtml
+    - FlexTask.Form.Types
+    - FlexTask.Form.Util
     - FlexTask.GenUtil
+    - FlexTask.InputTypes
     - FlexTask.Interpreter.EvaluationHelper
     - FlexTask.Interpreter.GenerationHelper
     - FlexTask.Interpreter
-    - FlexTask.Types
-    - FlexTask.YesodConfig
+    - FlexTask.Parser
   ghc-options:
     - -Wall
     - -Widentities

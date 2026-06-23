@@ -12,23 +12,24 @@ extra-source-files:
 
 library
   exposed-modules:
-      FlexTask.ConvertForm
-      FlexTask.DefaultConfig
-      FlexTask.FormHelpers
-      FlexTask.FormUtil
-      FlexTask.Generic.Form
-      FlexTask.Generic.Parse
+      FlexTask.Config.Default
+      FlexTask.Config.Types
+      FlexTask.Form
+      FlexTask.Form.Helpers
+      FlexTask.Form.ToHtml
+      FlexTask.Form.Types
+      FlexTask.Form.Util
       FlexTask.GenUtil
+      FlexTask.InputTypes
       FlexTask.Interpreter.EvaluationHelper
       FlexTask.Interpreter.GenerationHelper
       FlexTask.Interpreter
-      FlexTask.Types
-      FlexTask.YesodConfig
+      FlexTask.Parser
   other-modules:
-      FlexTask.Generic.FormInternal
-      FlexTask.Generic.ParseInternal
-      FlexTask.Styling
-      FlexTask.Widgets
+      FlexTask.Form.Internal
+      FlexTask.Form.Styling
+      FlexTask.Form.Widgets
+      FlexTask.Parser.Internal
       Paths_flex_tasks
   hs-source-dirs:
       src
@@ -130,12 +131,12 @@ test-suite flex-tasks-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      FlexTask.DefaultConfigSpec
-      FlexTask.FormUtilSpec
-      FlexTask.Generic.FormSpec
-      FlexTask.Generic.ParseSpec
+      FlexTask.Config.DefaultSpec
+      FlexTask.Config.TypesSpec
+      FlexTask.Form.UtilSpec
+      FlexTask.FormSpec
+      FlexTask.ParserSpec
       FlexTask.TestUtil
-      FlexTask.TypesSpec
       Paths_flex_tasks
   hs-source-dirs:
       test

@@ -2,7 +2,7 @@
 {-# language AllowAmbiguousTypes #-}
 {-# language OverloadedStrings #-}
 
-module FlexTask.Generic.FormSpec where
+module FlexTask.FormSpec where
 
 
 import Data.Maybe                       (fromMaybe)
@@ -28,10 +28,14 @@ import Test.QuickCheck (
 import Test.QuickCheck.Instances.Text   ()
 import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
+import FlexTask.Form
+import FlexTask.Form.ToHtml             (getFormData)
+import FlexTask.Form.Types              (FlexForm)
+import FlexTask.InputTypes (
+  SingleChoiceSelection,
+  MultipleChoiceSelection,
+  )
 import FlexTask.TestUtil                (shouldNotThrow)
-import FlexTask.ConvertForm             (getFormData)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (FlexForm)
 
 
 

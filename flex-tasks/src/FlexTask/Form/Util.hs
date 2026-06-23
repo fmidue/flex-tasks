@@ -4,7 +4,7 @@
 {- | Functions for creating and composing forms.
 -}
 
-module FlexTask.FormUtil
+module FlexTask.Form.Util
   (
   -- * Functions for Rendered
     ($$>)
@@ -48,8 +48,8 @@ import qualified Control.Monad.Trans.RWS as RWS   (get)
 import qualified Data.Map                as M     (lookup)
 import qualified Data.Text               as T     (replace)
 
-import FlexTask.ConvertForm            (getFormData)
-import FlexTask.YesodConfig (
+import FlexTask.Form.ToHtml            (getFormData)
+import FlexTask.Form.Types (
   FlexForm(..),
   Handler,
   Rendered,
@@ -64,7 +64,7 @@ import FlexTask.YesodConfig (
 >>> :set -XQuasiQuotes
 >>> :set -XTypeApplications
 >>> import qualified Data.Text
->>> import FlexTask.Generic.Form
+>>> import FlexTask.Form.Internal
 >>> let myForm = formify (Nothing @Int) [[single "input"]]
 >>> let myOtherForm = formify (Nothing @String) [[single "input2"]]
 -}
