@@ -74,6 +74,7 @@ runs:
       if: steps.restore-cache-db.outputs.cache-hit != 'true'
       with:
         repository: fmidue/haskell-template-setup
+        ref: binary-path-fix
         path: haskell-template-setup
 
     - uses: webfactory/ssh-agent@v0.9.0
