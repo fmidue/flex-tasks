@@ -17,6 +17,7 @@ library
       FlexTask.FormHelpers
       FlexTask.FormUtil
       FlexTask.Generic.Form
+      FlexTask.Generic.FormGADT
       FlexTask.Generic.Parse
       FlexTask.GenUtil
       FlexTask.Interpreter.EvaluationHelper

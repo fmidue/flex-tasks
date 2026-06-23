@@ -891,7 +891,7 @@ renderNextSingleChoiceField pairsWith =
   (\case
       ChoicesDropdown fs opts ->
         ( fs
-        , areq $ selectField True $ withOptions opts
+        , areq $ selectField $ withOptions opts
         )
       ChoicesButtons align fs opts ->
         ( fs
@@ -915,7 +915,7 @@ renderNextOptionalSingleChoiceField pairsWith =
   (\case
       ChoicesDropdown fs opts ->
         ( fs
-        , aopt $ selectField False $ withOptions opts
+        , aopt $ selectField $ withOptions opts
         )
       ChoicesButtons align fs opts ->
         ( fs

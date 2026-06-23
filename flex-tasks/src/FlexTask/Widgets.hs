@@ -1,10 +1,13 @@
+{-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 
 module FlexTask.Widgets where
 
 
-
+import Control.Monad (unless, forM_)
 import Control.Monad.Reader (reader)
+import Data.List (find)
+import Data.Text (Text)
 import Yesod
 
 import FlexTask.FormUtil (
@@ -132,15 +135,14 @@ checkboxField isVertical optList = (multiSelectField optList)
 
 
 selectField
-  :: (Eq a, RenderMessage site FormMessage)
-  => Bool
-  -> HandlerFor site (OptionList a)
-  -> Field (HandlerFor site) a
-selectField req = selectFieldHelper
-    (\theId name attrs inside -> [whamlet|
+  :: Eq a
+  => Handler (OptionList a)
+  -> Field Handler a
+selectField = dropdownHelper
+    (\theId name attrs isReq inside -> [whamlet|
 $newline never
-<select ##{theId} name=#{name} :req:required *{attrs}>
-  $if req
+<select ##{theId} name=#{name} :isReq:required *{attrs}>
+  $if isReq
     <option value="" selected disabled>_{MsgSelectNone}
   ^{inside}
 |]) -- outside
@@ -155,3 +157,49 @@ $newline never
     (Just $ \label -> [whamlet|
 <optgroup label=#{label}>
 |]) -- group label
+
+
+{- |
+Modification of the Yesod.Forms `selectFieldHelper` function.
+This forces the user to actively pick an option in required dropdowns
+instead of defaulting to one of the options.
+-}
+dropdownHelper
+  :: Eq a
+  => (Text -> Text -> [(Text, Text)] -> Bool -> Widget -> Widget)
+  -> (Text -> Text -> Bool -> Widget)
+  -> (Text -> Text -> [(Text, Text)] -> Text -> Bool -> Text -> WidgetFor FlexForm ())
+  -> Maybe (Text -> Widget)
+  -> Handler (OptionList a)
+  -> Field Handler a
+dropdownHelper outside onOpt inside groupHeader opts' = Field
+  { fieldParse = undefined
+  , fieldView = \theId name attrs val isReq -> do
+      outside theId name attrs isReq $ do
+        optsFlat <- olOptions.flattenOptionList <$> handlerToWidget opts'
+        unless isReq $ onOpt theId name $ render optsFlat val `notElem` map optionExternalValue optsFlat
+        opts'' <- handlerToWidget opts'
+        case opts'' of
+          OptionList {} -> constructOptions theId name attrs val isReq optsFlat
+          OptionListGrouped {olOptionsGrouped = groups} -> do
+                forM_ groups $ \(grp, opts) -> do
+                  case groupHeader of
+                    Just header -> header grp
+                    Nothing -> return ()
+                  constructOptions theId name attrs val isReq opts
+  , fieldEnctype = UrlEncoded
+  }
+  where
+    flattenOptionList (OptionListGrouped os re) = OptionList (concatMap snd os) re
+    flattenOptionList ol = ol
+    render _ (Left x) = x
+    render opts (Right a) = maybe "" optionExternalValue $ find ((== a) . optionInternalValue) opts
+    constructOptions theId name attrs val isReq opts =
+      forM_ opts $ \opt ->
+        inside
+        theId
+        name
+        ((if isReq then (("required", "required"):) else id) attrs)
+        (optionExternalValue opt)
+        (render opts val == optionExternalValue opt)
+        (optionDisplay opt)
