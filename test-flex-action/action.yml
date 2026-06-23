@@ -44,6 +44,10 @@ runs:
         packages: zsh hlint expect colorized-logs graphviz
         version: 1.0
 
+    - name: Fix cached graphviz-dot
+      shell: bash
+      run: sudo dot -c
+
     - name: Setup LaTeX
       if: ${{ inputs.latex-setup == 'true' }}
       uses: zauguin/install-texlive@v4
