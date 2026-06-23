@@ -46,7 +46,7 @@ runs:
 
     - name: Fix cached graphviz-dot
       shell: bash
-      run: dot -c
+      run: sudo dot -c
 
     - name: Setup LaTeX
       if: ${{ inputs.latex-setup == 'true' }}
