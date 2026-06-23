@@ -45,6 +45,7 @@ runs:
         version: 1.0
 
     - name: Fix cached graphviz-dot
+      shell: bash
       run: dot -c
 
     - name: Setup LaTeX
