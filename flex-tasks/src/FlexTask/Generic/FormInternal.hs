@@ -12,8 +12,14 @@ module FlexTask.Generic.FormInternal (
   ) where
 
 
-import Data.List.Extra      (intercalate, nubOrd, nubSort, singleton, uncons, unsnoc)
-import Data.Maybe           (fromMaybe)
+import Data.List.Extra (
+  intercalate,
+  nubOrd,
+  nubSort,
+  singleton,
+  zipWithLongest,
+  )
+import Data.Maybe           (catMaybes)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
@@ -414,10 +420,10 @@ f1 `horizontally` f2 = do
     pure $ do
       (ids1,names1,xss) <- res1
       (ids2,names2,yss) <- res2
-      let
-        (leftInit, leftLast) = fromMaybe (xss,[]) $ unsnoc xss
-        (rightHead, rightTail) = fromMaybe ([],yss) $ uncons yss
-      pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, leftInit ++ [leftLast ++ rightHead] ++ rightTail)
+      pure
+        ( ids1 ++ ids2
+        , nubOrd $ names1 ++ names2
+        , zipWithLongest (\xs ys -> concat $ catMaybes [xs,ys]) xss yss)
 
 
 
