@@ -103,14 +103,14 @@ field1
 field2
 @
 
-__Caution: Not all horizontal alignments work as one would expect.__
-__If an element uses inner `Alignment` parameters,__
-__then the next form will only be rendered besides the last form component of the former.__
+__Caution: Not all horizontal alignments will display correctly.__
+__For example, if two vertical lists are composed horinzontally,__
+__then the second list may not be longer than the first.__
 
 Input
 
 @
-[[listWithoutLabels Vertical 2 []],[listWithoutLabels Vertical 2 []]]
+[[listWithoutLabels Vertical 2 []],[listWithoutLabels Vertical 3 []]]
 @
 
 will __not__ result in
@@ -119,16 +119,18 @@ will __not__ result in
 list11      list21
 
 list12      list22
+
+            list23
 @
 
 but instead in
 
 @
-list11
+list11     list21
 
-list12     list21
+list12     list22
 
-list22
+list23
 @
 -}
 data FieldInfo
