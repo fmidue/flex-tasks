@@ -74,12 +74,22 @@ validateSettings
   :: String   -- ^ The task identifier used for caching
   -> String   -- ^ Global module
   -> String   -- ^ Module containing configuration options
+  -> String   -- ^ TaskData module
+  -> String   -- ^ Description module
   -> [(String,String)] -- ^ Additional code modules
   -> IO (Either InterpreterError (Bool,[Output]))
-validateSettings taskName globalCode settingsCode extraCode = do
+validateSettings
+  taskName
+  globalCode
+  settingsCode
+  taskDataCode
+  descriptionCode
+  extraCode = do
     filePaths <- writeUncachedAndGetPaths taskName $
       [ ("Global", globalCode)
       , ("TaskSettings", settingsCode)
+      , ("TaskData", taskDataCode)
+      , ("Description", descriptionCode)
       ] ++ extraCode
     runWithPackageDB (loadModules filePaths >> validate)
   where
