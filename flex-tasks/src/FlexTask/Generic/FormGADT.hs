@@ -420,6 +420,16 @@ data Roflmao = Lol Int String Double deriving Generic
 
 instance Formify Roflmao
 
+infixl 5 >|
+
+infixl 4 >-
+
+(>|) :: Split xs ys => FormLayout xs -> FormLayout ys -> FormLayout (xs ++ ys)
+(>|) = Beside
+
+(>-) :: Split xs ys => FormLayout xs -> FormLayout ys -> FormLayout (xs ++ ys)
+(>-) = Above
+
 singleReq :: FieldInfo a -> FormLayout '[a]
 singleReq = Single . Required
 
@@ -427,7 +437,7 @@ singleOpt :: FieldInfo a -> FormLayout (FormType (Maybe a))
 singleOpt = Single . Optional
 
 test :: FormLayout ys -> FormLayout (Maybe Integer ':  ys)
-test = Beside (Single $ Optional $ Basic "a")
+test = (>|) (Single $ Optional $ Basic "a")
 
 
 formSpec :: FormLayout (FormType a) -> FormSpec a
@@ -439,5 +449,5 @@ test2 :: FormSpec Integer
 test2 = formSpec $ singleReq $ Basic "e"
 
 testDerived :: Rendered Widget
-testDerived = formify (Just (1,2)) $ formSpec @(Int,Int) $
-  Single (Required $ Basic "Number") `Above` Single (Required $ Basic "Text")
+testDerived = formify (Just (1,2,4)) $ formSpec @(Int,Int,Int) $
+  Single (Required $ Basic "Number") >| Single (Required $ Basic "Text") >| Single (Required $ Basic "Text")
