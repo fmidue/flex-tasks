@@ -104,7 +104,7 @@ field2
 @
 
 __Caution: Not all horizontal alignments will display correctly.__
-__For example, if two vertical lists are composed horinzontally,__
+__For example, if two vertical lists are composed horizontally,__
 __then the second list may not be longer than the first.__
 
 Input
