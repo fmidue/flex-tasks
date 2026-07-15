@@ -110,7 +110,7 @@ __then the second list may not be longer than the first.__
 Input
 
 @
-[[listWithoutLabels Vertical 2 []],[listWithoutLabels Vertical 3 []]]
+[[listWithoutLabels Vertical 2 [], listWithoutLabels Vertical 3 []]]
 @
 
 will __not__ result in
