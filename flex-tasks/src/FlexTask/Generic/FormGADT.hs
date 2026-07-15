@@ -379,6 +379,14 @@ dropdown
 dropdown fs opts = SingleChoice Dropdown fs $ zip opts $ map singleChoiceAnswer [1..]
 
 
+dropdownEnum
+  :: (Eq a, Bounded a, Enum a)
+  => FieldSettings FlexForm      -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
+  -> FieldInfo a
+dropdownEnum fs f = SingleChoice Dropdown fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+
+
 dropdownMulti
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
