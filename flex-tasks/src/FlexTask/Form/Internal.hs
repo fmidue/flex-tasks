@@ -14,7 +14,6 @@ module FlexTask.Form.Internal (
 import Data.List.Extra (
   intercalate,
   nubOrd,
-  nubSort,
   singleton,
   zipWithLongest,
   )
