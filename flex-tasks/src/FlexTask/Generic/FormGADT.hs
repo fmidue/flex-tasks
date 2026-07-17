@@ -371,7 +371,7 @@ dropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> FieldInfo SingleChoiceSelection
-dropdown fs opts = SingleChoice Dropdown fs $ zip opts $ map singleChoiceAnswer [1..]
+dropdown fs = SingleChoice Dropdown fs . options
 
 
 dropdownEnum
@@ -379,14 +379,14 @@ dropdownEnum
   => FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo a
-dropdownEnum fs f = SingleChoice Dropdown fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+dropdownEnum fs = SingleChoice Dropdown fs . optionsFromType
 
 
 dropdownMulti
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> FieldInfo MultipleChoiceSelection
-dropdownMulti fs opts = MultipleChoice Dropdown fs $ zip opts $ map singleChoiceAnswer [1..]
+dropdownMulti fs = MultipleChoice Dropdown fs . options
 
 
 dropdownEnumMulti
@@ -394,7 +394,7 @@ dropdownEnumMulti
   => FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo [a]
-dropdownEnumMulti fs f = MultipleChoice Dropdown fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+dropdownEnumMulti fs = MultipleChoice Dropdown fs . optionsFromType
 
 
 buttonsEnum
@@ -403,7 +403,7 @@ buttonsEnum
   -> FieldSettings FlexForm      -- ^ FieldSettings for option input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo a
-buttonsEnum align fs f = SingleChoice (Buttons align) fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+buttonsEnum align fs = SingleChoice (Buttons align) fs . optionsFromType
 
 
 buttonsEnumMulti
@@ -412,7 +412,7 @@ buttonsEnumMulti
   -> FieldSettings FlexForm      -- ^ FieldSettings for option input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> FieldInfo [a]
-buttonsEnumMulti align fs f = MultipleChoice (Buttons align) fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+buttonsEnumMulti align fs = MultipleChoice (Buttons align) fs . optionsFromType
 
 
 buttons
@@ -420,7 +420,7 @@ buttons
   -> FieldSettings FlexForm -- ^ FieldSettings for option input
   -> [SomeMessage FlexForm] -- ^ Option labels
   -> FieldInfo SingleChoiceSelection
-buttons align fs opts = SingleChoice (Buttons align) fs $ zip opts $ map singleChoiceAnswer [1..]
+buttons align fs = SingleChoice (Buttons align) fs . options
 
 
 buttonsMulti
@@ -428,7 +428,7 @@ buttonsMulti
   -> FieldSettings FlexForm -- ^ FieldSettings for option input
   -> [SomeMessage FlexForm] -- ^ Option labels
   -> FieldInfo MultipleChoiceSelection
-buttonsMulti align fs opts = MultipleChoice (Buttons align) fs $ zip opts $ map singleChoiceAnswer [1..]
+buttonsMulti align fs = MultipleChoice (Buttons align) fs . options
 
 
 horizontally
@@ -535,10 +535,9 @@ formSpec :: FormLayout (FormType a) -> FormSpec a
 formSpec = FormSpec
 
 
+options :: [a] -> [(a, SingleChoiceSelection)]
+options opts = zip opts $ map SingleChoiceSelection [1..]
 
-test2 :: FormSpec Integer
-test2 = formSpec $ singleReq $ Basic "e"
 
-testDerived :: Rendered Widget
-testDerived = formify (Just (1,2,4)) $ formSpec @(Int,Int,Int) $
-  singleReq (basic "Number") >| singleReq (basic "Text") >| singleReq (basic "Text")
+optionsFromType :: (Bounded b, Enum b) => (b -> a) -> [(a, b)]
+optionsFromType f = map (\x -> (f x, x)) [minBound .. maxBound]
