@@ -12,6 +12,9 @@
 
 module FlexTask.Generic.FormGADT where
 
+
+import qualified Data.List.NonEmpty     as NE
+
 import Yesod                            hiding (selectField, radioField)
 import FlexTask.YesodConfig
 import Data.Kind                        (Type)
@@ -44,17 +47,16 @@ import GHC.Generics (
   U1,
   )
 import GHC.TypeLits                     (ErrorMessage((:<>:), Text), TypeError)
-import GHC.Utils.Misc                   (equalLength)
 
 
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
-data Kind = Buttons Alignment | Dropdown deriving (Eq,Show)
+data ChoiceShape = Buttons Alignment | Dropdown deriving (Eq,Show)
 
 data FieldInfo a where
   Basic :: BaseForm a => (FieldSettings FlexForm) -> FieldInfo a
-  SingleChoice :: Eq a => Kind -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> FieldInfo a
-  MultiChoice :: Eq a => Kind -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> FieldInfo [a]
+  SingleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> FieldInfo a
+  MultipleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> FieldInfo [a]
 
 data Requiredness a where
   Required :: FieldInfo a -> Requiredness a
@@ -285,11 +287,6 @@ instance Formify SingleChoiceSelection where
   formDefaults = singleFormDefaults
 
 
-instance Formify MultipleChoiceSelection where
-  type FormType MultipleChoiceSelection = '[MultipleChoiceSelection]
-  formDefaults = singleFormDefaults
-
-
 instance {-# Overlappable #-} Formify a => Formify [a] where
   type FormType [a] = '[[a]]
   formDefaults = singleFormDefaults
@@ -312,7 +309,7 @@ renderField req info = case info of
     Dropdown -> selectField $ optionsPairs xs
     Buttons Vertical -> radioField True $ optionsPairs xs
     Buttons Horizontal -> radioField False $ optionsPairs xs) fs
-  MultiChoice k fs xs -> renderForm (req $ case k of
+  MultipleChoice k fs xs -> renderForm (req $ case k of
     Dropdown -> multiSelectField $ optionsPairs xs
     Buttons Vertical -> checkboxField True $ optionsPairs xs
     Buttons Horizontal -> checkboxField False $ optionsPairs xs) fs
@@ -366,11 +363,9 @@ formify
 formify mDefault = applyToWidget joinWidgets . formifyImplementation mDefault
 
 
-zipWithEnum :: forall a. (Bounded a, Enum a) => [SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)]
-zipWithEnum labels
-  | equalLength labels options = zip labels options
-  | otherwise = error "Labels list and options list are of different lengths in an Enum choice form."
-  where options = [minBound .. maxBound :: a]
+basic :: BaseForm a => FieldSettings FlexForm -> FieldInfo a
+basic = Basic
+
 
 dropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
@@ -391,7 +386,49 @@ dropdownMulti
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> FieldInfo MultipleChoiceSelection
-dropdownMulti fs opts = MultiChoice Dropdown fs $ zip opts $ map singleChoiceAnswer [1..]
+dropdownMulti fs opts = MultipleChoice Dropdown fs $ zip opts $ map singleChoiceAnswer [1..]
+
+
+dropdownEnumMulti
+  :: (Eq a, Bounded a, Enum a)
+  => FieldSettings FlexForm      -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
+  -> FieldInfo [a]
+dropdownEnumMulti fs f = MultipleChoice Dropdown fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+
+
+buttonsEnum
+  :: (Eq a, Bounded a, Enum a)
+  => Alignment
+  -> FieldSettings FlexForm      -- ^ FieldSettings for option input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
+  -> FieldInfo a
+buttonsEnum align fs f = SingleChoice (Buttons align) fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+
+
+buttonsEnumMulti
+  :: (Eq a, Bounded a, Enum a)
+  => Alignment
+  -> FieldSettings FlexForm      -- ^ FieldSettings for option input
+  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
+  -> FieldInfo [a]
+buttonsEnumMulti align fs f = MultipleChoice (Buttons align) fs $ map (\x -> (f x, x)) [minBound .. maxBound]
+
+
+buttons
+  :: Alignment
+  -> FieldSettings FlexForm -- ^ FieldSettings for option input
+  -> [SomeMessage FlexForm] -- ^ Option labels
+  -> FieldInfo SingleChoiceSelection
+buttons align fs opts = SingleChoice (Buttons align) fs $ zip opts $ map singleChoiceAnswer [1..]
+
+
+buttonsMulti
+  :: Alignment
+  -> FieldSettings FlexForm -- ^ FieldSettings for option input
+  -> [SomeMessage FlexForm] -- ^ Option labels
+  -> FieldInfo MultipleChoiceSelection
+buttonsMulti align fs opts = MultipleChoice (Buttons align) fs $ zip opts $ map singleChoiceAnswer [1..]
 
 
 horizontally
@@ -428,6 +465,17 @@ data Roflmao = Lol Int String Double deriving Generic
 
 instance Formify Roflmao
 
+
+required :: FieldInfo a -> Requiredness a
+required = Required
+
+optional :: FieldInfo a -> Requiredness (Maybe a)
+optional = Optional
+
+single :: Requiredness a -> FormLayout '[a]
+single = Single
+
+
 infixl 5 >|
 
 infixl 4 >-
@@ -437,6 +485,41 @@ infixl 4 >-
 
 (>-) :: Split xs ys => FormLayout xs -> FormLayout ys -> FormLayout (xs ++ ys)
 (>-) = Above
+
+
+list
+  :: Alignment
+  -> (FieldSettings FlexForm -> Requiredness a)
+  -> NonEmpty (FieldSettings FlexForm) -- ^ FieldSettings of individual fields
+  -> FormLayout (FormType [a])
+list = repeatBuilderOn
+
+
+listWithoutLabels
+  :: Alignment
+  -> Int           -- ^ Amount of fields
+  -> (FieldSettings FlexForm -> Requiredness a)
+  -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
+  -> FormLayout (FormType [a])
+listWithoutLabels align amount req attrs =
+  list align req $ NE.fromList $ replicate amount "" {fsAttrs = attrs}
+
+
+repeatBuilderOn
+  :: Alignment
+  -> (a -> Requiredness b) -- ^ FieldInfo builder to use
+  -> NonEmpty a         -- ^ List of values to use builder on
+  -> FormLayout (FormType [b])
+repeatBuilderOn align builder = List align . NE.map builder
+
+
+repeatFieldInfo
+  :: Alignment
+  -> Int       -- ^ How many copies
+  -> Requiredness a -- ^ The field to multiply
+  -> FormLayout (FormType [a])
+repeatFieldInfo alignment amount = repeatBuilderOn alignment id . NE.fromList . replicate amount
+
 
 singleReq :: FieldInfo a -> FormLayout '[a]
 singleReq = Single . Required
@@ -458,4 +541,4 @@ test2 = formSpec $ singleReq $ Basic "e"
 
 testDerived :: Rendered Widget
 testDerived = formify (Just (1,2,4)) $ formSpec @(Int,Int,Int) $
-  Single (Required $ Basic "Number") >| Single (Required $ Basic "Text") >| Single (Required $ Basic "Text")
+  singleReq (basic "Number") >| singleReq (basic "Text") >| singleReq (basic "Text")
