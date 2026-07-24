@@ -59,6 +59,7 @@ import FlexTask.Types (
   FlexConf(..),
   FlexInst(..),
   HtmlDict,
+  ValidationFlag(..),
   )
 import FlexTask.Processing.Text    (removeUnicodeEscape)
 
@@ -71,27 +72,19 @@ type GenOutput = (String, String, IO ([Text],[[Text]], HtmlDict))
 {- |
 -}
 validateSettings
-  :: String   -- ^ The task identifier used for caching
-  -> String   -- ^ Global module
-  -> String   -- ^ Module containing configuration options
-  -> String   -- ^ TaskData module
-  -> String   -- ^ Description module
-  -> [(String,String)] -- ^ Additional code modules
+  :: FlexConf
   -> IO (Either InterpreterError (Bool,[Output]))
-validateSettings
-  taskName
-  globalCode
-  settingsCode
-  taskDataCode
-  descriptionCode
-  extraCode = do
+validateSettings FlexConf{validation = AssumeValid} = pure $ Right (True, [])
+validateSettings FlexConf {commonModules = CommonModules{..},..} = do
     filePaths <- writeUncachedAndGetPaths taskName $
-      [ ("Global", globalCode)
-      , ("TaskSettings", settingsCode)
-      , ("TaskData", taskDataCode)
-      , ("Description", descriptionCode)
-      ] ++ extraCode
+      [ ("Global", globalModule)
+      , ("TaskSettings", settingsModule)
+      , ("TaskData", taskDataModule)
+      , ("Description", descriptionModule)
+      , ("Parse", parseModule)
+      ] ++ extraModules
     runWithPackageDB (loadModules filePaths >> validate)
+
   where
     validate = do
       setImports
