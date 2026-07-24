@@ -170,7 +170,7 @@ appendTypeList TEmpty = id
 appendTypeList (TCons x xs) = TCons x . appendTypeList xs
 
 
-data FormLayout t fields where
+data FormLayout finalType fields where
   Single :: Requiredness a -> FormLayout t '[a]
   Beside :: Split xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
   Above :: Split xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
@@ -502,7 +502,7 @@ required = Required
 optional :: FieldInfo a -> Requiredness (Maybe a)
 optional = Optional
 
-single :: Requiredness b -> FormLayout a '[b]
+single :: Requiredness a -> FormLayout t '[a]
 single = Single
 
 
@@ -551,10 +551,10 @@ repeatFieldInfo
 repeatFieldInfo alignment amount = repeatBuilderOn alignment id . replicate amount
 
 
-singleReq :: FieldInfo b -> FormLayout a  '[b]
+singleReq :: FieldInfo a -> FormLayout t  '[a]
 singleReq = Single . Required
 
-singleOpt :: FieldInfo b -> FormLayout a '[Maybe b]
+singleOpt :: FieldInfo a -> FormLayout t '[Maybe a]
 singleOpt = Single . Optional
 
 
