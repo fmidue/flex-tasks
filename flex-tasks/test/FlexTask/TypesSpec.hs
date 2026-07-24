@@ -47,7 +47,8 @@ spec = do
     prop "successfully parses core and extra modules when task name is present" $
       \flag ->
         forAll ((,,) <$> vectorOf 5 arbitrary <*> listOf genExtraModule <*> genTaskName) $ \(mods,eMods,tName) ->
-          parse parseFlexConfig "" (intercalate delimiter $ unlines ["taskName: " ++ tName, "validation: " ++ show flag] : mods ++ map snd eMods) `shouldParse`
+          parse parseFlexConfig ""
+            (intercalate delimiter $ unlines ["taskName: " ++ tName, "validation: " ++ show flag] : mods ++ map snd eMods) `shouldParse`
           conf flag (tName : mods) eMods
     prop "successfully parses core and extra modules when task name is absent" $
       \flag ->
