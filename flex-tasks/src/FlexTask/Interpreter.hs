@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# Language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -17,14 +18,17 @@ module FlexTask.Interpreter
   ) where
 
 
+import Control.Monad.Catch          (throwM, catch)
+import Control.Exception            (ErrorCall, displayException, evaluate)
 import Control.Monad                (unless, void)
+import Control.Monad.IO.Class       (liftIO)
 import Control.Monad.Identity       (runIdentity)
 import Control.Monad.Random         (RandT, StdGen, evalRandT, mkStdGen)
 import Control.OutputCapable.Blocks.Type
-import Control.OutputCapable.Blocks (OutputCapable, LangM)
+import Control.OutputCapable.Blocks (OutputCapable, LangM, Language(..))
 import Data.Digest.Pure.SHA         (sha256, showDigest)
-import Data.List.Extra              (headDef, intercalate, replace)
-import Data.Map                     (elems)
+import Data.List.Extra              (headDef, intercalate, replace, singleton)
+import Data.Map                     (Map, elems, fromList)
 import Data.Maybe                   (isJust)
 import Data.String.Interpolate      (i)
 import Data.Text                    (Text)
@@ -94,7 +98,7 @@ validateSettings FlexConf {commonModules = CommonModules{..},..} = do
         , "Data.Text"
         ]
       setTopLevelModules ["TaskSettings", "Global"]
-      out <- interpret "validateSettings" infer
+      out <- interpretHandleError "validateSettings" infer
       pure $ first (isJust @()) $ runIdentity $ getOutputSequenceWithResult out
 
 {- |
@@ -124,8 +128,12 @@ genFlexInst
       helperPath <- cacheHelper "GenerationHelper" []
       taskAndFormResult <- runWithPackageDB $
           loadModules (helperPath : filePaths) >> tfInter
-      let gen = extract taskAndFormResult
-      (taskData, checkModule, io) <- evalRandT gen $ mkStdGen seed
+      (taskData, checkModule, io) <- fromResult
+        (\message -> pure $ (message,message,) $ pure $ ([],[],) $
+          duplicateToMap ["de", "en"] message
+        )
+        (`evalRandT` mkStdGen seed)
+        taskAndFormResult
       form <- io
       pure $ FlexInst {
         form,
@@ -144,7 +152,7 @@ genFlexInst
           , "Data.Text"
           , "Data.Tuple.Extra"
           ]
-        interpret "third3 getFormData . first3 gshow <$> getTask " infer
+        interpretHandleError "third3 getFormData . first3 gshow <$> getTask " infer
 
 
 
@@ -180,7 +188,9 @@ makeDescription taskName taskData global settings description extras picPath = d
         , "Data.List.Extra"
         , "Data.Text"
         ]
-      interpret ("description " ++ show picPath ++ parens (greadError taskData)) infer
+      interpretHandleError
+        ("description " ++ show picPath ++ parens (greadError taskData))
+        infer
 
 
 
@@ -228,7 +238,10 @@ validDescription taskName taskData globalModule settingsModule descModule extras
   where
     makeDescAndWrite mOldOutput p = do
       res <- makeDescription taskName taskData globalModule settingsModule descModule extras picPath
-      output <- getOutputSequence $ extract res
+      output <- fromResult
+        (pure . singleton . Code . duplicateToMap [German,English])
+        getOutputSequence
+        res
       unless (mOldOutput == Just output) $ writeFile p $ show output
       return $ toOutputCapable output
 
@@ -290,7 +303,7 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
         , "Data.Text"
         ]
       setTopLevelModules ["Check", "Global", "EvaluationHelper", "Parse"]
-      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
+      interpretHandleError ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
 
     tData = parens $ greadError taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
@@ -316,8 +329,8 @@ writeUncachedAndGetPaths cachePrefix xs = do
 
 
 
-extract :: Either InterpreterError c -> c
-extract = either (error . prettyError) id
+fromResult :: (String -> b) -> (a -> b) -> Either InterpreterError a -> b
+fromResult f = either (f . prettyError)
 
 
 hash :: Show a => a -> String
@@ -377,3 +390,14 @@ greadError :: String -> String
 greadError term = "fst $ headDef (error " ++ show errorMessage ++") $ gread " ++ show term ++ " :: TaskData"
   where
     errorMessage = "Failed reading stored TaskData. Encountered this: " ++ term
+
+
+interpretHandleError :: Typeable b => String -> b -> Interpreter b
+interpretHandleError run as = do
+  a <- interpret run as
+  liftIO (evaluate a) `catch` \(exception :: ErrorCall) ->
+    throwM $ UnknownError $ "runtime exception: " ++ displayException exception
+
+
+duplicateToMap :: Ord a => [a] -> String -> Map a String
+duplicateToMap keys content = fromList $ map (,content) keys
