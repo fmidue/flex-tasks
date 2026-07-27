@@ -5,13 +5,28 @@ validation: Validate
 =============================================
 {-
 ^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^
-The above section allows for specifying a task identifier.
+The above section contains task options.
+
+'taskName' can be used to specify a task identifier.
 It will serve as a directory name for caching on the file system.
 By using unique identifiers, you reduce the risk of cache collisions between different flex-tasks.
 Only ASCII letters (A–Z, a–z) are permitted in this name.
 
 The identifier can optionally be omitted.
 In that case, all cache files for this task will be stored in a shared global directory.
+
+'validation' enables and disables the configuration check.
+Possible values are:
+  - Validate
+  - AssumeValid
+
+This is mostly relevant for Autotool:
+The validator is run every time a student accesses the task,
+so disabling the checks will reduce wait times significantly.
+It should be set to 'Validate' while setting up the task.
+You can then switch to 'AssumeValid' after everything is in place.
+The default value is 'AssumeValid' if none is given.
+
 ^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^
 -}
 
