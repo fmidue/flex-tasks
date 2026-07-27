@@ -74,7 +74,7 @@ type GenOutput = (String, String, IO ([Text],[[Text]], HtmlDict))
 validateSettings
   :: FlexConf
   -> IO (Either InterpreterError (Bool,[Output]))
-validateSettings FlexConf{validation = AssumeValid} = pure $ Right (True, [])
+validateSettings FlexConf {validation = AssumeValid} = pure $ Right (True, [])
 validateSettings FlexConf {commonModules = CommonModules{..},..} = do
     filePaths <- writeUncachedAndGetPaths taskName $
       [ ("Global", globalModule)
