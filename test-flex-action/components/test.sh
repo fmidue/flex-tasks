@@ -87,6 +87,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   if [[ "$line" =~ "taskName:" ]]; then
     task_name=$(awk '{$1=$1;print}' <<<"${line#"taskName:"}")
     echo "$task_name" >>"${files[$current_file]}"
+  elif [[ "$line" =~ "validation:" ]]; then
+    continue
   else
     echo "${line//$'\r'/}" >>"${files[$current_file]}"
   fi
