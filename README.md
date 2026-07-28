@@ -24,10 +24,13 @@ Includes text processing necessary for the Autotool frontend. It is split off fr
 ### Sample task configurations
 
 * [Default configuration](flex-tasks/tasks/defaultConfig.flex) (includes a manual)
-* A [seat distributor for exams](flex-tasks/tasks/examSeating.flex)
+* [Seat distributor for exams](flex-tasks/tasks/examSeating.flex)
 * [Some old tasks](flex-tasks/tasks/interpolation-test) used for runtime experiments.
   Their contents aren't very interesting, but they outline what a minimal task skeleton looks like.
 
+### Test-Flex action
+
+You can validate your task configurations via GitHub CI using our action. Refer to the [action's README](test-flex-action/README.md) for setup.
 
 ## Documentation
 
