@@ -13,7 +13,7 @@ module FlexTask.Interpreter
   ( checkSolution
   , genFlexInst
   , prettyError
-  , validateSettings
+  , validateSettingsAndCompile
   , validDescription
   ) where
 
@@ -69,11 +69,11 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 {- |
 -}
-validateSettings
+validateSettingsAndCompile
   :: FlexConf
   -> IO (Either InterpreterError (Bool,[Output]))
-validateSettings FlexConf {validation = AssumeValid} = pure $ Right (True, [])
-validateSettings conf@FlexConf {commonModules = CommonModules{..}} = do
+validateSettingsAndCompile FlexConf {validation = AssumeValid} = pure $ Right (True, [])
+validateSettingsAndCompile conf@FlexConf {commonModules = CommonModules{..}} = do
     instOrError <- genFlexInstOrInterpreterError conf 0
     case instOrError of
       Left iError -> pure $ Left iError
