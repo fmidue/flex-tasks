@@ -20,12 +20,19 @@ Possible values are:
   - Validate
   - AssumeValid
 
+The default value is 'AssumeValid' if none is given.
+
 This is mostly relevant for Autotool:
 The validator is run every time a student accesses the task,
 so disabling the checks will reduce wait times significantly.
 It should be set to 'Validate' while setting up the task.
 You can then switch to 'AssumeValid' after everything is in place.
-The default value is 'AssumeValid' if none is given.
+
+Tasks using a 'MonadAlloy' constraint on the TaskData generator
+or an otherwise extremely slow generation process should not use 'Validate',
+as the validation will most likely time out trying to generate an instance.
+Instead, use 'AssumeValid' and pose the task as an 'UnAvailableFlex' task (does not exist yet),
+then generate the instances offline and finally upload them.
 
 ^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^
 -}
