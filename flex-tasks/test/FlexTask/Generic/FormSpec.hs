@@ -1,6 +1,9 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# language AllowAmbiguousTypes #-}
-{-# language OverloadedStrings #-}
+
+{-# language DataKinds #-}
+{-# language DeriveAnyClass #-}
+{-# language DeriveGeneric #-}
+{-# language TypeOperators #-}
 
 module FlexTask.Generic.FormSpec where
 
@@ -8,6 +11,7 @@ module FlexTask.Generic.FormSpec where
 import Data.Maybe                       (fromMaybe)
 import Data.String                      (fromString)
 import Data.Text                        (Text)
+import GHC.Generics                     (Generic)
 import Test.Hspec (
   Spec,
   anyErrorCall,
@@ -18,6 +22,7 @@ import Test.Hspec (
   )
 import Test.QuickCheck (
   Arbitrary(..),
+  Blind(..),
   Gen,
   Property,
   chooseInt,
@@ -30,18 +35,13 @@ import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
 import FlexTask.ConvertForm             (getFormData)
-import FlexTask.Generic.Form
+import FlexTask.Generic.FormGADT
 import FlexTask.YesodConfig             (FlexForm)
 
 
 
-data TestEnum = One | Two | Three deriving (Bounded, Enum, Eq)
-
-instance Formify TestEnum where
-  formifyImplementation = formifyInstanceSingleChoice
-
-instance Formify [TestEnum] where
-  formifyImplementation = formifyInstanceMultiChoice
+data TestEnum = One | Two | Three
+  deriving (Bounded, Enum, Eq, Formify, Generic)
 
 
 spec :: Spec
@@ -49,113 +49,159 @@ spec = do
   describe "formify" $ do
     context "should work for all standard types" $ do
       specify "String" $
-        runTest @String singleInfo
+        runTest @String simpleForm
       specify "Text" $
-        runTest @Text singleInfo
+        runTest @Text simpleForm
       specify "TextArea" $
-        runTest @Textarea singleInfo
+        runTest @Textarea simpleForm
       specify "Bool" $
-        runTest @Bool singleInfo
+        runTest @Bool simpleForm
       specify "Int" $
-        runTest @Int singleInfo
+        runTest @Int simpleForm
       specify "Double" $
-        runTest @Double singleInfo
+        runTest @Double simpleForm
 
     context "should work for optional values" $ do
       specify "String" $
-        runTest @(Maybe String) singleInfo
+        runTest $ optionalSimpleForm @String
       specify "Text" $
-        runTest @(Maybe Text) singleInfo
+        runTest $ optionalSimpleForm @Text
       specify "Textarea" $
-        runTest @(Maybe Textarea) singleInfo
+        runTest $ optionalSimpleForm @Textarea
       specify "Bool" $
-        runTest @(Maybe Bool) singleInfo
+        runTest $ optionalSimpleForm @Bool
       specify "Int" $
-        runTest @(Maybe Int) singleInfo
+        runTest $ optionalSimpleForm @Int
       specify "Double" $
-        runTest @(Maybe Double) singleInfo
+        runTest $ optionalSimpleForm @Double
 
     context "should work for lists" $ do
       specify "String" $
-        runTest @[String] listInfo
+        runTest $ requiredListForm @String
       specify "Text" $
-        runTest @[Text] listInfo
+        runTest $ requiredListForm @Text
       specify "Textarea" $
-        runTest @[Textarea] listInfo
+        runTest $ requiredListForm @Textarea
       specify "Bool" $
-        runTest @[Bool] listInfo
+        runTest $ requiredListForm @Bool
       specify "Int" $
-        runTest @[Int] listInfo
+        runTest $ requiredListForm @Int
       specify "Double" $
-        runTest @[Double] listInfo
+        runTest $ requiredListForm @Double
 
     context "should work for lists of optional values" $ do
       specify "String" $
-        runTest @[Maybe String] listInfo
+        runTest $ optionalListForm @String
       specify "Text" $
-        runTest @[Maybe Text] listInfo
+        runTest $ optionalListForm @Text
       specify "Textarea" $
-        runTest @[Maybe Textarea] listInfo
+        runTest $ optionalListForm @Textarea
       specify "Bool" $
-        runTest @[Maybe Bool] listInfo
+        runTest $ optionalListForm @Bool
       specify "Int" $
-        runTest @[Maybe Int] listInfo
+        runTest $ optionalListForm @Int
       specify "Double" $
-        runTest @[Maybe Double] listInfo
+        runTest $ optionalListForm @Double
 
     describe "Anonymous Enums" $ do
       it "single choice works" $
-        runTest @SingleChoiceSelection choiceInfo
+        runTest singleChoiceForm
       it "multiple choice works" $
-        runTest @MultipleChoiceSelection choiceInfo
+        runTest multipleChoiceForm
 
     describe "custom enum functions (for a single test type)" $ do
       it "single choice works" $
-        runTest @TestEnum (choiceInfoEnum @TestEnum)
+        runTest @TestEnum singleChoiceFormEnum
       it "multiple choice works" $
-        runTest @[TestEnum] (choiceInfoEnum @TestEnum)
+        runTest $ multipleChoiceFormEnum @TestEnum
 
 
-runTest :: forall a . Formify a => Gen [[FieldInfo]] -> Property
-runTest gen = forAll gen testWith
+runTest :: Formify a => Gen (FormSpec a) -> Property
+runTest gen = forAll (Blind <$> gen) testWith
   where
-    testWith fi =
-      getFormData (formify @a Nothing fi) `shouldNotThrow` anyErrorCall
+    testWith (Blind fi) =
+      getFormData (formify Nothing fi) `shouldNotThrow` anyErrorCall
 
 
 instance Arbitrary Alignment where
   arbitrary = elements [Vertical,Horizontal]
 
 
-choiceInfo :: Gen [[FieldInfo]]
-choiceInfo = doubleNest $ do
+choiceForm
+  :: FormTypes a ~ '[a]
+  => ( Alignment
+    -> FieldSettings FlexForm
+    -> [SomeMessage FlexForm]
+    -> FieldInfo a
+    )
+  -> ( FieldSettings FlexForm
+    -> [SomeMessage FlexForm]
+    -> FieldInfo a
+    )
+  -> Gen (FormSpec a)
+choiceForm f g = do
   align <- arbitrary
   title <- arbitrary
   labels <- chooseInt (1,100) >>= flip vectorOf arbitrary
-  elements [buttons align title labels, dropdown title labels]
+  single . required <$> elements [f align title labels, g title labels]
 
 
-choiceInfoEnum :: forall a . (Bounded a, Enum a, Eq a) => Gen [[FieldInfo]]
-choiceInfoEnum = doubleNest $ do
+singleChoiceForm :: Gen (FormSpec SingleChoiceSelection)
+singleChoiceForm = choiceForm buttons dropdown
+
+
+multipleChoiceForm :: Gen (FormSpec MultipleChoiceSelection)
+multipleChoiceForm = choiceForm multiButtons multiDropdown
+
+
+choiceFormEnum
+  :: (Bounded a, Enum a, Eq a, FormTypes b ~ '[b])
+  => ( Alignment
+    -> FieldSettings FlexForm
+    -> (a -> SomeMessage FlexForm)
+    -> FieldInfo b
+    )
+  -> ( FieldSettings FlexForm
+    -> (a -> SomeMessage FlexForm)
+    -> FieldInfo b
+    )
+  -> Gen (FormSpec b)
+choiceFormEnum f g = do
   align <- arbitrary
   title <- arbitrary
   labels <- zip range <$> vectorOf (length range) arbitrary
-  elements [
-    buttonsEnum align title $ toText labels,
-    dropdownEnum title $ toText labels
+  single . required <$> elements [
+    f align title $ toText labels,
+    g title $ toText labels
     ]
   where
-    range = [minBound .. maxBound @a]
-    toText mapping enum = fromMaybe "" $ lookup enum mapping
+    range = [minBound .. maxBound]
+    toText mapping enum = fromMaybe (fromString "") $ lookup enum mapping
 
 
-listInfo :: Gen [[FieldInfo]]
-listInfo = doubleNest $ do
+singleChoiceFormEnum :: (Bounded a, Enum a, Eq a, FormTypes a ~ '[a]) => Gen (FormSpec a)
+singleChoiceFormEnum = choiceFormEnum buttonsEnum dropdownEnum
+
+
+multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (FormSpec [a])
+multipleChoiceFormEnum = choiceFormEnum multiButtonsEnum multiDropdownEnum
+
+
+listForm :: BaseForm a => (FieldInfo a -> Requiredness b) -> Gen (FormSpec [b])
+listForm req = do
   align <- arbitrary
   amount <- chooseInt (1,100)
   labels <- vectorOf amount arbitrary
   attributes <- chooseInt (1,20) >>= flip vectorOf arbitrary
-  elements [list align labels,listWithoutLabels align amount attributes]
+  elements [list align (req . basic) labels,listWithoutLabels align amount (req . basic) attributes]
+
+
+requiredListForm :: BaseForm a => Gen (FormSpec [a])
+requiredListForm = listForm required
+
+
+optionalListForm :: BaseForm a => Gen (FormSpec [Maybe a])
+optionalListForm = listForm optional
 
 
 instance Arbitrary (SomeMessage FlexForm) where
@@ -166,9 +212,9 @@ instance Arbitrary (FieldSettings FlexForm) where
   arbitrary = fromString <$> arbitrary
 
 
-singleInfo :: Gen [[FieldInfo]]
-singleInfo = doubleNest $ single <$> arbitrary
+simpleForm :: (BaseForm a, FormTypes a ~ '[a]) => Gen (FormSpec a)
+simpleForm = single . required . basic <$> arbitrary
 
 
-doubleNest :: Gen a -> Gen [[a]]
-doubleNest = fmap $ (:[]) . (:[])
+optionalSimpleForm :: BaseForm a => Gen (FormSpec (Maybe a))
+optionalSimpleForm = single . optional . basic <$> arbitrary

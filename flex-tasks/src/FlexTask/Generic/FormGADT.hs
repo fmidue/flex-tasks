@@ -12,6 +12,7 @@
 {-# language UndecidableInstances #-}
 
 module FlexTask.Generic.FormGADT (
+  singleFormDefaults,
   FieldInfo,
   Requiredness,
   FormLayout,
