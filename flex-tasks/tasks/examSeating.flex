@@ -1,4 +1,5 @@
 taskName: ExamSeatInfo
+validation: Validate
 
 =============================================
 

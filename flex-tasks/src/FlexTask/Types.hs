@@ -12,6 +12,7 @@ module FlexTask.Types
   , CommonModules(..)
   , FlexInst(..)
   , FlexConf(..)
+  , ValidationFlag(..)
   , delimiter
   , moduleName
 
@@ -34,7 +35,7 @@ import Data.List.Extra (
   word1
   )
 import Data.Map                          (Map)
-import Data.Maybe                        (mapMaybe)
+import Data.Maybe                        (fromMaybe, isJust, mapMaybe)
 import Data.Text                         (Text)
 import GHC.Generics                      (Generic)
 import Text.Parsec (
@@ -45,7 +46,8 @@ import Text.Parsec (
     lookAhead,
     many1,
     manyTill,
-    option,
+    optional,
+    optionMaybe,
     satisfy,
     string,
     skipMany,
@@ -62,6 +64,12 @@ import Yesod                             (Lang)
 
 -- | A map of language code and internationalized HTML value pairs.
 type HtmlDict = Map Lang String
+
+
+data ValidationFlag
+  = Validate
+  | AssumeValid
+  deriving (Eq, Ord, Read, Show)
 
 
 {- |
@@ -83,6 +91,8 @@ Configuration to use for random generation of concrete `FlexInst`.
 The other Haskell modules are propagated to the generated task instance.
 -}
 data FlexConf = FlexConf {
+    validation     :: ValidationFlag,
+    -- ^ determines if the config check should be run
     taskDataModule :: String,       -- ^ Module for generating the form, as well as `CheckModule`.
     commonModules  :: CommonModules -- ^ Modules shared between config and instance.
   } deriving (Eq,Generic,Ord,Show)
@@ -127,15 +137,18 @@ Module2 where
 showFlexConfig :: FlexConf -> String
 showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
     intercalate delimiter $
-      ["taskName: " ++ taskName ++ "\r\n" | notNull taskName] ++
-      [ globalModule
+      [ options
+      , globalModule
       , settingsModule
       , taskDataModule
       , descriptionModule
       , parseModule
       ]
       ++ map snd extraModules
-
+  where
+    options = concat $
+      ["taskName: " ++ taskName ++ "\r\n" | notNull taskName] ++
+      ["validation: " ++ show validation]
 
 
 {- |
@@ -146,7 +159,7 @@ Modules starting from the sixth will be added to `CommonModules.extraModules`.
 -}
 parseFlexConfig :: Parser FlexConf
 parseFlexConfig = do
-    taskName <- option "" $ try parsePathSegment
+    (taskName,validation) <- parseOptions
     modules <- betweenEquals
     case splitAt 5 modules of
       ( [ globalModule
@@ -158,6 +171,7 @@ parseFlexConfig = do
         let extraModules = mapMaybe (\x -> (,x) <$> moduleName x) extra
         pure $
           FlexConf {
+            validation,
             taskDataModule,
             commonModules = CommonModules {
               taskName,
@@ -182,13 +196,26 @@ parseFlexConfig = do
       manyTill anyChar (try $ lookAhead $ eof <|> atLeastThree) `sepBy`
       atLeastThree
 
+    parseOptions = do
+      taskName <- optionMaybe $ try parsePathSegment
+      validate <- optionMaybe $ try parseValidate
+      requiredIf (isJust taskName || isJust validate) $ do
+        void $ manyTill space $ try $ lookAhead atLeastThree
+        atLeastThree
+      pure (fromMaybe "" taskName, fromMaybe AssumeValid validate)
+
+    parseValidate = do
+      spaces
+      discardString "validation"
+      discardString ":"
+      lexeme $ fmap read $ string (show Validate) <|> string (show AssumeValid)
+
     parsePathSegment = do
       spaces
       discardString "taskName"
       discardString ":"
       path <- lexeme $ many1 $ satisfy $ liftA2 (&&) isAscii (liftA2 (||) isLetter isNumber)
-      void $ manyTill space $ try $ lookAhead atLeastThree
-      atLeastThree
+      void endOfLine
       pure path
 
     -- the Parsec provided 'spaces' parser also parses newline characters
@@ -196,6 +223,8 @@ parseFlexConfig = do
     lexeme = (<* parseSpace)
     discard = void . lexeme
     discardString = discard . string
+
+    requiredIf condition = if condition then id else optional . try
 
 
 {- |
@@ -222,6 +251,7 @@ removeComments = unlines . filter (not . ("--" `isPrefixOf`)) . lines . runRemov
 
 -- | Check a configuration for inconsistencies
 validateFlexConfig :: OutputCapable m => FlexConf -> LangM m
+validateFlexConfig FlexConf {validation = AssumeValid} = pure ()
 validateFlexConfig FlexConf{commonModules = CommonModules{..},..}
   | requiredNames /= requiredConfig = reject $ do
     german $

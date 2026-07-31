@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# Language OverloadedStrings #-}
 {-# Language QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -12,22 +13,24 @@ module FlexTask.Interpreter
   ( checkSolution
   , genFlexInst
   , prettyError
-  , validateSettings
+  , validateSettingsAndCompile
   , validDescription
   ) where
 
 
+import Control.Monad.Catch          (throwM, catch)
+import Control.Exception            (ErrorCall, displayException, evaluate)
 import Control.Monad                (unless, void)
+import Control.Monad.IO.Class       (liftIO)
 import Control.Monad.Identity       (runIdentity)
-import Control.Monad.Random         (RandT, StdGen, evalRandT, mkStdGen)
+import Control.Monad.Random         (evalRandT, mkStdGen)
 import Control.OutputCapable.Blocks.Type
-import Control.OutputCapable.Blocks (OutputCapable, LangM)
+import Control.OutputCapable.Blocks (OutputCapable, LangM, code)
 import Data.Digest.Pure.SHA         (sha256, showDigest)
 import Data.List.Extra              (headDef, intercalate, replace)
-import Data.Map                     (elems)
+import Data.Map                     (elems, fromList)
 import Data.Maybe                   (isJust)
 import Data.String.Interpolate      (i)
-import Data.Text                    (Text)
 import Data.Text.Lazy.Encoding      (encodeUtf8)
 import Data.Text.Lazy               (pack)
 import Data.Typeable                (Typeable)
@@ -58,40 +61,31 @@ import FlexTask.Types (
   CommonModules(..),
   FlexConf(..),
   FlexInst(..),
-  HtmlDict,
+  ValidationFlag(..),
   )
 import FlexTask.Processing.Text    (removeUnicodeEscape)
 
 
 
-
-type GenOutput = (String, String, IO ([Text],[[Text]], HtmlDict))
-
-
 {- |
 -}
-validateSettings
-  :: String   -- ^ The task identifier used for caching
-  -> String   -- ^ Global module
-  -> String   -- ^ Module containing configuration options
-  -> String   -- ^ TaskData module
-  -> String   -- ^ Description module
-  -> [(String,String)] -- ^ Additional code modules
+validateSettingsAndCompile
+  :: FlexConf
   -> IO (Either InterpreterError (Bool,[Output]))
-validateSettings
-  taskName
-  globalCode
-  settingsCode
-  taskDataCode
-  descriptionCode
-  extraCode = do
-    filePaths <- writeUncachedAndGetPaths taskName $
-      [ ("Global", globalCode)
-      , ("TaskSettings", settingsCode)
-      , ("TaskData", taskDataCode)
-      , ("Description", descriptionCode)
-      ] ++ extraCode
-    runWithPackageDB (loadModules filePaths >> validate)
+validateSettingsAndCompile FlexConf {validation = AssumeValid} = pure $ Right (True, [])
+validateSettingsAndCompile conf@FlexConf {commonModules = CommonModules{..}} = do
+    instOrError <- genFlexInstOrInterpreterError conf 0
+    case instOrError of
+      Left iError -> pure $ Left iError
+      Right (FlexInst {checkModule}) -> do
+        filePaths <- writeUncachedAndGetPaths taskName $
+          [ ("Global", globalModule)
+          , ("TaskSettings", settingsModule)
+          , ("Description", descriptionModule)
+          , ("Parse", parseModule)
+          , ("Check", checkModule)
+          ] ++ extraModules
+        runWithPackageDB (loadModules filePaths >> validate)
   where
     validate = do
       setImports
@@ -101,7 +95,7 @@ validateSettings
         , "Data.Text"
         ]
       setTopLevelModules ["TaskSettings", "Global"]
-      out <- interpret "validateSettings" infer
+      out <- interpretHandleError "validateSettings"
       pure $ first (isJust @()) $ runIdentity $ getOutputSequenceWithResult out
 
 {- |
@@ -113,7 +107,24 @@ genFlexInst
   :: FlexConf
   -> Int          -- ^ Generator seed
   -> IO FlexInst
-genFlexInst
+genFlexInst conf@FlexConf {commonModules = commonModules} seed = do
+  taskAndFormResult <- genFlexInstOrInterpreterError conf seed
+  pure $ handleInterpreterError
+    (\message -> FlexInst
+      { form = ([],[],) $ fromList $ map (,message) ["de", "en"]
+      , taskData = message
+      , checkModule = message
+      , commonModules
+      }
+    )
+    taskAndFormResult
+
+
+genFlexInstOrInterpreterError
+  :: FlexConf
+  -> Int          -- ^ Generator seed
+  -> IO (Either InterpreterError FlexInst)
+genFlexInstOrInterpreterError
   FlexConf{ commonModules = commonModules@CommonModules{
     taskName,
     globalModule,
@@ -129,19 +140,9 @@ genFlexInst
         , ("TaskData", taskDataModule)
         ] ++ extraModules
       helperPath <- cacheHelper "GenerationHelper" []
-      taskAndFormResult <- runWithPackageDB $
-          loadModules (helperPath : filePaths) >> tfInter
-      let gen = extract taskAndFormResult
-      (taskData, checkModule, io) <- evalRandT gen $ mkStdGen seed
-      form <- io
-      pure $ FlexInst {
-        form,
-        taskData,
-        checkModule,
-        commonModules
-      }
+      runWithPackageDB $ loadModules (helperPath : filePaths) >> tfInter
     where
-      tfInter :: Interpreter (RandT StdGen IO GenOutput)
+      tfInter :: Interpreter FlexInst
       tfInter = do
         setTopLevelModules ["TaskData", "Global", "TaskSettings", "GenerationHelper"]
         setImports [
@@ -151,8 +152,16 @@ genFlexInst
           , "Data.Text"
           , "Data.Tuple.Extra"
           ]
-        interpret "third3 getFormData . first3 gshow <$> getTask " infer
-
+        gen <- interpretHandleError "third3 getFormData . first3 gshow <$> getTask "
+        liftIO $ do
+          (taskData,checkModule,io) <- evalRandT gen $ mkStdGen seed
+          form <- io
+          pure $ FlexInst {
+            form,
+            taskData,
+            checkModule,
+            commonModules
+          }
 
 
 makeDescription
@@ -187,7 +196,8 @@ makeDescription taskName taskData global settings description extras picPath = d
         , "Data.List.Extra"
         , "Data.Text"
         ]
-      interpret ("description " ++ show picPath ++ parens (greadError taskData)) infer
+      interpretHandleError $
+        "description " ++ show picPath ++ parens (greadError taskData)
 
 
 
@@ -235,7 +245,7 @@ validDescription taskName taskData globalModule settingsModule descModule extras
   where
     makeDescAndWrite mOldOutput p = do
       res <- makeDescription taskName taskData globalModule settingsModule descModule extras picPath
-      output <- getOutputSequence $ extract res
+      output <- getOutputSequence $ handleInterpreterError code res
       unless (mOldOutput == Just output) $ writeFile p $ show output
       return $ toOutputCapable output
 
@@ -297,7 +307,11 @@ checkSolution taskName taskData globalCode settingsCode parseCode checkCode extr
         , "Data.Text"
         ]
       setTopLevelModules ["Check", "Global", "EvaluationHelper", "Parse"]
-      interpret ("syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++ input ++ path ++ tData) infer
+      interpretHandleError $
+        "syntaxAndSemantics parseSubmission checkSyntax checkSemantics " ++
+        input ++
+        path ++
+        tData
 
     tData = parens $ greadError taskData
     input = removeUnicodeEscape (show $ replace "\\\\" "\\" submission)
@@ -323,8 +337,8 @@ writeUncachedAndGetPaths cachePrefix xs = do
 
 
 
-extract :: Either InterpreterError c -> c
-extract = either (error . prettyError) id
+handleInterpreterError :: (String -> a) -> Either InterpreterError a -> a
+handleInterpreterError f = either (f . prettyError) id
 
 
 hash :: Show a => a -> String
@@ -384,3 +398,10 @@ greadError :: String -> String
 greadError term = "fst $ headDef (error " ++ show errorMessage ++") $ gread " ++ show term ++ " :: TaskData"
   where
     errorMessage = "Failed reading stored TaskData. Encountered this: " ++ term
+
+
+interpretHandleError :: Typeable a => String -> Interpreter a
+interpretHandleError run = do
+  result <- interpret run infer
+  liftIO (evaluate result) `catch` \(exception :: ErrorCall) ->
+    throwM $ UnknownError $ "runtime exception: " ++ displayException exception

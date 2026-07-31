@@ -7,12 +7,14 @@ module FlexTask.TypesSpec where
 
 import Data.Char                        (isAscii, isLetter, toUpper)
 import Data.List                        (intercalate)
-import Test.Hspec                       (Spec, describe, it, shouldBe)
+import Data.List.Extra                  (notNull)
+import Test.Hspec                       (Spec, describe, shouldBe)
 import Test.Hspec.Parsec                (shouldParse)
 import Test.Hspec.QuickCheck            (prop)
 import Test.QuickCheck (
   Gen,
   chooseInt,
+  elements,
   forAll,
   suchThat,
   listOf,
@@ -31,7 +33,9 @@ spec = do
     prop "segments the modules with delimiters correctly" $
       \fConf@FlexConf{commonModules = CommonModules{..},..} ->
       showFlexConfig fConf `shouldBe` intercalate delimiter (
-        [ "taskName: " ++ taskName ++ "\r\n"
+        [ concat $
+            ["taskName: " ++ taskName ++ "\r\n" | notNull taskName] ++
+            ["validation: " ++ show validation]
         , globalModule
         , settingsModule
         , taskDataModule
@@ -40,22 +44,27 @@ spec = do
         ] ++ map snd extraModules)
 
   describe "parseFlexConfig" $ do
-    it "successfully parses core and extra modules when task name is present" $
-      forAll ((,,) <$> vectorOf 5 arbitrary <*> listOf genExtraModule <*> genTaskName) $ \(mods,eMods,tName) ->
-        parse parseFlexConfig "" (intercalate delimiter $ ("taskName: " ++ tName) : mods ++ map snd eMods) `shouldParse`
-        conf (tName : mods) eMods
-    it "successfully parses core and extra modules when task name is absent" $
-      forAll ((,) <$> vectorOf 5 arbitrary <*> listOf genExtraModule) $ \(mods,eMods) ->
-        parse parseFlexConfig "" (intercalate delimiter (mods ++ map snd eMods)) `shouldParse`
-        conf mods eMods
+    prop "successfully parses core and extra modules when task name is present" $
+      \flag ->
+        forAll ((,,) <$> vectorOf 5 arbitrary <*> listOf genExtraModule <*> genTaskName) $ \(mods,eMods,tName) ->
+          parse parseFlexConfig "" (intercalate delimiter $
+            unlines ["taskName: " ++ tName, "validation: " ++ show flag] : mods ++ map snd eMods
+            ) `shouldParse`
+          conf flag (tName : mods) eMods
+    prop "successfully parses core and extra modules when task name is absent" $
+      \flag ->
+        forAll ((,) <$> vectorOf 5 arbitrary <*> listOf genExtraModule) $ \(mods,eMods) ->
+          parse parseFlexConfig "" (intercalate delimiter (["validation: " ++ show flag] ++ mods ++ map snd eMods)) `shouldParse`
+          conf flag mods eMods
 
   describe "both" $ do
     prop "are inverse to each other (provided extra modules are valid)" $ \fConf ->
       parse parseFlexConfig "" (showFlexConfig fConf) `shouldParse` fConf
 
     where
-      conf [taskName, globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
+      conf validation [taskName, globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
         FlexConf {
+          validation,
           taskDataModule,
           commonModules = CommonModules {
             taskName,
@@ -66,8 +75,9 @@ spec = do
             extraModules
           }
         }
-      conf [globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
+      conf validation [globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
         FlexConf {
+          validation,
           taskDataModule,
           commonModules = CommonModules {
             taskName = "",
@@ -78,7 +88,10 @@ spec = do
             extraModules
           }
         }
-      conf _ _ = error "temp"
+      conf _ modules extraModules = error $
+        "This case should not be reachable: " ++
+        show modules ++ "\n" ++
+        show extraModules
 
 
 instance Arbitrary CommonModules where
@@ -117,8 +130,12 @@ letter :: Gen Char
 letter = arbitrary `suchThat` isLetter
 
 
+instance Arbitrary ValidationFlag where
+  arbitrary = elements [Validate, AssumeValid]
+
 instance Arbitrary FlexConf where
   arbitrary = do
+    validation <- arbitrary
     taskDataModule <- arbitrary
     commonModules <- arbitrary
-    pure $ FlexConf {taskDataModule, commonModules}
+    pure $ FlexConf {validation, taskDataModule, commonModules}

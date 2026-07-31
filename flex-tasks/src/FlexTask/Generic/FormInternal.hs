@@ -12,8 +12,14 @@ module FlexTask.Generic.FormInternal (
   ) where
 
 
-import Data.List.Extra      (intercalate, nubOrd, nubSort, singleton, uncons, unsnoc)
-import Data.Maybe           (fromMaybe)
+import Data.List.Extra (
+  intercalate,
+  nubOrd,
+  nubSort,
+  singleton,
+  zipWithLongest,
+  )
+import Data.Maybe           (catMaybes)
 import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
 import GHC.Utils.Misc       (equalLength)
 import Data.Text            (Text, pack, unpack)
@@ -97,14 +103,14 @@ field1
 field2
 @
 
-__Caution: Not all horizontal alignments work as one would expect.__
-__If an element uses inner `Alignment` parameters,__
-__then the next form will only be rendered besides the last form component of the former.__
+__Caution: Not all horizontal alignments will display correctly.__
+__For example, if two vertical lists are composed horizontally,__
+__then the second list may not be longer than the first.__
 
 Input
 
 @
-[[listWithoutLabels Vertical 2 []],[listWithoutLabels Vertical 2 []]]
+[[listWithoutLabels Vertical 2 [], listWithoutLabels Vertical 3 []]]
 @
 
 will __not__ result in
@@ -113,16 +119,18 @@ will __not__ result in
 list11      list21
 
 list12      list22
+
+            list23
 @
 
 but instead in
 
 @
-list11
+list11     list21
 
-list12     list21
+list12     list22
 
-list22
+list23
 @
 -}
 data FieldInfo
@@ -414,10 +422,10 @@ f1 `horizontally` f2 = do
     pure $ do
       (ids1,names1,xss) <- res1
       (ids2,names2,yss) <- res2
-      let
-        (leftInit, leftLast) = fromMaybe (xss,[]) $ unsnoc xss
-        (rightHead, rightTail) = fromMaybe ([],yss) $ uncons yss
-      pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, leftInit ++ [leftLast ++ rightHead] ++ rightTail)
+      pure
+        ( ids1 ++ ids2
+        , nubOrd $ names1 ++ names2
+        , zipWithLongest (\xs ys -> concat $ catMaybes [xs,ys]) xss yss)
 
 
 
