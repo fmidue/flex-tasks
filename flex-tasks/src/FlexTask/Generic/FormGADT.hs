@@ -63,10 +63,9 @@ import Data.List.Extra (
   nubOrd,
   nubSort,
   singleton,
-  uncons,
-  unsnoc,
+  zipWithLongest,
   )
-import Data.Maybe                       (fromMaybe)
+import Data.Maybe                       (catMaybes)
 import Data.Text                        (Text, pack, unpack)
 import Data.Tuple.Extra                 (first)
 import FlexTask.Widgets (
@@ -476,10 +475,11 @@ f1 `horizontally` f2 = do
     pure $ do
       (ids1,names1,xss) <- res1
       (ids2,names2,yss) <- res2
-      let
-        (leftInit, leftLast) = fromMaybe (xss,[]) $ unsnoc xss
-        (rightHead, rightTail) = fromMaybe ([],yss) $ uncons yss
-      pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, leftInit ++ [leftLast ++ rightHead] ++ rightTail)
+      pure
+        ( ids1 ++ ids2
+        , nubOrd $ names1 ++ names2
+        , zipWithLongest (\xs ys -> concat $ catMaybes [xs,ys]) xss yss
+        )
 
 
 
