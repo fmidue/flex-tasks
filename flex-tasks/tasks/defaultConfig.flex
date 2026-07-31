@@ -1,15 +1,39 @@
 
 taskName: DefaultConfig
+validation: Validate
+
 =============================================
 {-
 ^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^
-The above section allows for specifying a task identifier.
+The above section contains task options.
+
+'taskName' can be used to specify a task identifier.
 It will serve as a directory name for caching on the file system.
 By using unique identifiers, you reduce the risk of cache collisions between different flex-tasks.
 Only ASCII letters (A–Z, a–z) are permitted in this name.
 
 The identifier can optionally be omitted.
 In that case, all cache files for this task will be stored in a shared global directory.
+
+'validation' enables and disables the configuration check.
+Possible values are:
+  - Validate
+  - AssumeValid
+
+The default value is 'AssumeValid' if none is given.
+
+This is mostly relevant for Autotool:
+The validator is run every time a student accesses the task,
+so disabling the checks will reduce wait times significantly.
+It should be set to 'Validate' while setting up the task.
+You can then switch to 'AssumeValid' after everything is in place.
+
+Tasks using a 'MonadAlloy' constraint on the TaskData generator
+or an otherwise extremely slow generation process should not use 'Validate',
+as the validation will most likely time out trying to generate an instance.
+Instead, use 'AssumeValid' and pose the task as an 'UnAvailableFlex' task (does not exist yet),
+then generate the instances offline and finally upload them.
+
 ^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^!^
 -}
 

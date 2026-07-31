@@ -6,7 +6,7 @@ Also automatic HTML form and parser generation for input data types.
 
 ## Contents
 
-This repository includes two packages:
+This repository includes two packages, some sample tasks and a GitHub action to validate task configurations via CI.
 
 ### flex-tasks
 
@@ -21,6 +21,16 @@ Supplies both a way to run tasks and utilities to simplify the creation of said 
 
 Includes text processing necessary for the Autotool frontend. It is split off from the above package to minimize dependencies in Autotool.
 
+### Sample task configurations
+
+* [Default configuration](flex-tasks/tasks/defaultConfig.flex) (includes a manual)
+* [Seat distributor for exams](flex-tasks/tasks/examSeating.flex)
+* [Some old tasks](flex-tasks/tasks/interpolation-test) used for runtime experiments.
+  Their contents aren't very interesting, but they outline what a minimal task skeleton looks like.
+
+### Test-Flex action
+
+You can validate your task configurations via GitHub CI using our action. Refer to the [action's README](test-flex-action/README.md) for setup.
 
 ## Documentation
 
