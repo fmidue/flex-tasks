@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-missing-fields #-}
+{-# language AllowAmbiguousTypes #-}
 {-# language DataKinds #-}
 {-# language DefaultSignatures #-}
 {-# language DeriveGeneric #-}
@@ -57,7 +58,7 @@ module FlexTask.Generic.FormGADT (
 
 import Yesod                            hiding (selectField, radioField)
 import FlexTask.YesodConfig
-import Data.Kind                        (Type)
+import Data.Kind                        (Constraint, Type)
 import Data.List.Extra (
   intercalate,
   nubOrd,
@@ -80,6 +81,8 @@ import GHC.Generics (
   Generic(..),
   (:+:),
   (:*:)(..),
+  C,
+  D,
   K1(unK1),
   M1(unM1),
   U1,
@@ -214,19 +217,19 @@ singleFormDefaults x =
 class Formify a where
 
   type FormTypes a :: [Type]
-  type FormTypes a = GFormType (Rep a)
+  type FormTypes a = GFormTypes a (Rep a)
 
   formDefaults :: a -> TypeList (FormTypes a)
 
   default formDefaults
     :: ( Generic a
-       , GToTypeList (Rep a)
-       , FormTypes a ~ GFormType (Rep a)
+       , GFormDefaults a (Rep a)
+       , FormTypes a ~ GFormTypes a (Rep a)
        )
     => a
     -> TypeList (FormTypes a)
   formDefaults =
-    gToTypeList . from
+    gFormDefaults @a . from
 
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
@@ -236,45 +239,69 @@ class Formify a where
     renderLayout (formDefaults <$> mDefault)
 
 
-type family GFormType f :: [Type] where
-  GFormType (M1 i c f) =
-    GFormType f
+type family NullarySum rep :: Constraint where
+  NullarySum (left :+: right) = (NullarySum left, NullarySum right)
 
-  GFormType (K1 i a) =
-    FormTypes a
+  NullarySum (M1 C metadata U1) = ()
 
-  GFormType (left :*: right) =
-    GFormType left ++ GFormType right
-
-
-class GToTypeList f where
-  gToTypeList :: f p -> TypeList (GFormType f)
-
-
-instance GToTypeList f => GToTypeList (M1 i c f) where
-  gToTypeList = gToTypeList . unM1
+  NullarySum (M1 C metadata fields) =
+    TypeError
+      ( 'Text "Cannot derive Formify for this sum type." ':<>:
+        'Text "A sum type must contain only nullary constructors," ':<>:
+        'Text "but at least one constructor contains fields." ':<>:
+        'Text "Consider a manual Formify instance for this type."
+      )
 
 
-instance Formify a => GToTypeList (K1 i a) where
-  gToTypeList = formDefaults . unK1
+type family GFormTypes original rep :: [Type] where
+  GFormTypes original (M1 i metadata fields) = GFormTypes original fields
+
+  GFormTypes original (K1 i field) = FormTypes field
+
+  GFormTypes original (left :*: right) =
+    GFormTypes original left ++ GFormTypes original right
+
+  GFormTypes original (left :+: right) = '[original]
+
+  GFormTypes original U1 =
+    TypeError
+      ( 'Text "Cannot derive Formify for a single constructor without fields."
+        ':<>:
+        'Text "This is either a constant value (if required) or a Boolean (if optional)."
+      )
 
 
-instance (GToTypeList a, GToTypeList b) => GToTypeList (a :*: b) where
-  gToTypeList (left :*: right) =
-    appendTypeList (gToTypeList left) $ gToTypeList right
+class GFormDefaults original rep where
+  gFormDefaults :: rep p -> TypeList (GFormTypes original rep)
 
 
-instance TypeError
-      ( 'Text "Generic Formify does not support constant constructors." :<>:
-        'Text "Consider adding a manual instance instead."
-      ) => GToTypeList U1 where
-  gToTypeList = undefined
+instance GFormDefaults original fields => GFormDefaults original (M1 i metadata fields) where
+  gFormDefaults = gFormDefaults @original . unM1
 
-instance TypeError
-      ( 'Text "Generic Formify does not support sum types. " :<>:
-        'Text "Consider adding a manual instance instead."
-      ) => GToTypeList (a :+: b) where
-  gToTypeList = undefined
+
+instance Formify field => GFormDefaults original (K1 i field) where
+  gFormDefaults = formDefaults . unK1
+
+
+instance
+  ( GFormDefaults original left
+  , GFormDefaults original right
+  )
+  => GFormDefaults original (left :*: right) where
+
+  gFormDefaults (left :*: right) = appendTypeList
+    (gFormDefaults @original left)
+    (gFormDefaults @original right)
+
+
+instance {-# Overlapping #-}
+  ( Generic original
+  , Rep original ~ M1 D metadata (left :+: right)
+  , NullarySum (left :+: right)
+  )
+  => GFormDefaults original (M1 D metadata (left :+: right))
+  where
+  gFormDefaults = singleFormDefaults . to
 
 
 instance Formify Integer where
