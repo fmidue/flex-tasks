@@ -127,65 +127,59 @@ instance Arbitrary Alignment where
   arbitrary = elements [Vertical,Horizontal]
 
 
+instance Arbitrary ChoiceShape where
+  arbitrary = do
+    align <- arbitrary
+    elements [Buttons align, Dropdown]
+
+
 choiceForm
   :: FormTypes a ~ '[a]
-  => ( Alignment
+  => ( ChoiceShape
     -> FieldSettings FlexForm
-    -> [SomeMessage FlexForm]
-    -> TypeField a
-    )
-  -> ( FieldSettings FlexForm
     -> [SomeMessage FlexForm]
     -> TypeField a
     )
   -> Gen (CompleteForm a)
-choiceForm f g = do
-  align <- arbitrary
+choiceForm f = do
+  shape <- arbitrary
   title <- arbitrary
   labels <- chooseInt (1,100) >>= flip vectorOf arbitrary
-  single . required <$> elements [f align title labels, g title labels]
+  pure $ single $ required $ f shape title labels
 
 
 singleChoiceForm :: Gen (CompleteForm SingleChoiceSelection)
-singleChoiceForm = choiceForm buttons dropdown
+singleChoiceForm = choiceForm singleChoice
 
 
 multipleChoiceForm :: Gen (CompleteForm MultipleChoiceSelection)
-multipleChoiceForm = choiceForm multiButtons multiDropdown
+multipleChoiceForm = choiceForm multipleChoice
 
 
 choiceFormEnum
   :: (Bounded a, Enum a, Eq a, FormTypes b ~ '[b])
-  => ( Alignment
+  => ( ChoiceShape
     -> FieldSettings FlexForm
     -> (a -> SomeMessage FlexForm)
     -> TypeField b
     )
-  -> ( FieldSettings FlexForm
-    -> (a -> SomeMessage FlexForm)
-    -> TypeField b
-    )
-
   -> Gen (CompleteForm b)
-choiceFormEnum f g = do
-  align <- arbitrary
+choiceFormEnum f = do
+  shape <- arbitrary
   title <- arbitrary
   labels <- zip range <$> vectorOf (length range) arbitrary
-  single . required <$> elements [
-    f align title $ toText labels,
-    g title $ toText labels
-    ]
+  pure $ single $ required $ f shape title $ toText labels
   where
     range = [minBound .. maxBound]
     toText mapping enum = fromMaybe (fromString "") $ lookup enum mapping
 
 
 singleChoiceFormEnum :: (Bounded a, Enum a, Eq a, FormTypes a ~ '[a]) => Gen (CompleteForm a)
-singleChoiceFormEnum = choiceFormEnum buttonsEnum dropdownEnum
+singleChoiceFormEnum = choiceFormEnum singleChoiceEnum
 
 
 multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (CompleteForm [a])
-multipleChoiceFormEnum = choiceFormEnum multiButtonsEnum multiDropdownEnum
+multipleChoiceFormEnum = choiceFormEnum multipleChoiceEnum
 
 
 listForm :: BaseForm a => (TypeField a -> Requiredness b) -> Gen (CompleteForm [b])

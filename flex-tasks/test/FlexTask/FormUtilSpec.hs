@@ -35,7 +35,7 @@ spec = do
       list Vertical (required . basic) ["test2","test3"]
     form2 = formify @(Maybe String) Nothing $ single $ optional $ basic "form2"
     form3 = formify (Just [First]) $
-      single $ required $ multiDropdownEnum "form3"
+      single $ required $ multipleChoiceEnum Dropdown "form3"
         (\a -> if a == First then "first" else "last")
 
   describe "getFormData" $

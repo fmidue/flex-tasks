@@ -19,18 +19,15 @@ module FlexTask.Generic.FormGADT (
   SimpleFormPiece,
   CompleteForm,
   Alignment(..),
+  ChoiceShape(..),
   formify,
   BaseForm(..),
   Formify(..),
   basic,
-  dropdown,
-  dropdownEnum,
-  multiDropdown,
-  multiDropdownEnum,
-  buttons,
-  buttonsEnum,
-  multiButtons,
-  multiButtonsEnum,
+  singleChoice,
+  singleChoiceEnum,
+  multipleChoice,
+  multipleChoiceEnum,
   required,
   optional,
   single,
@@ -421,68 +418,39 @@ basic :: BaseForm a => FieldSettings FlexForm -> TypeField a
 basic = Basic
 
 
-dropdown
-  :: FieldSettings FlexForm  -- ^ FieldSettings for select input
+
+singleChoice
+  :: ChoiceShape
+  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> TypeField SingleChoiceSelection
-dropdown fs = SingleChoice Dropdown fs . options
+singleChoice shape fs = SingleChoice shape fs . options
 
 
-dropdownEnum
+singleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
-  => FieldSettings FlexForm      -- ^ FieldSettings for select input
+  => ChoiceShape
+  -> FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> TypeField a
-dropdownEnum fs = SingleChoice Dropdown fs . optionsFromType
+singleChoiceEnum shape fs = SingleChoice shape fs . optionsFromType
 
 
-multiDropdown
-  :: FieldSettings FlexForm  -- ^ FieldSettings for select input
+multipleChoice
+  :: ChoiceShape
+  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> TypeField MultipleChoiceSelection
-multiDropdown fs = MultipleChoice Dropdown fs . options
+multipleChoice shape fs = MultipleChoice shape fs . options
 
 
-multiDropdownEnum
+multipleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
-  => FieldSettings FlexForm      -- ^ FieldSettings for select input
+  => ChoiceShape
+  -> FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> TypeField [a]
-multiDropdownEnum fs = MultipleChoice Dropdown fs . optionsFromType
-
-
-buttonsEnum
-  :: (Eq a, Bounded a, Enum a)
-  => Alignment
-  -> FieldSettings FlexForm      -- ^ FieldSettings for option input
-  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> TypeField a
-buttonsEnum align fs = SingleChoice (Buttons align) fs . optionsFromType
-
-
-multiButtonsEnum
-  :: (Eq a, Bounded a, Enum a)
-  => Alignment
-  -> FieldSettings FlexForm      -- ^ FieldSettings for option input
-  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> TypeField [a]
-multiButtonsEnum align fs = MultipleChoice (Buttons align) fs . optionsFromType
-
-
-buttons
-  :: Alignment
-  -> FieldSettings FlexForm -- ^ FieldSettings for option input
-  -> [SomeMessage FlexForm] -- ^ Option labels
-  -> TypeField SingleChoiceSelection
-buttons align fs = SingleChoice (Buttons align) fs . options
-
-
-multiButtons
-  :: Alignment
-  -> FieldSettings FlexForm -- ^ FieldSettings for option input
-  -> [SomeMessage FlexForm] -- ^ Option labels
-  -> TypeField MultipleChoiceSelection
-multiButtons align fs = MultipleChoice (Buttons align) fs . options
+multipleChoiceEnum shape fs = MultipleChoice shape fs . optionsFromType
 
 
 horizontally
