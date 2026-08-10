@@ -116,7 +116,7 @@ spec = do
         runTest $ multipleChoiceFormEnum @TestEnum
 
 
-runTest :: Formify a => Gen (FormSpec a) -> Property
+runTest :: Formify a => Gen (CompleteForm a) -> Property
 runTest gen = forAll (Blind <$> gen) testWith
   where
     testWith (Blind fi) =
@@ -132,13 +132,13 @@ choiceForm
   => ( Alignment
     -> FieldSettings FlexForm
     -> [SomeMessage FlexForm]
-    -> FieldInfo a
+    -> TypeField a
     )
   -> ( FieldSettings FlexForm
     -> [SomeMessage FlexForm]
-    -> FieldInfo a
+    -> TypeField a
     )
-  -> Gen (FormSpec a)
+  -> Gen (CompleteForm a)
 choiceForm f g = do
   align <- arbitrary
   title <- arbitrary
@@ -146,11 +146,11 @@ choiceForm f g = do
   single . required <$> elements [f align title labels, g title labels]
 
 
-singleChoiceForm :: Gen (FormSpec SingleChoiceSelection)
+singleChoiceForm :: Gen (CompleteForm SingleChoiceSelection)
 singleChoiceForm = choiceForm buttons dropdown
 
 
-multipleChoiceForm :: Gen (FormSpec MultipleChoiceSelection)
+multipleChoiceForm :: Gen (CompleteForm MultipleChoiceSelection)
 multipleChoiceForm = choiceForm multiButtons multiDropdown
 
 
@@ -159,13 +159,14 @@ choiceFormEnum
   => ( Alignment
     -> FieldSettings FlexForm
     -> (a -> SomeMessage FlexForm)
-    -> FieldInfo b
+    -> TypeField b
     )
   -> ( FieldSettings FlexForm
     -> (a -> SomeMessage FlexForm)
-    -> FieldInfo b
+    -> TypeField b
     )
-  -> Gen (FormSpec b)
+
+  -> Gen (CompleteForm b)
 choiceFormEnum f g = do
   align <- arbitrary
   title <- arbitrary
@@ -179,15 +180,15 @@ choiceFormEnum f g = do
     toText mapping enum = fromMaybe (fromString "") $ lookup enum mapping
 
 
-singleChoiceFormEnum :: (Bounded a, Enum a, Eq a, FormTypes a ~ '[a]) => Gen (FormSpec a)
+singleChoiceFormEnum :: (Bounded a, Enum a, Eq a, FormTypes a ~ '[a]) => Gen (CompleteForm a)
 singleChoiceFormEnum = choiceFormEnum buttonsEnum dropdownEnum
 
 
-multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (FormSpec [a])
+multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (CompleteForm [a])
 multipleChoiceFormEnum = choiceFormEnum multiButtonsEnum multiDropdownEnum
 
 
-listForm :: BaseForm a => (FieldInfo a -> Requiredness b) -> Gen (FormSpec [b])
+listForm :: BaseForm a => (TypeField a -> Requiredness b) -> Gen (CompleteForm [b])
 listForm req = do
   align <- arbitrary
   amount <- chooseInt (1,100)
@@ -196,11 +197,11 @@ listForm req = do
   elements [list align (req . basic) labels,listWithoutLabels align amount (req . basic) attributes]
 
 
-requiredListForm :: BaseForm a => Gen (FormSpec [a])
+requiredListForm :: BaseForm a => Gen (CompleteForm [a])
 requiredListForm = listForm required
 
 
-optionalListForm :: BaseForm a => Gen (FormSpec [Maybe a])
+optionalListForm :: BaseForm a => Gen (CompleteForm [Maybe a])
 optionalListForm = listForm optional
 
 
@@ -212,9 +213,9 @@ instance Arbitrary (FieldSettings FlexForm) where
   arbitrary = fromString <$> arbitrary
 
 
-simpleForm :: (BaseForm a, FormTypes a ~ '[a]) => Gen (FormSpec a)
+simpleForm :: (BaseForm a, FormTypes a ~ '[a]) => Gen (CompleteForm a)
 simpleForm = single . required . basic <$> arbitrary
 
 
-optionalSimpleForm :: BaseForm a => Gen (FormSpec (Maybe a))
+optionalSimpleForm :: BaseForm a => Gen (CompleteForm (Maybe a))
 optionalSimpleForm = single . optional . basic <$> arbitrary

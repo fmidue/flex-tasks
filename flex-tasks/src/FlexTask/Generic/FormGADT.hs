@@ -4,21 +4,21 @@
 {-# language DataKinds #-}
 {-# language DefaultSignatures #-}
 {-# language DeriveGeneric #-}
+{-# language ImpredicativeTypes #-}
 {-# language TypeFamilies #-}
 {-# language GADTs #-}
 {-# language OverloadedStrings #-}
-{-# language StandaloneDeriving #-}
 {-# language TypeOperators #-}
 {-# language UndecidableInstances #-}
 
 module FlexTask.Generic.FormGADT (
-  singleFormDefaults,
-  FieldInfo,
+  TypeField,
   Requiredness,
-  FormLayout,
-  FormSpec,
+  FormPiece,
+  CompositeFormPiece,
+  SimpleFormPiece,
+  CompleteForm,
   Alignment(..),
-  ChoiceShape(..),
   formify,
   BaseForm(..),
   Formify(..),
@@ -52,16 +52,13 @@ module FlexTask.Generic.FormGADT (
   singleChoiceEmpty,
   multipleChoiceAnswer,
   multipleChoiceEmpty,
-
-
-) where
+  ) where
 
 
 import Yesod                            hiding (selectField, radioField)
 import FlexTask.YesodConfig
 import Data.Kind                        (Constraint, Type)
 import Data.List.Extra (
-  intercalate,
   nubOrd,
   nubSort,
   singleton,
@@ -91,20 +88,20 @@ import GHC.Generics (
 import GHC.TypeLits                     (ErrorMessage((:<>:), Text), TypeError)
 
 
-type FormSpec a = FormLayout a (FormTypes a)
+type CompleteForm a = FormLayout a (FormTypes a)
 
 data Alignment = Horizontal | Vertical
 
 data ChoiceShape = Buttons Alignment | Dropdown
 
-data FieldInfo a where
-  Basic :: BaseForm a => (FieldSettings FlexForm) -> FieldInfo a
-  SingleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> FieldInfo a
-  MultipleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> FieldInfo [a]
+data TypeField a where
+  Basic :: BaseForm a => (FieldSettings FlexForm) -> TypeField a
+  SingleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
+  MultipleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField [a]
 
 data Requiredness a where
-  Required :: FieldInfo a -> Requiredness a
-  Optional :: FieldInfo a -> Requiredness (Maybe a)
+  Required :: TypeField a -> Requiredness a
+  Optional :: TypeField a -> Requiredness (Maybe a)
 
 
 newtype SingleChoiceSelection = SingleChoiceSelection
@@ -136,17 +133,6 @@ multipleChoiceEmpty = []
 multipleChoiceAnswer :: [Int] -> MultipleChoiceSelection
 multipleChoiceAnswer = map singleChoiceAnswer . nubSort
 
-deriving instance Show (FieldSettings FlexForm)
-
-instance Show (SomeMessage FlexForm) where
-  show m = '(': intercalate ", "
-      [ "German: " <> inLang "de"
-      , "English: " <> inLang "en"
-      ]
-      ++ ")"
-    where
-      inLang l = show $ renderMessage FlexForm{} [l] m
-
 
 type family (xs :: [Type]) ++ (ys :: [Type]) :: [Type] where
   '[]       ++ ys = ys
@@ -157,14 +143,14 @@ data TypeList xs where
   TCons :: x -> TypeList xs -> TypeList (x ': xs)
 
 
-class Split xs ys where
+class SplitOff xs ys where
   splitTypeList :: TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
 
 
-instance Split '[] ys where
+instance SplitOff '[] ys where
   splitTypeList = (TEmpty,)
 
-instance Split xs ys => Split (x ': xs) ys where
+instance SplitOff xs ys => SplitOff (x ': xs) ys where
   splitTypeList (TCons x rest) = first (TCons x) $ splitTypeList rest
 
 
@@ -175,9 +161,15 @@ appendTypeList (TCons x xs) = TCons x . appendTypeList xs
 
 data FormLayout finalType fields where
   Single :: Requiredness a -> FormLayout t '[a]
-  Beside :: Split xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
-  Above :: Split xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+  Beside :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+  Above :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
   List :: Alignment -> [Requiredness a] -> FormLayout t '[[a]]
+
+
+type FormPiece fields = forall model. FormLayout model fields
+
+type SimpleFormPiece a = FormPiece '[a]
+type CompositeFormPiece a = FormPiece (FormTypes a)
 
 
 class BaseForm a where
@@ -234,7 +226,7 @@ class Formify a where
 
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
-      -> FormSpec a -- ^ Structure and type of form.
+      -> CompleteForm a -- ^ Structure and type of form.
       -> Rendered [[Widget]] -- ^ remaining form structure and completed sub-renders.
   formifyImplementation mDefault =
     renderLayout (formDefaults <$> mDefault)
@@ -364,7 +356,7 @@ renderRequiredness mDefault (Optional field) = renderField (\f fs -> aopt f fs m
 renderRequiredness mDefault (Required field) = renderField (\f fs -> areq f fs mDefault) field
 
 
-renderField :: (Field Handler a  -> FieldSettings FlexForm -> AForm Handler c) -> FieldInfo a -> Rendered Widget
+renderField :: (Field Handler a  -> FieldSettings FlexForm -> AForm Handler c) -> TypeField a -> Rendered Widget
 renderField req info = case info of
   Basic fs -> renderForm (req baseForm) fs
   SingleChoice k fs xs -> renderForm (req $ case k of
@@ -411,7 +403,7 @@ renderLayout mDefault (List align fs) =
           )
 
 
-splitMaybeDefaults :: Split xs ys => Maybe (TypeList (xs ++ ys)) -> (Maybe (TypeList xs), Maybe (TypeList ys))
+splitMaybeDefaults :: SplitOff xs ys => Maybe (TypeList (xs ++ ys)) -> (Maybe (TypeList xs), Maybe (TypeList ys))
 splitMaybeDefaults Nothing = (Nothing, Nothing)
 splitMaybeDefaults (Just xs) = (Just left, Just right)
   where (left, right) = splitTypeList xs
@@ -420,19 +412,19 @@ splitMaybeDefaults (Just xs) = (Just left, Just right)
 formify
   :: Formify a
   => Maybe a -- ^ Optional default value for form.
-  -> FormSpec a -- ^ Structure of form.
+  -> CompleteForm a -- ^ Structure of form.
   -> Rendered Widget -- ^ Rendered form.
 formify mDefault = applyToWidget joinWidgets . formifyImplementation mDefault
 
 
-basic :: BaseForm a => FieldSettings FlexForm -> FieldInfo a
+basic :: BaseForm a => FieldSettings FlexForm -> TypeField a
 basic = Basic
 
 
 dropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
-  -> FieldInfo SingleChoiceSelection
+  -> TypeField SingleChoiceSelection
 dropdown fs = SingleChoice Dropdown fs . options
 
 
@@ -440,14 +432,14 @@ dropdownEnum
   :: (Eq a, Bounded a, Enum a)
   => FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> FieldInfo a
+  -> TypeField a
 dropdownEnum fs = SingleChoice Dropdown fs . optionsFromType
 
 
 multiDropdown
   :: FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
-  -> FieldInfo MultipleChoiceSelection
+  -> TypeField MultipleChoiceSelection
 multiDropdown fs = MultipleChoice Dropdown fs . options
 
 
@@ -455,7 +447,7 @@ multiDropdownEnum
   :: (Eq a, Bounded a, Enum a)
   => FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> FieldInfo [a]
+  -> TypeField [a]
 multiDropdownEnum fs = MultipleChoice Dropdown fs . optionsFromType
 
 
@@ -464,7 +456,7 @@ buttonsEnum
   => Alignment
   -> FieldSettings FlexForm      -- ^ FieldSettings for option input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> FieldInfo a
+  -> TypeField a
 buttonsEnum align fs = SingleChoice (Buttons align) fs . optionsFromType
 
 
@@ -473,7 +465,7 @@ multiButtonsEnum
   => Alignment
   -> FieldSettings FlexForm      -- ^ FieldSettings for option input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> FieldInfo [a]
+  -> TypeField [a]
 multiButtonsEnum align fs = MultipleChoice (Buttons align) fs . optionsFromType
 
 
@@ -481,7 +473,7 @@ buttons
   :: Alignment
   -> FieldSettings FlexForm -- ^ FieldSettings for option input
   -> [SomeMessage FlexForm] -- ^ Option labels
-  -> FieldInfo SingleChoiceSelection
+  -> TypeField SingleChoiceSelection
 buttons align fs = SingleChoice (Buttons align) fs . options
 
 
@@ -489,7 +481,7 @@ multiButtons
   :: Alignment
   -> FieldSettings FlexForm -- ^ FieldSettings for option input
   -> [SomeMessage FlexForm] -- ^ Option labels
-  -> FieldInfo MultipleChoiceSelection
+  -> TypeField MultipleChoiceSelection
 multiButtons align fs = MultipleChoice (Buttons align) fs . options
 
 
@@ -524,13 +516,13 @@ f1 `vertically` f2 = do
       pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, xss ++ yss)
 
 
-required :: FieldInfo a -> Requiredness a
+required :: TypeField a -> Requiredness a
 required = Required
 
-optional :: FieldInfo a -> Requiredness (Maybe a)
+optional :: TypeField a -> Requiredness (Maybe a)
 optional = Optional
 
-single :: Requiredness a -> FormLayout t '[a]
+single :: Requiredness a -> SimpleFormPiece a
 single = Single
 
 
@@ -538,10 +530,10 @@ infixl 5 >|
 
 infixl 4 >-
 
-(>|) :: Split xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+(>|) :: SplitOff xs ys => FormPiece xs -> FormPiece ys -> FormPiece (xs ++ ys)
 (>|) = Beside
 
-(>-) :: Split xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+(>-) :: SplitOff xs ys => FormPiece xs -> FormPiece ys -> FormPiece (xs ++ ys)
 (>-) = Above
 
 
@@ -549,7 +541,7 @@ list
   :: Alignment
   -> (FieldSettings FlexForm -> Requiredness a)
   -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
-  -> FormLayout t '[[a]]
+  -> SimpleFormPiece [a]
 list = repeatBuilderOn
 
 
@@ -558,7 +550,7 @@ listWithoutLabels
   -> Int           -- ^ Amount of fields
   -> (FieldSettings FlexForm -> Requiredness a)
   -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
-  -> FormLayout t '[[a]]
+  -> SimpleFormPiece [a]
 listWithoutLabels align amount req attrs =
   list align req $ replicate amount "" {fsAttrs = attrs}
 
@@ -567,7 +559,7 @@ repeatBuilderOn
   :: Alignment
   -> (a -> Requiredness b) -- ^ FieldInfo builder to use
   -> [a]        -- ^ List of values to use builder on
-  -> FormLayout t '[[b]]
+  -> SimpleFormPiece [b]
 repeatBuilderOn align builder = List align . map builder
 
 
@@ -575,14 +567,14 @@ repeatFieldInfo
   :: Alignment
   -> Int       -- ^ How many copies
   -> Requiredness a -- ^ The field to multiply
-  -> FormLayout t '[[a]]
+  -> SimpleFormPiece [a]
 repeatFieldInfo alignment amount = repeatBuilderOn alignment id . replicate amount
 
 
-singleReq :: FieldInfo a -> FormLayout t  '[a]
+singleReq :: TypeField a -> SimpleFormPiece a
 singleReq = Single . Required
 
-singleOpt :: FieldInfo a -> FormLayout t '[Maybe a]
+singleOpt :: TypeField a -> SimpleFormPiece (Maybe a)
 singleOpt = Single . Optional
 
 
