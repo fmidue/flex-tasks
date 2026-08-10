@@ -4,10 +4,10 @@
 {-# language DataKinds #-}
 {-# language DefaultSignatures #-}
 {-# language DeriveGeneric #-}
-{-# language ImpredicativeTypes #-}
 {-# language TypeFamilies #-}
 {-# language GADTs #-}
 {-# language OverloadedStrings #-}
+{-# language RankNTypes #-}
 {-# language TypeOperators #-}
 {-# language UndecidableInstances #-}
 
