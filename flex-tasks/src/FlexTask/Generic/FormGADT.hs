@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wno-missing-fields #-}
 {-# language AllowAmbiguousTypes #-}
 {-# language DataKinds #-}
 {-# language DefaultSignatures #-}
@@ -52,8 +50,24 @@ module FlexTask.Generic.FormGADT (
   ) where
 
 
-import Yesod                            hiding (selectField, radioField)
-import FlexTask.YesodConfig
+import Yesod (
+  AForm,
+  Field,
+  FieldSettings(fsAttrs),
+  SomeMessage,
+  Textarea,
+  aopt,
+  areq,
+  boolField,
+  convertField,
+  doubleField,
+  intField,
+  multiSelectField,
+  optionsPairs,
+  textareaField,
+  textField,
+  )
+import FlexTask.YesodConfig             (FlexForm, Handler, Rendered, Widget)
 import Data.Kind                        (Constraint, Type)
 import Data.List.Extra (
   nubOrd,
@@ -65,11 +79,11 @@ import Data.Maybe                       (catMaybes)
 import Data.Text                        (Text, pack, unpack)
 import Data.Tuple.Extra                 (first)
 import FlexTask.Widgets (
-  renderForm,
-  selectField,
-  radioField,
   checkboxField,
   joinWidgets,
+  radioField,
+  renderForm,
+  selectField,
   )
 import FlexTask.FormUtil                (applyToWidget)
 import GHC.Generics (
@@ -77,12 +91,13 @@ import GHC.Generics (
   (:+:),
   (:*:)(..),
   C,
-  D,
+  D1,
   K1(unK1),
   M1(unM1),
   U1,
   )
-import GHC.TypeLits                     (ErrorMessage((:<>:), Text), TypeError)
+import GHC.TypeLits                     (ErrorMessage(..), TypeError)
+
 
 
 type CompleteForm a = FormLayout a (FormTypes a)
@@ -200,8 +215,7 @@ instance BaseForm Double where
 
 
 singleFormDefaults :: a -> TypeList '[a]
-singleFormDefaults x =
-  TCons x TEmpty
+singleFormDefaults x = TCons x TEmpty
 
 
 class Formify a where
@@ -218,15 +232,13 @@ class Formify a where
        )
     => a
     -> TypeList (FormTypes a)
-  formDefaults =
-    gFormDefaults @a . from
+  formDefaults = gFormDefaults @a . from
 
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
       -> CompleteForm a -- ^ Structure and type of form.
       -> Rendered [[Widget]] -- ^ remaining form structure and completed sub-renders.
-  formifyImplementation mDefault =
-    renderLayout (formDefaults <$> mDefault)
+  formifyImplementation mDefault = renderLayout (formDefaults <$> mDefault)
 
 
 type family NullarySum rep :: Constraint where
@@ -236,9 +248,9 @@ type family NullarySum rep :: Constraint where
 
   NullarySum (M1 C metadata fields) =
     TypeError
-      ( 'Text "Cannot derive Formify for this sum type." ':<>:
-        'Text "A sum type must contain only nullary constructors," ':<>:
-        'Text "but at least one constructor contains fields." ':<>:
+      ( 'Text "Cannot derive Formify for this sum type." ':$$:
+        'Text "A sum type must contain only nullary constructors," ':$$:
+        'Text "but at least one constructor contains fields." ':$$:
         'Text "Consider a manual Formify instance for this type."
       )
 
@@ -252,13 +264,6 @@ type family GFormTypes original rep :: [Type] where
     GFormTypes original left ++ GFormTypes original right
 
   GFormTypes original (left :+: right) = '[original]
-
-  GFormTypes original U1 =
-    TypeError
-      ( 'Text "Cannot derive Formify for a single constructor without fields."
-        ':<>:
-        'Text "This is either a constant value (if required) or a Boolean (if optional)."
-      )
 
 
 class GFormDefaults original rep where
@@ -286,12 +291,21 @@ instance
 
 instance {-# Overlapping #-}
   ( Generic original
-  , Rep original ~ M1 D metadata (left :+: right)
+  , Rep original ~ D1 metadata (left :+: right)
   , NullarySum (left :+: right)
   )
-  => GFormDefaults original (M1 D metadata (left :+: right))
+  => GFormDefaults original (D1 metadata (left :+: right))
   where
   gFormDefaults = singleFormDefaults . to
+
+
+instance
+    TypeError
+      ( 'Text "Cannot derive Formify for a single constructor without fields."
+        ':$$:
+        'Text "This is either a constant value (if required) or a Boolean (if optional)."
+      ) => GFormDefaults original U1 where
+  gFormDefaults = undefined
 
 
 instance Formify Integer where
