@@ -29,8 +29,6 @@ module FlexTask.Generic.FormGADT (
   required,
   optional,
   single,
-  singleReq,
-  singleOpt,
   list,
   listWithoutLabels,
   (>|),
@@ -551,14 +549,6 @@ repeatFieldInfo
   -> Requiredness a -- ^ The field to multiply
   -> SimpleFormPiece [a]
 repeatFieldInfo alignment amount = repeatBuilderOn alignment id . replicate amount
-
-
-singleReq :: TypeField a -> SimpleFormPiece a
-singleReq = Single . Required
-
-singleOpt :: TypeField a -> SimpleFormPiece (Maybe a)
-singleOpt = Single . Optional
-
 
 
 options :: [a] -> [(a, SingleChoiceSelection)]
