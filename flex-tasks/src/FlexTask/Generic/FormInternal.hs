@@ -812,12 +812,19 @@ The length of the list is equal to the amount of labels provided.
 ...
 </div>
 -}
+{-
+Create FieldInfo for a number of arbitrary fields.
+Takes the builder to repeatedly use for each field
+and a list of values to use it on.
+Their result will be handled as a list of values.
+Use to render lists of dropdown or button fields with different labels.
+-}
 list
   :: Alignment
-  -> (FieldSettings FlexForm -> Requiredness a)
-  -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
-  -> SimpleFormPiece t [a]
-list = repeatBuilderOn
+  -> (a -> Requiredness b)
+  -> [a]
+  -> SimpleFormPiece t [b]
+list align builder = List align . map builder
 
 
 {- |
@@ -839,31 +846,16 @@ listWithoutLabels align amount req attrs =
 
 
 {- |
-Create FieldInfo for a number of arbitrary fields.
-Takes the builder to repeatedly use for each field
-and a list of values to use it on.
-Their result will be handled as a list of values.
-Use to render lists of dropdown or button fields with different labels.
--}
-repeatBuilderOn
-  :: Alignment
-  -> (a -> Requiredness b) -- ^ FieldInfo builder to use
-  -> [a]        -- ^ List of values to use builder on
-  -> SimpleFormPiece t [b]
-repeatBuilderOn align builder = List align . map builder
-
-
-{- |
 Create FieldInfo for a list containing exact copies the specified field.
 The results of the copies will be handled as a list of values.
 Use to render lists of dropdown or button fields with identical labels.
 -}
-repeatFieldInfo
+listRepeatedly
   :: Alignment
   -> Int       -- ^ How many copies
   -> Requiredness a -- ^ The field to multiply
   -> SimpleFormPiece t [a]
-repeatFieldInfo alignment amount = repeatBuilderOn alignment id . replicate amount
+listRepeatedly alignment amount = list alignment id . replicate amount
 
 
 options :: [a] -> [(a, SingleChoiceSelection)]

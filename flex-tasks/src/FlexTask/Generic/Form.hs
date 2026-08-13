@@ -55,9 +55,8 @@ module FlexTask.Generic.Form (
   , (>-)
   , above
   , list
+  , listRepeatedly
   , listWithoutLabels
-  , repeatFieldInfo
-  , repeatBuilderOn
   ) where
 
 import FlexTask.Generic.FormInternal
