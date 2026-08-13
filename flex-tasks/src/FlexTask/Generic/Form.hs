@@ -8,26 +8,29 @@ Generic `Yesod` input form generation and related utility functions.
 
 module FlexTask.Generic.Form (
   -- * Data Types
-    Alignment(..)
-  , ChoiceShape(..)
-  , TypeField
+  -- ** Field Construction
+    TypeField
   , Requiredness
-  , CompleteForm
+  -- ** Layouting
+  , FormLayout
   , SimpleFormPiece
   , AnyFormPiece
-  , FormLayout
+  , CompleteForm
+  -- ** General Purpose
+  , Alignment(..)
+  , ChoiceShape(..)
   , SingleChoiceSelection
   , MultipleChoiceSelection
   , Hidden(..)
   , SingleInputList(..)
-    -- * Type Classes
+  -- * Type Classes
   , BaseForm(..)
   , Formify
   -- * Generating Forms
   , formify
   , formifyComponents
   , formifyComponentsFlat
-    -- * Anonymous Enum Type Builders and Accessors.
+  -- * Functions for SingleChoiceSelection/MultipleChoiceSelection
   , getAnswer
   , getAnswerAsIndex
   , getAnswers
@@ -36,24 +39,25 @@ module FlexTask.Generic.Form (
   , multipleChoiceEmpty
   , singleChoiceAnswer
   , singleChoiceEmpty
-
-    -- * Field Builders
+  -- * Builders
+  -- ** Field Construction
   , basic
-  , required
-  , optional
-  , (>|)
-  , beside
-  , (>-)
-  , above
   , singleChoice
   , singleChoiceEnum
   , multipleChoice
   , multipleChoiceEnum
+  , required
+  , optional
+  -- ** Layouting
+  , single
+  , (>|)
+  , beside
+  , (>-)
+  , above
   , list
   , listWithoutLabels
   , repeatFieldInfo
   , repeatBuilderOn
-  , single
   ) where
 
 import FlexTask.Generic.FormInternal
