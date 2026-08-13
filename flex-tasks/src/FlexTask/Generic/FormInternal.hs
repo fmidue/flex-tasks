@@ -410,12 +410,6 @@ class Formify a where
     -> TypeList (FormTypes a)
   formDefaults = gFormDefaults @a . from
 
-  formifyImplementation
-      :: Maybe a -- ^ Optional default value for form.
-      -> CompleteForm a -- ^ Structure and type of form.
-      -> Rendered [[Widget]] -- ^ remaining form structure and completed sub-renders.
-  formifyImplementation mDefault = renderLayout (formDefaults <$> mDefault)
-
 
 horizontally
   :: Rendered [[a]]
@@ -610,7 +604,7 @@ formify
   -- ^ Structure of the form.
   -> Rendered Widget
   -- ^ Rendered form.
-formify mDefault = applyToWidget joinWidgets . formifyImplementation mDefault
+formify mDefault = applyToWidget joinWidgets . formifyComponents mDefault
 
 
 {- |
@@ -618,8 +612,15 @@ like `formify`, but yields the individual sub-renders instead of a combined form
 Retains the layout structure given by the `FieldInfo` list argument.
 This can be used in custom forms to incorporate generated inputs.
 -}
-formifyComponents :: Formify a => Maybe a -> CompleteForm a -> Rendered [[Widget]]
-formifyComponents = formifyImplementation
+formifyComponents
+  :: Formify a
+  => Maybe a
+  -- ^ Optional default value for form
+  -> CompleteForm a
+  -- ^ Structure and type of form
+  -> Rendered [[Widget]]
+  -- ^ sub-renders
+formifyComponents mDefault = renderLayout (formDefaults <$> mDefault)
 
 
 {- |
@@ -627,7 +628,7 @@ like `formifyComponents`, but takes a simple list of `FieldInfo` values.
 The sub-renders will also be returned as a flat list without any additional structure.
 -}
 formifyComponentsFlat :: Formify a => Maybe a -> CompleteForm a -> Rendered [Widget]
-formifyComponentsFlat mDefault = applyToWidget concat . formifyImplementation mDefault
+formifyComponentsFlat mDefault = applyToWidget concat . formifyComponents mDefault
 
 
 renderRequiredness :: Maybe a -> Requiredness a -> Rendered Widget

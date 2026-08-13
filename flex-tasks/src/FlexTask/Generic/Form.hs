@@ -22,7 +22,8 @@ module FlexTask.Generic.Form (
   , SingleInputList(..)
     -- * Type Classes
   , BaseForm(..)
-  , Formify(..)
+  , Formify
+  -- * Generating Forms
   , formify
   , formifyComponents
   , formifyComponentsFlat
