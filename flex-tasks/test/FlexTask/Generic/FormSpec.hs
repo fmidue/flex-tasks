@@ -134,13 +134,12 @@ instance Arbitrary ChoiceShape where
 
 
 choiceForm
-  :: FormTypes a ~ '[a]
-  => ( ChoiceShape
+  :: ( ChoiceShape
     -> FieldSettings FlexForm
     -> [SomeMessage FlexForm]
     -> TypeField a
     )
-  -> Gen (CompleteForm a)
+  -> Gen (SimpleFormPiece a a)
 choiceForm f = do
   shape <- arbitrary
   title <- arbitrary
@@ -157,13 +156,13 @@ multipleChoiceForm = choiceForm multipleChoice
 
 
 choiceFormEnum
-  :: (Bounded a, Enum a, Eq a, FormTypes b ~ '[b])
+  :: (Bounded a, Enum a, Eq a)
   => ( ChoiceShape
     -> FieldSettings FlexForm
     -> (a -> SomeMessage FlexForm)
     -> TypeField b
     )
-  -> Gen (CompleteForm b)
+  -> Gen (SimpleFormPiece b b)
 choiceFormEnum f = do
   shape <- arbitrary
   title <- arbitrary
@@ -174,7 +173,7 @@ choiceFormEnum f = do
     toText mapping enum = fromMaybe (fromString "") $ lookup enum mapping
 
 
-singleChoiceFormEnum :: (Bounded a, Enum a, Eq a, FormTypes a ~ '[a]) => Gen (CompleteForm a)
+singleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (SimpleFormPiece a a)
 singleChoiceFormEnum = choiceFormEnum singleChoiceEnum
 
 
@@ -207,7 +206,7 @@ instance Arbitrary (FieldSettings FlexForm) where
   arbitrary = fromString <$> arbitrary
 
 
-simpleForm :: (BaseForm a, FormTypes a ~ '[a]) => Gen (CompleteForm a)
+simpleForm :: (BaseForm a) => Gen (SimpleFormPiece a a)
 simpleForm = single . required . basic <$> arbitrary
 
 
