@@ -475,13 +475,13 @@ instance Formify Double where
 
 
 instance Formify a => Formify (Hidden a) where
-  type FormTypes (Hidden a) = FormTypes a
-  formDefaults (Hidden a) = formDefaults a
+  type FormTypes (Hidden a) = '[Hidden a]
+  formDefaults = singleFormDefaults
 
 
 instance Formify (SingleInputList a) where
-  type FormTypes (SingleInputList a) = FormTypes [a]
-  formDefaults (SingleInputList a) = formDefaults a
+  type FormTypes (SingleInputList a) = '[SingleInputList a]
+  formDefaults = singleFormDefaults
 
 
 instance (Formify a, Formify b) => Formify (a,b)
