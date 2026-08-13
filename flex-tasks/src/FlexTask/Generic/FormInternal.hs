@@ -163,7 +163,7 @@ data FormLayout finalType fields where
   List :: Alignment -> [Requiredness a] -> FormLayout t '[[a]]
 
 
-type CompleteForm a = FormLayout a (FormTypes a)
+type CompleteForm a = AnyFormPiece a a
 type SimpleFormPiece t a = FormLayout t '[a]
 type AnyFormPiece t a = FormLayout t (FormTypes a)
 
