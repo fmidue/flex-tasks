@@ -1,17 +1,20 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wno-missing-fields #-}
+{-# language AllowAmbiguousTypes #-}
+{-# language DataKinds #-}
 {-# language DefaultSignatures #-}
 {-# language DeriveGeneric #-}
-{-# language LambdaCase #-}
+{-# language TypeFamilies #-}
+{-# language GADTs #-}
 {-# language OverloadedStrings #-}
-{-# language StandaloneDeriving #-}
+{-# language RankNTypes #-}
 {-# language TypeOperators #-}
+{-# language UndecidableInstances #-}
 
 module FlexTask.Generic.FormInternal (
   module FlexTask.Generic.FormInternal
   ) where
 
 
+import Data.Kind                        (Constraint, Type)
 import Data.List.Extra (
   intercalate,
   nubOrd,
@@ -20,8 +23,18 @@ import Data.List.Extra (
   zipWithLongest,
   )
 import Data.Maybe           (catMaybes)
-import GHC.Generics         (Generic(..), K1(..), M1(..), (:*:)(..))
-import GHC.Utils.Misc       (equalLength)
+import Data.Tuple.Extra     (first)
+import GHC.Generics (
+  Generic(..),
+  (:+:),
+  (:*:)(..),
+  C,
+  D1,
+  K1(unK1),
+  M1(unM1),
+  U1,
+  )
+import GHC.TypeLits                     (ErrorMessage(..), TypeError)
 import Data.Text            (Text, pack, unpack)
 import Yesod (
   AForm,
@@ -39,7 +52,6 @@ import Yesod (
   intField,
   multiSelectField,
   optionsPairs,
-  renderMessage,
   textareaField,
   textField,
   )
@@ -133,29 +145,34 @@ list12     list22
 list23
 @
 -}
-data FieldInfo
-  = Single (FieldSettings FlexForm)
-  | List Alignment [FieldInfo]
-  | ChoicesDropdown (FieldSettings FlexForm) [SomeMessage FlexForm]
-  | ChoicesButtons Alignment (FieldSettings FlexForm) [SomeMessage FlexForm]
-  deriving (Show)
+data TypeField a where
+  Basic :: BaseForm a => (FieldSettings FlexForm) -> TypeField a
+  SingleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
+  MultipleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField [a]
 
 
--- For tests; TODO: Move completely into test suite
-deriving instance Show (FieldSettings FlexForm)
+data Requiredness a where
+  Required :: TypeField a -> Requiredness a
+  Optional :: TypeField a -> Requiredness (Maybe a)
 
-instance Show (SomeMessage FlexForm) where
-  show m = '(': intercalate ", "
-      [ "German: " <> inLang "de"
-      , "English: " <> inLang "en"
-      ]
-      ++ ")"
-    where
-      inLang l = show $ renderMessage FlexForm{} [l] m
+
+data FormLayout finalType fields where
+  Single :: Requiredness a -> FormLayout t '[a]
+  Beside :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+  Above :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+  List :: Alignment -> [Requiredness a] -> FormLayout t '[[a]]
+
+
+type CompleteForm a = FormLayout a (FormTypes a)
+type SimpleFormPiece t a = FormLayout t '[a]
+type AnyFormPiece t a = FormLayout t (FormTypes a)
 
 
 -- | Inner alignment of input field elements.
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
+
+
+data ChoiceShape = Buttons Alignment | Dropdown
 
 
 {- |
@@ -273,10 +290,15 @@ Use if both of the following is true:
 ...
 </div>
 -}
-newtype MultipleChoiceSelection = MultipleChoiceSelection
-  { getAnswers :: [Int]
-  -- ^ Retrieve the list of selected options. The first selectable option is @1@ . @[]@ if none are selected.
-  } deriving (Show,Eq,Generic)
+type MultipleChoiceSelection = [SingleChoiceSelection]
+
+{- |
+Retrieve the list of selected options.
+The first selectable option is @1@.
+@[]@ if none are selected.
+-}
+getAnswers :: MultipleChoiceSelection -> [Int]
+getAnswers = map getAnswer
 
 {- |
 Same as `getAnswers` but the selections are counted from @0@ instead of from @1@.
@@ -299,14 +321,14 @@ singleChoiceAnswer = SingleChoiceSelection
 
 -- | Value with no options selected.
 multipleChoiceEmpty :: MultipleChoiceSelection
-multipleChoiceEmpty = MultipleChoiceSelection []
+multipleChoiceEmpty = []
 
 {- |
 Value with given list of options selected.
 The order of list elements is inconsequential.
 -}
 multipleChoiceAnswer :: [Int] -> MultipleChoiceSelection
-multipleChoiceAnswer = MultipleChoiceSelection . nubSort
+multipleChoiceAnswer = map singleChoiceAnswer . nubSort
 
 
 
@@ -373,43 +395,26 @@ __Exception: Types with multiple constructors.__
 Use utility functions for those or provide your own instance.
 -}
 class Formify a where
-  {- |
-  __Direct use of this function is not recommended__
-  __due to possible undetected invalidity of the result.__
-  It should only be used when writing manual instances of `Formify`.
-  Use `formify` or its variants instead.
-  -}
+
+  type FormTypes a :: [Type]
+  type FormTypes a = GFormTypes a (Rep a)
+
+  formDefaults :: a -> TypeList (FormTypes a)
+
+  default formDefaults
+    :: ( Generic a
+       , GFormDefaults a (Rep a)
+       , FormTypes a ~ GFormTypes a (Rep a)
+       )
+    => a
+    -> TypeList (FormTypes a)
+  formDefaults = gFormDefaults @a . from
+
   formifyImplementation
       :: Maybe a -- ^ Optional default value for form.
-      -> [[FieldInfo]] -- ^ Structure and type of form.
-      -> ([[FieldInfo]], Rendered [[Widget]]) -- ^ remaining form structure and completed sub-renders.
-
-  default formifyImplementation
-      :: (Generic a, GFormify (Rep a))
-      => Maybe a
-      -> [[FieldInfo]]
-      -> ([[FieldInfo]], Rendered [[Widget]])
-  formifyImplementation mDefault = gformify $ from <$> mDefault
-
-
-
-class GFormify f where
-  gformify :: Maybe (f a) -> [[FieldInfo]] -> ([[FieldInfo]], Rendered [[Widget]])
-
-
-
-instance (GFormify a, GFormify b) => GFormify (a :*: b) where
-  gformify mDefault xs = (rightRest, renders)
-    where
-      (left,right) = case mDefault of
-        Nothing        -> (Nothing,Nothing)
-        Just (a :*: b) -> (Just a, Just b)
-      (leftRest, leftRender) = gformify left xs
-      (rightRest, rightRender) = gformify right rightFieldInfo
-      (rightFieldInfo,renders) = case leftRest of
-        ([]:xss) -> (xss, leftRender `vertically` rightRender)
-        rest   -> (rest, leftRender `horizontally` rightRender)
-
+      -> CompleteForm a -- ^ Structure and type of form.
+      -> Rendered [[Widget]] -- ^ remaining form structure and completed sub-renders.
+  formifyImplementation mDefault = renderLayout (formDefaults <$> mDefault)
 
 
 horizontally
@@ -442,49 +447,47 @@ f1 `vertically` f2 = do
       pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, xss ++ yss)
 
 
-
-instance GFormify a => GFormify (M1 i c a) where
-  gformify mDefault = gformify $ unM1 <$> mDefault
-
-
-
-instance Formify a => GFormify (K1 i a) where
-  gformify mDefault = formifyImplementation $ unK1 <$> mDefault
-
-
 instance Formify Integer where
-  formifyImplementation = formifyInstanceBasicField
+  type FormTypes Integer = '[Integer]
+  formDefaults = singleFormDefaults
+
 
 instance Formify Int where
-  formifyImplementation = formifyInstanceBasicField
+  type FormTypes Int = '[Int]
+  formDefaults = singleFormDefaults
 
 instance Formify Text where
-  formifyImplementation = formifyInstanceBasicField
-
+  type FormTypes Text = '[Text]
+  formDefaults = singleFormDefaults
 
 instance Formify String where
-  formifyImplementation = formifyInstanceBasicField
+  type FormTypes String = '[String]
+  formDefaults = singleFormDefaults
 
 
 instance Formify Textarea where
-  formifyImplementation = formifyInstanceBasicField
+  type FormTypes Textarea = '[Textarea]
+  formDefaults = singleFormDefaults
 
 
 instance Formify Bool where
-  formifyImplementation = formifyInstanceBasicField
-
+  type FormTypes Bool = '[Bool]
+  formDefaults = singleFormDefaults
 
 
 instance Formify Double where
-  formifyImplementation = formifyInstanceBasicField
+  type FormTypes Double = '[Double]
+  formDefaults = singleFormDefaults
 
 
-instance PathPiece a => Formify (Hidden a) where
-  formifyImplementation = formifyInstanceBasicField
+instance Formify a => Formify (Hidden a) where
+  type FormTypes (Hidden a) = FormTypes a
+  formDefaults (Hidden a) = formDefaults a
 
 
 instance Show a => Formify (SingleInputList a) where
-  formifyImplementation = formifyInstanceBasicField
+  type FormTypes (SingleInputList a) = FormTypes [a]
+  formDefaults (SingleInputList a) = formDefaults a
 
 
 instance (Formify a, Formify b) => Formify (a,b)
@@ -498,30 +501,20 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b
 instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
 
 
-instance {-# Overlappable #-} Formify a => Formify [a] where
-  formifyImplementation = formifyInstanceList
-
-instance Formify [String] where
-  formifyImplementation = formifyInstanceList
+instance {-# Overlappable #-} Formify [a] where
+  type FormTypes [a] = '[[a]]
+  formDefaults = singleFormDefaults
 
 
-instance {-# Overlappable #-} (BaseForm a, Formify a) => Formify (Maybe a) where
-  formifyImplementation = formifyInstanceOptionalField
-
-
-instance Formify (Maybe a) => Formify [Maybe a] where
-  formifyImplementation = formifyInstanceList
+instance Formify (Maybe a) where
+  type FormTypes (Maybe a) = '[Maybe a]
+  formDefaults = singleFormDefaults
 
 
 instance Formify SingleChoiceSelection where
-  formifyImplementation = renderNextSingleChoiceField (`zip` [1..]) . fmap getAnswer
+  type FormTypes SingleChoiceSelection = '[SingleChoiceSelection]
+  formDefaults = singleFormDefaults
 
-
-instance Formify MultipleChoiceSelection where
-  formifyImplementation = renderNextMultipleChoiceField (`zip` [1..]) . fmap getAnswers
-
-instance Formify (Maybe SingleChoiceSelection) where
-  formifyImplementation = renderNextOptionalSingleChoiceField (`zip` [1..]) . fmap (fmap getAnswer)
 
 {- |
 This is the main way to build generic forms.
@@ -610,11 +603,14 @@ No option is selected when the form is loaded.
 </div>
 -}
 formify
-  :: (Formify a)
-  => Maybe a -- ^ Optional default value for form.
-  -> [[FieldInfo]] -- ^ Structure of form.
-  -> Rendered Widget -- ^ Rendered form.
-formify = checkAndApply joinWidgets
+  :: Formify a
+  => Maybe a
+  -- ^ Optional default value.
+  -> CompleteForm a
+  -- ^ Structure of the form.
+  -> Rendered Widget
+  -- ^ Rendered form.
+formify mDefault = applyToWidget joinWidgets . formifyImplementation mDefault
 
 
 {- |
@@ -622,113 +618,54 @@ like `formify`, but yields the individual sub-renders instead of a combined form
 Retains the layout structure given by the `FieldInfo` list argument.
 This can be used in custom forms to incorporate generated inputs.
 -}
-formifyComponents :: Formify a => Maybe a -> [[FieldInfo]] -> Rendered [[Widget]]
-formifyComponents = checkAndApply id
+formifyComponents :: Formify a => Maybe a -> CompleteForm a -> Rendered [[Widget]]
+formifyComponents = formifyImplementation
 
 
 {- |
 like `formifyComponents`, but takes a simple list of `FieldInfo` values.
 The sub-renders will also be returned as a flat list without any additional structure.
 -}
-formifyComponentsFlat :: Formify a => Maybe a -> [FieldInfo] -> Rendered [Widget]
-formifyComponentsFlat ma = checkAndApply concat ma . (:[])
+formifyComponentsFlat :: Formify a => Maybe a -> CompleteForm a -> Rendered [Widget]
+formifyComponentsFlat mDefault = applyToWidget concat . formifyImplementation mDefault
 
 
-checkAndApply
-  :: Formify a
-  => ([[Widget]] -> b)
-  -> Maybe a
-  -> [[FieldInfo]]
-  -> Rendered b
-checkAndApply toOutput ma xs = case rest of
-    ([]:ns)
-      | null ns   -> applyToWidget toOutput renders
-    _ -> error $
-      "The form generation did not use up all supplied FieldSettings values. " ++
-      "Confirm your field type make sense with the amount of given FieldInfo values."
+renderRequiredness :: Maybe a -> Requiredness a -> Rendered Widget
+renderRequiredness mDefault (Optional field) = renderField (\f fs -> aopt f fs mDefault) field
+renderRequiredness mDefault (Required field) = renderField (\f fs -> areq f fs mDefault) field
+
+
+renderField :: (Field Handler a  -> FieldSettings FlexForm -> AForm Handler c) -> TypeField a -> Rendered Widget
+renderField req info = case info of
+  Basic fs -> renderForm (req baseForm) fs
+  SingleChoice k fs xs -> renderForm (req $ case k of
+    Dropdown -> selectField $ optionsPairs xs
+    Buttons Vertical -> radioField True $ optionsPairs xs
+    Buttons Horizontal -> radioField False $ optionsPairs xs) fs
+  MultipleChoice k fs xs -> renderForm (req $ case k of
+    Dropdown -> multiSelectField $ optionsPairs xs
+    Buttons Vertical -> checkboxField True $ optionsPairs xs
+    Buttons Horizontal -> checkboxField False $ optionsPairs xs) fs
+
+
+renderLayout :: Maybe (TypeList a) -> FormLayout t a -> Rendered [[Widget]]
+renderLayout mDefault (Single x) = applyToWidget (singleton . singleton) $
+  flip renderRequiredness x $ fmap (\(TCons t TEmpty) -> t) mDefault
+renderLayout mDefault (Beside x y) = renderLayout a x `horizontally` renderLayout b y
+  where (a,b) = splitMaybeDefaults mDefault
+renderLayout mDefault (Above x y) = renderLayout a x `vertically` renderLayout b y
+  where (a,b) = splitMaybeDefaults mDefault
+renderLayout mDefault (List align fs) =
+    foldr1 addParams [renderLayout d (Single f) | (d,f) <- zip defaults fs]
   where
-    (rest, renders) = formifyImplementation ma xs
-
-
-renderNextField
-  :: ( FieldInfo ->
-        ( FieldSettings FlexForm
-        , FieldSettings FlexForm -> Maybe a -> AForm Handler a
-        )
-      )
-  -> Maybe a
-  -> [[FieldInfo]]
-  -> ([[FieldInfo]], Rendered [[Widget]])
-renderNextField _ _ [] = error "Ran out of FieldInfo values before finishing the form!"
-renderNextField h ma ((x : xs) : xss) =
-  let
-    (lab, g) = h x
-  in
-    (xs:xss, applyToWidget (singleton . singleton) $ renderForm (`g` ma) lab)
-renderNextField _ _ _ = error "Incorrect FieldInfo for a field or single/multi choice!"
-
-{- |
-Premade `formifyImplementation` for types with `BaseForm` instances.
-Use within manual instances of `Formify`.
-
-=== __Example__
-
->>> instance BaseForm MyCoolType where baseForm = convertField toCool fromCool basisField
->>> instance Formify MyCoolType where formifyImplementation = formifyInstanceBasicField
--}
-formifyInstanceBasicField
-    :: BaseForm a
-    => Maybe a
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-formifyInstanceBasicField = renderNextField
-  (\case
-      Single fs -> (fs, areq baseForm)
-      _ -> error "Incorrect FieldInfo for a basic field. Use 'single'!"
-  )
-
-{- |
-Same as `formifyInstanceBasicField`, but for optional fields with `Maybe` wrapping.
-
-=== __Example__
-
->>> instance BaseForm MyCoolType where baseForm = convertField toCool fromCool basisField
->>> instance Formify (Maybe MyCoolType) where formifyImplementation = formifyInstanceOptionalField
--}
-formifyInstanceOptionalField
-    :: BaseForm a
-    => Maybe (Maybe a)
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-formifyInstanceOptionalField = renderNextField
-  (\case
-      Single fs -> (fs, aopt baseForm)
-      _ -> error "Incorrect FieldInfo for an optional basic field. Use 'single'!"
-  )
-
-
-formifyInstanceList
-    :: (Formify a)
-    => Maybe [a]
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-formifyInstanceList _ [] = error "Ran out of FieldInfo values before finishing the form!"
-formifyInstanceList _ ((List _ [] : _) : _) = error "List used without supplying any FieldInfo values!"
-formifyInstanceList mas ((List align fs : xs) : xss) =
-    ( xs:xss
-    , foldr1 addParams
-        [snd $ formifyImplementation d [[f]] | (d,f) <- zip defaults fs]
-    )
-  where
-    defaults = case mas of
+    defaults = case mDefault of
       Nothing -> repeat Nothing
-      Just ds
+      Just (TCons ds TEmpty)
         | length ds /= length fs
-          -> error $
-              "The default value contains too many/few individual values. " ++
-              "It does not match the amount of FieldInfo supplied."
+          -> error
+              "Lengths of form default value and FieldInfo list do not match!"
         | otherwise
-          -> sequence mas
+          -> map (Just . (`TCons` TEmpty)) ds
 
     addParams f1 f2 = do
       res1 <- f1
@@ -741,297 +678,12 @@ formifyInstanceList mas ((List align fs : xs) : xss) =
           , [nubOrd $ concat $ names1 ++ names2]
           , case align of
               Vertical   -> wid1 ++ wid2
-              Horizontal -> [concat (wid1 ++ wid2)]
+              Horizontal -> [concat $ wid1 ++ wid2]
           )
 
-formifyInstanceList _ _ = error "Incorrect FieldInfo for a list of fields! Use one of the list builders."
 
-
-
-{- |
-Premade `formifyImplementation` for "single choice" forms of enum types.
-Use within manual instances of `Formify`.
-
-Intended for use with types such as
-
-@
-data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
-@
-
-that cannot use a bodyless `Formify` instance.
-
-=== __Examples__
-
->>> instance Formify MyType where formifyImplementation = formifyInstanceSingleChoice
->>> printWidget "en" $ formify (Just Two) [[buttonsEnum Horizontal "Choose one" (showToUniversalLabel @MyType)]]
-...
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Choose one
-    </label>
-    <div>
-      <span id="flexident1">
-        <label>
-          <input id="flexident1-1" type="radio" ... value="1" required...>
-          One
-        </label>
-        <label>
-          <input id="flexident1-2" type="radio" ... value="2" checked required...>
-          Two
-        </label>
-        <label>
-          <input id="flexident1-3" type="radio" ... value="3" required...>
-          Three
-        </label>
-      </span>
-    </div>
-...
-</div>
-
->>> printWidget "en" $ formify (Just Two) [[dropdownEnum "Choose one" (showToUniversalLabel @MyType)]]
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Choose one
-    </label>
-    <select id="flexident1" ...>
-      <option value="" selected disabled>
-        &lt;None&gt;
-      </option>
-      <option value="1">
-        One
-      </option>
-      <option value="2" selected>
-        Two
-      </option>
-      <option value="3">
-        Three
-      </option>
-    </select>
-...
-</div>
--}
-formifyInstanceSingleChoice
-    :: (Bounded a, Enum a, Eq a)
-    => Maybe a
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-formifyInstanceSingleChoice = renderNextSingleChoiceField zipWithEnum
-
-
-{- |
-Same as `formifyInstanceSingleChoice`, but makes the choice optional.
-The resulting form will include a \<None\> option to make no selection.
-This option will be initially selected if no default is given.
-
-=== __Example__
-
->>> instance Formify (Maybe MyType) where formifyImplementation = formifyInstanceOptionalSingleChoice
->>> printWidget "en" $ formify (Just $ Just Two) [[buttonsEnum Horizontal "Choose one or abstain" (showToUniversalLabel @MyType)]]
-...
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Choose one or abstain
-    </label>
-    <div>
-      <span id="flexident1">
-        <label>
-          <input id="flexident1-none" type="radio" ... value="None">
-          &lt;None&gt;
-        </label>
-        <label>
-          <input id="flexident1-1" type="radio" ... value="1">
-          One
-        </label>
-        <label>
-          <input id="flexident1-2" type="radio" ... value="2" checked>
-          Two
-        </label>
-        <label>
-          <input id="flexident1-3" type="radio" ... value="3">
-          Three
-        </label>
-      </span>
-    </div>
-...
-</div>
-
->>> printWidget "en" $ formify (Nothing @(Maybe MyType)) [[dropdownEnum "Choose one or abstain" (showToUniversalLabel @MyType)]]
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Choose one or abstain
-    </label>
-    <select id="flexident1" ...>
-      <option value="None" selected>
-        &lt;None&gt;
-      </option>
-      <option value="1">
-        One
-      </option>
-      <option value="2">
-        Two
-      </option>
-      <option value="3">
-        Three
-      </option>
-    </select>
-...
-</div>
--}
-formifyInstanceOptionalSingleChoice
-    :: (Bounded a, Enum a, Eq a)
-    => Maybe (Maybe a)
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-formifyInstanceOptionalSingleChoice = renderNextOptionalSingleChoiceField zipWithEnum
-
-renderNextSingleChoiceField
-    :: Eq a
-    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
-    -> Maybe a
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-renderNextSingleChoiceField pairsWith =
-  renderNextField
-  (\case
-      ChoicesDropdown fs opts ->
-        ( fs
-        , areq $ selectField $ withOptions opts
-        )
-      ChoicesButtons align fs opts ->
-        ( fs
-        , areq $ case align of
-            Vertical -> radioField True
-            Horizontal -> radioField False
-          $ withOptions opts
-        )
-      _ -> error "Incorrect FieldInfo for a single choice field! Use one of the 'buttons' or 'dropdown' functions."
-  )
-  where withOptions = optionsPairs . pairsWith
-
-renderNextOptionalSingleChoiceField
-    :: Eq a
-    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
-    -> Maybe (Maybe a)
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-renderNextOptionalSingleChoiceField pairsWith =
-  renderNextField
-  (\case
-      ChoicesDropdown fs opts ->
-        ( fs
-        , aopt $ selectField $ withOptions opts
-        )
-      ChoicesButtons align fs opts ->
-        ( fs
-        , aopt $ case align of
-            Vertical -> radioField True
-            Horizontal -> radioField False
-          $ withOptions opts
-        )
-      _ -> error "Incorrect FieldInfo for an optional single choice field! Use one of the 'buttons' or 'dropdown' functions."
-  )
-  where withOptions = optionsPairs . pairsWith
-
-renderNextMultipleChoiceField
-    :: Eq a
-    => ([SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)])
-    -> Maybe [a]
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-renderNextMultipleChoiceField pairsWith =
-  renderNextField
-  (\case
-      ChoicesDropdown fs opts ->
-        ( fs
-        , areq $ multiSelectField $ withOptions opts
-        )
-      ChoicesButtons align fs opts ->
-        ( fs
-        , areq $ case align of
-            Vertical   -> checkboxField True
-            Horizontal -> checkboxField False
-          $ withOptions opts
-        )
-      _ -> error "Incorrect FieldInfo for a multiple choice field! Use one of the 'buttons' or 'dropdown' functions."
-  )
-  where withOptions = optionsPairs . pairsWith
-
-
-
-{- |
-Same as `formifyInstanceSingleChoice`, but for multiple choice.
-This means the rendered input form will accept any number of inputs, resulting in a list of values.
-Possible builders to use with instances are `buttonsEnum` (checkboxes) and `dropdownEnum` (select list).
-
-=== __Examples__
-
->>> instance Formify [MyType] where formifyImplementation = formifyInstanceMultiChoice
->>> printWidget "en" $ formify (Just [Two,Three]) [[buttonsEnum Horizontal "Choose" (showToUniversalLabel @MyType)]]
-...
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Choose
-    </label>
-...
-...
-      <label>
-        <input type="checkbox" ... value="1">
-        One
-      </label>
-      <label>
-        <input type="checkbox" ... value="2" checked>
-        Two
-      </label>
-      <label>
-        <input type="checkbox" ... value="3" checked>
-        Three
-      </label>
-...
-</div>
-
->>> printWidget "en" $ formify (Just [Two,Three]) [[dropdownEnum "Choose some" (showToUniversalLabel @MyType)]]
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Choose some
-    </label>
-    <select id="flexident1" ... multiple>
-      <option value="1">
-        One
-      </option>
-      <option value="2" selected>
-        Two
-      </option>
-      <option value="3" selected>
-        Three
-      </option>
-    </select>
-...
-</div>
--}
-formifyInstanceMultiChoice
-    :: (Bounded a, Enum a, Eq a)
-    => Maybe [a]
-    -> [[FieldInfo]]
-    -> ([[FieldInfo]], Rendered [[Widget]])
-formifyInstanceMultiChoice = renderNextMultipleChoiceField zipWithEnum
-
-
-
-zipWithEnum :: forall a. (Bounded a, Enum a) => [SomeMessage FlexForm] -> [(SomeMessage FlexForm, a)]
-zipWithEnum labels
-  | equalLength labels options = zip labels options
-  | otherwise = error "Labels list and options list are of different lengths in an Enum choice form."
-  where options = [minBound .. maxBound :: a]
-
-
-
-
+basic :: BaseForm a => FieldSettings FlexForm -> TypeField a
+basic = Basic
 
 
 {- |
@@ -1041,13 +693,13 @@ for all constructors according to the given showing scheme.
 
 See `formifyInstanceSingleChoice`, `formifyInstanceMultiChoice` for example use.
 -}
-buttonsEnum
-  :: (Bounded a, Enum a)
-  => Alignment
-  -> FieldSettings FlexForm      -- ^ FieldSettings for option input
+singleChoiceEnum
+  :: (Eq a, Bounded a, Enum a)
+  => ChoiceShape
+  -> FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> FieldInfo
-buttonsEnum align t f = ChoicesButtons align t $ map f [minBound .. maxBound]
+  -> TypeField a
+singleChoiceEnum shape fs = SingleChoice shape fs . optionsFromType
 
 
 
@@ -1061,29 +713,20 @@ __Use `buttonsEnum` instead.__
 
 See `SingleChoiceSelection`, `MultipleChoiceSelection` for example use.
 -}
-buttons
-  :: Alignment
-  -> FieldSettings FlexForm -- ^ FieldSettings for option input
-  -> [SomeMessage FlexForm] -- ^ Option labels
-  -> FieldInfo
-buttons = ChoicesButtons
+singleChoice
+  :: ChoiceShape
+  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
+  -> [SomeMessage FlexForm]  -- ^ Option labels
+  -> TypeField SingleChoiceSelection
+singleChoice shape fs = SingleChoice shape fs . options
 
 
-
-{- |
-Same as `dropdown`, but using an explicit enum type.
-Use this with custom enum types to automatically create labels
-for all constructors according to the given showing scheme.
-
-See `formifyInstanceSingleChoice`, `formifyInstanceMultiChoice` for example use.
--}
-dropdownEnum
-  :: (Bounded a, Enum a)
-  => FieldSettings FlexForm      -- ^ FieldSettings for select input
-  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
-  -> FieldInfo
-dropdownEnum t f = ChoicesDropdown t $ map f [minBound .. maxBound]
-
+multipleChoice
+  :: ChoiceShape
+  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
+  -> [SomeMessage FlexForm]  -- ^ Option labels
+  -> TypeField MultipleChoiceSelection
+multipleChoice shape fs = MultipleChoice shape fs . options
 
 
 {- |
@@ -1096,12 +739,47 @@ __Use `dropdownEnum` instead.__
 
 See `SingleChoiceSelection`, `MultipleChoiceSelection` for example use.
 -}
-dropdown
-  :: FieldSettings FlexForm  -- ^ FieldSettings for select input
-  -> [SomeMessage FlexForm]  -- ^ Option labels
-  -> FieldInfo
-dropdown = ChoicesDropdown
+multipleChoiceEnum
+  :: (Eq a, Bounded a, Enum a)
+  => ChoiceShape
+  -> FieldSettings FlexForm
+  -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm)
+  -- ^ Function from enum type values to labels.
+  -> TypeField [a]
+multipleChoiceEnum shape fs = MultipleChoice shape fs . optionsFromType
 
+
+required :: TypeField a -> Requiredness a
+required = Required
+
+optional :: TypeField a -> Requiredness (Maybe a)
+optional = Optional
+
+{- |
+Create FieldInfo for a standalone field.
+See `formify` for example use.
+-}
+single :: Requiredness a -> SimpleFormPiece t a
+single = Single
+
+
+infixl 5 >|
+(>|) :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+(>|) = Beside
+
+
+beside :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+beside = (>|)
+
+
+infixl 4 >-
+(>-) :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+(>-) = Above
+
+
+above :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+above = (>-)
 
 
 {- |
@@ -1135,9 +813,10 @@ The length of the list is equal to the amount of labels provided.
 -}
 list
   :: Alignment
+  -> (FieldSettings FlexForm -> Requiredness a)
   -> [FieldSettings FlexForm] -- ^ FieldSettings of individual fields
-  -> FieldInfo
-list align = repeatBuilderOn align single
+  -> SimpleFormPiece t [a]
+list = repeatBuilderOn
 
 
 {- |
@@ -1151,9 +830,11 @@ See `formify` for example use.
 listWithoutLabels
   :: Alignment
   -> Int           -- ^ Amount of fields
+  -> (FieldSettings FlexForm -> Requiredness a)
   -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
-  -> FieldInfo
-listWithoutLabels align amount attrs = List align $ replicate amount $ single "" {fsAttrs = attrs}
+  -> SimpleFormPiece t [a]
+listWithoutLabels align amount req attrs =
+  list align req $ replicate amount "" {fsAttrs = attrs}
 
 
 {- |
@@ -1165,9 +846,9 @@ Use to render lists of dropdown or button fields with different labels.
 -}
 repeatBuilderOn
   :: Alignment
-  -> (a -> FieldInfo) -- ^ FieldInfo builder to use
-  -> [a]              -- ^ List of values to use builder on
-  -> FieldInfo
+  -> (a -> Requiredness b) -- ^ FieldInfo builder to use
+  -> [a]        -- ^ List of values to use builder on
+  -> SimpleFormPiece t [b]
 repeatBuilderOn align builder = List align . map builder
 
 
@@ -1179,15 +860,120 @@ Use to render lists of dropdown or button fields with identical labels.
 repeatFieldInfo
   :: Alignment
   -> Int       -- ^ How many copies
-  -> FieldInfo -- ^ The field to multiply
-  -> FieldInfo
-repeatFieldInfo alignment amount = List alignment . replicate amount
+  -> Requiredness a -- ^ The field to multiply
+  -> SimpleFormPiece t [a]
+repeatFieldInfo alignment amount = repeatBuilderOn alignment id . replicate amount
 
 
+options :: [a] -> [(a, SingleChoiceSelection)]
+options opts = zip opts $ map SingleChoiceSelection [1..]
 
-{- |
-Create FieldInfo for a standalone field.
-See `formify` for example use.
--}
-single :: FieldSettings FlexForm -> FieldInfo
-single = Single
+
+optionsFromType :: (Bounded b, Enum b) => (b -> a) -> [(a, b)]
+optionsFromType f = map (\x -> (f x, x)) [minBound .. maxBound]
+
+
+-- Type Machinery --
+
+
+data TypeList xs where
+  TEmpty :: TypeList '[]
+  TCons :: x -> TypeList xs -> TypeList (x ': xs)
+
+
+singleFormDefaults :: a -> TypeList '[a]
+singleFormDefaults x = TCons x TEmpty
+
+
+appendTypeList :: TypeList xs -> TypeList ys -> TypeList (xs ++ ys)
+appendTypeList TEmpty = id
+appendTypeList (TCons x xs) = TCons x . appendTypeList xs
+
+
+type family (xs :: [Type]) ++ (ys :: [Type]) :: [Type] where
+  '[]       ++ ys = ys
+  (x ': xs) ++ ys = x ': (xs ++ ys)
+
+
+class SplitOff xs ys where
+  splitTypeList :: TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
+
+
+instance SplitOff '[] ys where
+  splitTypeList = (TEmpty,)
+
+instance SplitOff xs ys => SplitOff (x ': xs) ys where
+  splitTypeList (TCons x rest) = first (TCons x) $ splitTypeList rest
+
+
+splitMaybeDefaults :: SplitOff xs ys => Maybe (TypeList (xs ++ ys)) -> (Maybe (TypeList xs), Maybe (TypeList ys))
+splitMaybeDefaults Nothing = (Nothing, Nothing)
+splitMaybeDefaults (Just xs) = (Just left, Just right)
+  where (left, right) = splitTypeList xs
+
+
+type family GFormTypes original rep :: [Type] where
+  GFormTypes original (M1 i metadata fields) = GFormTypes original fields
+
+  GFormTypes original (K1 i field) = FormTypes field
+
+  GFormTypes original (left :*: right) =
+    GFormTypes original left ++ GFormTypes original right
+
+  GFormTypes original (left :+: right) = '[original]
+
+
+class GFormDefaults original rep where
+  gFormDefaults :: rep p -> TypeList (GFormTypes original rep)
+
+
+instance GFormDefaults original fields => GFormDefaults original (M1 i metadata fields) where
+  gFormDefaults = gFormDefaults @original . unM1
+
+
+instance Formify field => GFormDefaults original (K1 i field) where
+  gFormDefaults = formDefaults . unK1
+
+
+instance
+  ( GFormDefaults original left
+  , GFormDefaults original right
+  )
+  => GFormDefaults original (left :*: right) where
+
+  gFormDefaults (left :*: right) = appendTypeList
+    (gFormDefaults @original left)
+    (gFormDefaults @original right)
+
+
+instance {-# Overlapping #-}
+  ( Generic original
+  , Rep original ~ D1 metadata (left :+: right)
+  , NullarySum (left :+: right)
+  )
+  => GFormDefaults original (D1 metadata (left :+: right))
+  where
+  gFormDefaults = singleFormDefaults . to
+
+
+instance
+    TypeError
+      ( 'Text "Cannot derive Formify for a single constructor without fields."
+        ':$$:
+        'Text "This is either a constant value (if required) or a Boolean (if optional)."
+      ) => GFormDefaults original U1 where
+  gFormDefaults = undefined
+
+
+type family NullarySum rep :: Constraint where
+  NullarySum (left :+: right) = (NullarySum left, NullarySum right)
+
+  NullarySum (M1 C metadata U1) = ()
+
+  NullarySum (M1 C metadata fields) =
+    TypeError
+      ( 'Text "Cannot derive Formify for this sum type." ':$$:
+        'Text "A sum type must contain only nullary constructors," ':$$:
+        'Text "but at least one constructor contains fields." ':$$:
+        'Text "Consider a manual Formify instance for this type."
+      )

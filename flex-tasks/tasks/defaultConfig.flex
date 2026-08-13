@@ -185,14 +185,14 @@ getTask = do
     intInRange =  getRandomR (1,6)
 
 
-fieldNames :: [[FieldInfo]]
-fieldNames = [[fromLabel Product], [fromLabel Sum]]
+fieldNames :: CompleteForm Submission
+fieldNames = fromLabel Product >- fromLabel Sum
   where
-    fromLabel = single. fieldSettingsLabel
+    fromLabel = single . required . basic . fieldSettingsLabel
 
 
 form :: Rendered Widget
-form = formify (Nothing :: Maybe Submission) fieldNames
+form = formify Nothing fieldNames
 
 
 

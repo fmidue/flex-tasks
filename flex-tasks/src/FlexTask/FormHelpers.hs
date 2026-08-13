@@ -16,10 +16,14 @@ import Yesod                            (FieldSettings, SomeMessage)
 import FlexTask.FormUtil                (showToUniversalLabel, universalLabel)
 import FlexTask.Generic.Form (
   Alignment,
+  ChoiceShape(..),
   MultipleChoiceSelection,
   SingleChoiceSelection,
-  buttons,
   formify,
+  multipleChoice,
+  required,
+  single,
+  singleChoice,
   )
 import FlexTask.YesodConfig             (FlexForm, Rendered, Widget)
 
@@ -39,11 +43,10 @@ labeledCheckboxes
   -> Rendered Widget
 labeledCheckboxes alignment fSettings labels = formify
   (Nothing @MultipleChoiceSelection)
-  [[buttons
-      alignment
+  $ single $ required $ multipleChoice
+      (Buttons alignment)
       fSettings
       $ zipWith (\a b -> universalLabel $ show a ++ ". " ++ b) [1 :: Integer ..] labels
-  ]]
 
 
 {- |
@@ -60,11 +63,10 @@ anonymousRadioButtons
   -- ^ the amount of options to provide
   -> Rendered Widget
 anonymousRadioButtons alignment fSettings amount = formify (Nothing @SingleChoiceSelection)
-  [[buttons
-    alignment
+  $ single $ required $ singleChoice
+    (Buttons alignment)
     fSettings
     $ map showToUniversalLabel [1.. toInteger amount]
-  ]]
 
 
 {- |
@@ -81,4 +83,4 @@ labeledRadioButtons
   -> Rendered Widget
 labeledRadioButtons alignment fSettings labels = formify
   (Nothing :: Maybe SingleChoiceSelection)
-  [[buttons alignment fSettings labels]]
+  $ single $ required $ singleChoice (Buttons alignment) fSettings labels
