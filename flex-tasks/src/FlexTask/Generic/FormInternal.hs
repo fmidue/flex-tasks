@@ -201,7 +201,7 @@ Normally, lists are interpreted as multiple fields instead.
 
 === __Example__
 
->>> printWidget "en" $ formify (Nothing @(SingleInputList String)) $ single $ required $ basic "Input comma separated sentences"
+>>> printWidget "en" $ formify @(SingleInputList String) Nothing $ single $ required $ basic "Input comma separated sentences"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -522,7 +522,7 @@ indicating the form is faulty.
 
 Renders an input field with /type=number/ attribute, no default value and label /Age/.
 
->>> printWidget "en" $ formify (Nothing @Int) $ single $ required $ basic "Age"
+>>> printWidget "en" $ formify @Int Nothing $ single $ required $ basic "Age"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -792,7 +792,7 @@ The length of the list is equal to the amount of labels provided.
 === __Example__
 
 >>> let labels = ["Input 1", "Input 2", "Input 3"]
->>> printWidget "en" $ formify (Nothing @[Double]) $ list Horizontal (required . basic) labels
+>>> printWidget "en" $ formify @[Double] Nothing $ list Horizontal (required . basic) labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
