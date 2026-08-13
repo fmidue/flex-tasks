@@ -485,7 +485,7 @@ instance Formify a => Formify (Hidden a) where
   formDefaults (Hidden a) = formDefaults a
 
 
-instance Show a => Formify (SingleInputList a) where
+instance Formify (SingleInputList a) where
   type FormTypes (SingleInputList a) = FormTypes [a]
   formDefaults (SingleInputList a) = formDefaults a
 
