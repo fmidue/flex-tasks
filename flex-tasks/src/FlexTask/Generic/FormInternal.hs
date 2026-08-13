@@ -183,7 +183,7 @@ If the label is not left blank, then it will be displayed as normal.
 
 === __Example__
 
->>> printWidget "en" $ formify (Just $ Hidden 3) [[single ""]]
+>>> printWidget "en" $ formify (Just $ Hidden 3) $ single $ required $ basic ""
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -201,7 +201,7 @@ Normally, lists are interpreted as multiple fields instead.
 
 === __Example__
 
->>> printWidget "en" $ formify (Nothing @(SingleInputList String)) [[single "Input comma separated sentences"]]
+>>> printWidget "en" $ formify (Nothing @(SingleInputList String)) $ single $ required $ basic "Input comma separated sentences"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -226,7 +226,7 @@ Use if both of the following is true:
 === __Example__
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
->>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) [[dropdown "Choose one" labels]]
+>>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) $ single $ required $ singleChoice Dropdown "Choose one" labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -270,7 +270,7 @@ Use if both of the following is true:
 === __Example__
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
->>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) [[dropdown "Choose one" labels]]
+>>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) $ single $ required $ multipleChoice Dropdown "Choose one" labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -522,7 +522,7 @@ indicating the form is faulty.
 
 Renders an input field with /type=number/ attribute, no default value and label /Age/.
 
->>> printWidget "en" $ formify (Nothing @Int) [[single "Age"]]
+>>> printWidget "en" $ formify (Nothing @Int) $ single $ required $ basic "Age"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -538,7 +538,7 @@ They are prefilled with the values given above,
 are assigned the Css class \"helloInput\" and have no labels attached to them.
 
 >>> let defaults = ["Hallo", "Hello", "Hola", "Ciao"]
->>> printWidget "en" $ formify (Just defaults) [[listWithoutLabels Vertical 4 [("class","helloInput")]]]
+>>> printWidget "en" $ formify (Just defaults) $ listWithoutLabels Vertical 4 (required . basic) [("class","helloInput")]
 <div class="flex-form-div form-group">
 ...
     <input id="flexident1" ... type="text" ... value="Hallo" class="helloInput">
@@ -564,7 +564,7 @@ Renders a radio button field with the given title and option labels attached.
 No option is selected when the form is loaded.
 
 >>> let labels = ["this one", "or rather that one", "I just cannot decide"]
->>> printWidget "en" $ formify (Nothing @SingleChoiceSelection) [[buttons Vertical "Make your choice" labels]]
+>>> printWidget "en" $ formify @SingleChoiceSelection Nothing $ single $ required $ singleChoice (Buttons Vertical) "Make your choice" labels
 ...
 <div class="flex-form-div form-group">
 ...
@@ -792,7 +792,7 @@ The length of the list is equal to the amount of labels provided.
 === __Example__
 
 >>> let labels = ["Input 1", "Input 2", "Input 3"]
->>> printWidget "en" $ formify (Nothing @[Double]) [[list Horizontal labels]]
+>>> printWidget "en" $ formify (Nothing @[Double]) $ list Horizontal (required . basic) labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
