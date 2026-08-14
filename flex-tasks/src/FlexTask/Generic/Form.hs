@@ -7,56 +7,51 @@ Generic `Yesod` input form generation and related utility functions.
 -}
 
 module FlexTask.Generic.Form (
-  -- * Data Types
-  -- ** Field Construction
-    TypeField
-  , Requiredness
-  -- ** Layouting
-  , FormLayout
-  , SimpleFormPiece
-  , AnyFormPiece
-  , CompleteForm
-  -- ** General Purpose
-  , Alignment(..)
-  , ChoiceShape(..)
-  , SingleChoiceSelection
-  , MultipleChoiceSelection
-  , Hidden(..)
-  , SingleInputList(..)
-  -- * Type Classes
-  , BaseForm(..)
-  , Formify(FormTypes)
-  -- * Generating Forms
-  , formify
-  , formifyComponents
-  , formifyComponentsFlat
-  -- * Functions for SingleChoiceSelection/MultipleChoiceSelection
-  , getAnswer
-  , getAnswerAsIndex
-  , getAnswers
-  , getAnswersAsIndices
-  , multipleChoiceAnswer
-  , multipleChoiceEmpty
-  , singleChoiceAnswer
-  , singleChoiceEmpty
-  -- * Builders
-  -- ** Field Construction
+  -- * Individual Field Construction
+    BaseForm(..)
+  , TypeField
   , basic
   , singleChoice
   , singleChoiceEnum
   , multipleChoice
   , multipleChoiceEnum
+  , Requiredness
   , required
   , optional
-  -- ** Layouting
-  , single
+  -- * Composition and Layouting
+  , FormLayout
   , (>|)
   , beside
   , (>-)
   , above
+  , SimpleFormPiece
+  , AnyFormPiece
+  , single
   , list
   , listRepeatedly
   , listWithoutLabels
+  -- * Rendering Completed Forms
+  , Formify(FormTypes)
+  , CompleteForm
+  , formify
+  , formifyComponents
+  , formifyComponentsFlat
+  -- * Selectors for Appearance and Layout
+  , Alignment(..)
+  , ChoiceShape(..)
+  -- * Types for Specialized Fields
+  , Hidden(..)
+  , SingleInputList(..)
+  , SingleChoiceSelection
+  , singleChoiceAnswer
+  , singleChoiceEmpty
+  , getAnswer
+  , getAnswerAsIndex
+  , MultipleChoiceSelection
+  , multipleChoiceAnswer
+  , multipleChoiceEmpty
+  , getAnswers
+  , getAnswersAsIndices
   ) where
 
 import FlexTask.Generic.FormInternal
