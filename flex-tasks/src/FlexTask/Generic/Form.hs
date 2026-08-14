@@ -8,7 +8,7 @@ Generic `Yesod` input form generation and related utility functions.
 
 module FlexTask.Generic.Form (
   -- * Individual Field Construction
-    BaseForm(..)
+    BaseField(..)
   , TypeField
   , basic
   , singleChoice
@@ -19,7 +19,7 @@ module FlexTask.Generic.Form (
   , required
   , optional
   -- * Composition and Layouting
-  , FormLayout
+  , FormPiece
   , (>|)
   , beside
   , (>-)

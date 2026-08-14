@@ -74,7 +74,7 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 >>> newtype MyCoolType = CType { getString :: String}
 >>> let toCool = CType
 >>> let fromCool = getString
->>> let basisField = baseForm
+>>> let basisField = baseField
 -}
 
 
@@ -146,7 +146,7 @@ list23
 @
 -}
 data TypeField a where
-  Basic :: BaseForm a => (FieldSettings FlexForm) -> TypeField a
+  Basic :: BaseField a => (FieldSettings FlexForm) -> TypeField a
   SingleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
   MultipleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField [a]
 
@@ -156,16 +156,16 @@ data Requiredness a where
   Optional :: TypeField a -> Requiredness (Maybe a)
 
 
-data FormLayout finalType fields where
-  Single :: Requiredness a -> FormLayout t '[a]
-  Beside :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
-  Above :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
-  List :: Alignment -> [Requiredness a] -> FormLayout t '[[a]]
+data FormPiece finalType fields where
+  Single :: Requiredness a -> FormPiece t '[a]
+  Beside :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+  Above :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+  List :: Alignment -> [Requiredness a] -> FormPiece t '[[a]]
 
 
 type CompleteForm a = AnyFormPiece a a
-type SimpleFormPiece t a = FormLayout t '[a]
-type AnyFormPiece t a = FormLayout t (FormTypes a)
+type SimpleFormPiece t a = FormPiece t '[a]
+type AnyFormPiece t a = FormPiece t (FormTypes a)
 
 
 -- | Inner alignment of input field elements.
@@ -334,43 +334,43 @@ multipleChoiceAnswer = map singleChoiceAnswer . nubSort
 
 {- |
 Members have a basic Yesod field representing Html input fields.
-A `BaseForm` instance of type @a@ is needed for generically producing forms
+A `BaseField` instance of type @a@ is needed for generically producing forms
 for @[a]@ and @Maybe a@ types.
 An instance can be given manually with the `Field` constructor
 or using the `convertField` function on an existing `Field`.
 
 === __Example__
 
->>> instance BaseForm MyCoolType where baseForm = convertField toCool fromCool basisField
+>>> instance BaseField MyCoolType where baseField = convertField toCool fromCool basisField
 -}
-class BaseForm a where
-  baseForm :: Field Handler a
+class BaseField a where
+  baseField :: Field Handler a
 
 
-instance BaseForm Integer where
-  baseForm = intField
+instance BaseField Integer where
+  baseField = intField
 
-instance BaseForm Int where
-  baseForm = intField
+instance BaseField Int where
+  baseField = intField
 
-instance BaseForm Text where
-  baseForm = textField
-
-
-instance BaseForm String where
-  baseForm = convertField unpack pack textField
+instance BaseField Text where
+  baseField = textField
 
 
-instance BaseForm Textarea where
-  baseForm = textareaField
+instance BaseField String where
+  baseField = convertField unpack pack textField
 
 
-instance BaseForm Bool where
-  baseForm = boolField
+instance BaseField Textarea where
+  baseField = textareaField
 
 
-instance BaseForm Double where
-  baseForm = doubleField
+instance BaseField Bool where
+  baseField = boolField
+
+
+instance BaseField Double where
+  baseField = doubleField
 
 
 instance PathPiece a => PathPiece (Hidden a) where
@@ -378,14 +378,14 @@ instance PathPiece a => PathPiece (Hidden a) where
   toPathPiece = toPathPiece . getHidden
 
 
-instance PathPiece a => BaseForm (Hidden a) where
-  baseForm = hiddenField
+instance PathPiece a => BaseField (Hidden a) where
+  baseField = hiddenField
 
 
 -- This indicates I should probably change this class to something more succinct.
 -- The first function is never used, since it normally handles the parsing.
-instance Show a => BaseForm (SingleInputList a) where
-  baseForm = convertField undefined (pack . intercalate ", " . map show . getList) textField
+instance Show a => BaseField (SingleInputList a) where
+  baseField = convertField undefined (pack . intercalate ", " . map show . getList) textField
 
 
 {- |
@@ -638,7 +638,7 @@ renderRequiredness mDefault (Required field) = renderField (\f fs -> areq f fs m
 
 renderField :: (Field Handler a  -> FieldSettings FlexForm -> AForm Handler c) -> TypeField a -> Rendered Widget
 renderField req info = case info of
-  Basic fs -> renderForm (req baseForm) fs
+  Basic fs -> renderForm (req baseField) fs
   SingleChoice k fs xs -> renderForm (req $ case k of
     Dropdown -> selectField $ optionsPairs xs
     Buttons Vertical -> radioField True $ optionsPairs xs
@@ -649,7 +649,7 @@ renderField req info = case info of
     Buttons Horizontal -> checkboxField False $ optionsPairs xs) fs
 
 
-renderLayout :: Maybe (TypeList a) -> FormLayout t a -> Rendered [[Widget]]
+renderLayout :: Maybe (TypeList a) -> FormPiece t a -> Rendered [[Widget]]
 renderLayout mDefault (Single x) = applyToWidget (singleton . singleton) $
   flip renderRequiredness x $ fmap (\(TCons t TEmpty) -> t) mDefault
 renderLayout mDefault (Beside x y) = renderLayout a x `horizontally` renderLayout b y
@@ -683,7 +683,7 @@ renderLayout mDefault (List align fs) =
           )
 
 
-basic :: BaseForm a => FieldSettings FlexForm -> TypeField a
+basic :: BaseField a => FieldSettings FlexForm -> TypeField a
 basic = Basic
 
 
@@ -766,27 +766,27 @@ single = Single
 
 
 infixl 5 >|
-(>|) :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+(>|) :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>|) = Beside
 
 
-beside :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+beside :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 beside = (>|)
 
 
 infixl 4 >-
-(>-) :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+(>-) :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>-) = Above
 
 
-above :: SplitOff xs ys => FormLayout t xs -> FormLayout t ys -> FormLayout t (xs ++ ys)
+above :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 above = (>-)
 
 
 {- |
 Create FieldInfo for a number of basic fields.
 Their result will be handled as a list of values.
-Use for lists of BaseForm fields like `Int`, `String`, `Double`.
+Use for lists of BaseField fields like `Int`, `String`, `Double`.
 The length of the list is equal to the amount of labels provided.
 
 === __Example__

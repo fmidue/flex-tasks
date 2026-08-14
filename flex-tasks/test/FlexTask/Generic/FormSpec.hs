@@ -181,7 +181,7 @@ multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (CompleteForm [a])
 multipleChoiceFormEnum = choiceFormEnum multipleChoiceEnum
 
 
-listForm :: BaseForm a => (TypeField a -> Requiredness b) -> Gen (CompleteForm [b])
+listForm :: BaseField a => (TypeField a -> Requiredness b) -> Gen (CompleteForm [b])
 listForm req = do
   align <- arbitrary
   amount <- chooseInt (1,100)
@@ -190,11 +190,11 @@ listForm req = do
   elements [list align (req . basic) labels,listWithoutLabels align amount (req . basic) attributes]
 
 
-requiredListForm :: BaseForm a => Gen (CompleteForm [a])
+requiredListForm :: BaseField a => Gen (CompleteForm [a])
 requiredListForm = listForm required
 
 
-optionalListForm :: BaseForm a => Gen (CompleteForm [Maybe a])
+optionalListForm :: BaseField a => Gen (CompleteForm [Maybe a])
 optionalListForm = listForm optional
 
 
@@ -206,9 +206,9 @@ instance Arbitrary (FieldSettings FlexForm) where
   arbitrary = fromString <$> arbitrary
 
 
-simpleForm :: (BaseForm a) => Gen (SimpleFormPiece a a)
+simpleForm :: BaseField a => Gen (SimpleFormPiece a a)
 simpleForm = single . required . basic <$> arbitrary
 
 
-optionalSimpleForm :: BaseForm a => Gen (CompleteForm (Maybe a))
+optionalSimpleForm :: BaseField a => Gen (CompleteForm (Maybe a))
 optionalSimpleForm = single . optional . basic <$> arbitrary
