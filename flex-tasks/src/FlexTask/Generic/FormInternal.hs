@@ -74,77 +74,10 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 >>> newtype MyCoolType = CType { getString :: String}
 >>> let toCool = CType
 >>> let fromCool = getString
->>> let basisField = baseField
+>>> let existingField = baseField
 -}
 
 
-{- |
-Data type representing a prebuilt input field.
-This type is used to determine the structure of a generated form.
-The form is represented by a @[[FieldInfo]]@ type value.
-Each FieldInfo value is an individual form element.
-Inner lists represent the rows of the form.
-All FieldInfo values in an inner list are rendered besides each other.
-Inner lists are rendered below each other.
-
-=== __Examples__
-
-Input
-
-@
-[[single \"field1\", single \"field2\"]]
-@
-
-Renders as:
-
-@
-field1     field2
-@
-
-Input
-
-@
-[[single \"field1\"], [single \"field2\"]]
-@
-
-Renders as:
-
-@
-field1
-
-field2
-@
-
-__Caution: Not all horizontal alignments will display correctly.__
-__For example, if two vertical lists are composed horizontally,__
-__then the second list may not be longer than the first.__
-
-Input
-
-@
-[[listWithoutLabels Vertical 2 [], listWithoutLabels Vertical 3 []]]
-@
-
-will __not__ result in
-
-@
-list11      list21
-
-list12      list22
-
-            list23
-@
-
-but instead in
-
-@
-list11     list21
-
-list12     list22
-
-list23
-@
--}
 data TypeField a where
   Basic :: BaseField a => (FieldSettings FlexForm) -> TypeField a
   SingleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
@@ -156,6 +89,37 @@ data Requiredness a where
   Optional :: TypeField a -> Requiredness (Maybe a)
 
 
+{- |
+The layouting data type.
+Each value is a form fragment parametrized by the overall type of the complete form
+and the type of the fragment itself.
+The overall type is given as a plain normal type,
+while the type of the fragment is a type level list of types.
+This is to allow for fragments with multiple types.
+
+For example, for a product type
+
+@
+data Person = Person {name :: String, age :: Int, occupation :: String}
+@
+
+we might want to define a form fragment that contains only the first two parts of the record,
+but is locked into becoming a @Person@ form:
+
+@
+nameAgePiece :: FormPiece Person '[String,Int]
+@
+
+or we could leave the overall type variable, so any type consisting of `String` and `Int` in that order,
+e.g. @(String,Int)@ could use the fragment:
+
+@
+stringIntPiece :: FormPiece t '[String,Int]
+@
+
+You will mostly be able to use the simpler type synonyms `SimpleFormPiece`, `AnyFormPiece`
+or `CompleteForm` to avoid dealing with type level lists.
+-}
 data FormPiece finalType fields where
   Single :: Requiredness a -> FormPiece t '[a]
   Beside :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
@@ -163,8 +127,22 @@ data FormPiece finalType fields where
   List :: Alignment -> [Requiredness a] -> FormPiece t '[[a]]
 
 
+{- |
+Alias for a `FormPiece` whose overall type is the same as the fragment's.
+This means the form is finished and no further pieces can be added.
+-}
 type CompleteForm a = AnyFormPiece a a
+
+{- |
+Alias for a `FormPiece` with exactly one type
+that avoids having to write out the type level list.
+-}
 type SimpleFormPiece t a = FormPiece t '[a]
+
+{- |
+Alias for a `FormPiece` with arbitrarily many types
+that avoids having to write out the type level list.
+-}
 type AnyFormPiece t a = FormPiece t (FormTypes a)
 
 
@@ -333,15 +311,19 @@ multipleChoiceAnswer = map singleChoiceAnswer . nubSort
 
 
 {- |
-Members have a basic Yesod field representing Html input fields.
-A `BaseField` instance of type @a@ is needed for generically producing forms
-for @[a]@ and @Maybe a@ types.
-An instance can be given manually with the `Field` constructor
-or using the `convertField` function on an existing `Field`.
+Types that can be represented as a simple Yesod input field.
+A `BaseField` instance of type @a@ is needed if @a@ requires a type specific input method,
+i.e. it is not just a wrapping newtype or product type.
+
+Basic types are already instances of this class,
+so you should not need to write your own instances in most cases.
+
+Nethertheless, an instance can be given manually using the `Field` constructor
+or the `convertField` function on an existing `Field`.
 
 === __Example__
 
->>> instance BaseField MyCoolType where baseField = convertField toCool fromCool basisField
+>>> instance BaseField MyCoolType where baseField = convertField existingToCool coolToExisting existingField
 -}
 class BaseField a where
   baseField :: Field Handler a
@@ -765,6 +747,65 @@ single :: Requiredness a -> SimpleFormPiece t a
 single = Single
 
 
+{- |
+=== __Examples__
+
+Input
+
+@
+[[single \"field1\", single \"field2\"]]
+@
+
+Renders as:
+
+@
+field1     field2
+@
+
+Input
+
+@
+[[single \"field1\"], [single \"field2\"]]
+@
+
+Renders as:
+
+@
+field1
+
+field2
+@
+
+__Caution: Not all horizontal alignments will display correctly.__
+__For example, if two vertical lists are composed horizontally,__
+__then the second list may not be longer than the first.__
+
+Input
+
+@
+[[listWithoutLabels Vertical 2 [], listWithoutLabels Vertical 3 []]]
+@
+
+will __not__ result in
+
+@
+list11      list21
+
+list12      list22
+
+            list23
+@
+
+but instead in
+
+@
+list11     list21
+
+list12     list22
+
+list23
+@
+-}
 infixl 5 >|
 (>|) :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>|) = Beside
