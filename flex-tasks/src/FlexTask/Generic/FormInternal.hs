@@ -5,6 +5,7 @@
 {-# language TypeFamilies #-}
 {-# language GADTs #-}
 {-# language OverloadedStrings #-}
+{-# language PolyKinds #-}
 {-# language RankNTypes #-}
 {-# language TypeOperators #-}
 {-# language UndecidableInstances #-}
@@ -124,10 +125,10 @@ stringIntPiece :: FormPiece t '[String,Int]
 You will mostly be able to use the simpler type synonyms `SimpleFormPiece`, `AnyFormPiece`
 or `CompleteForm` to avoid dealing with type level lists.
 -}
-data FormPiece finalType fields where
+data FormPiece (finalType :: Type) fields where
   Single :: TypeField a -> FormPiece t '[ 'One a]
-  Beside :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
-  Above :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+  Beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+  Above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
   List :: Alignment -> [TypeField a] -> FormPiece t '[ 'Many a]
 
 
@@ -647,9 +648,9 @@ renderLayout :: forall a t. TypeList a -> FormPiece t a -> Rendered [[Widget]]
 renderLayout (TCons (OneInputDefault mDefault) TEmpty) (Single x) = applyToWidget (singleton . singleton) $
   renderRequiredness mDefault x
 renderLayout mDefault (Beside x y) = renderLayout a x `horizontally` renderLayout b y
-  where (a,b) = splitTypeList mDefault
+  where (a,b) = splitTypeList (pieceShape x) mDefault
 renderLayout mDefault (Above x y) = renderLayout a x `vertically` renderLayout b y
-  where (a,b) = splitTypeList mDefault
+  where (a,b) = splitTypeList (pieceShape x) mDefault
 renderLayout (TCons (ManyInputDefaults t mDefault) TEmpty) (List align fs) =
     foldr1 addParams [renderLayout (TCons (OneInputDefault d) TEmpty) (Single f) | (d,f) <- zip defaults fs]
   where
@@ -813,20 +814,20 @@ list23
 @
 -}
 infixl 5 >|
-(>|) :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+(>|) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>|) = Beside
 
 
-beside :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 beside = (>|)
 
 
 infixl 4 >-
-(>-) :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+(>-) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>-) = Above
 
 
-above :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 above = (>-)
 
 
@@ -935,19 +936,26 @@ type family (xs :: [Cardinality]) ++ (ys :: [Cardinality]) :: [Cardinality] wher
   (x ': xs) ++ ys = x ': (xs ++ ys)
 
 
-class SplitOff xs ys where
-  splitTypeList :: TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
+data TypeShape xs where
+  EmptyShape  :: TypeShape '[]
+  ConsShape :: TypeShape xs -> TypeShape (x ': xs)
 
 
-instance SplitOff '[] ys where
-  splitTypeList = (TEmpty,)
-
-instance SplitOff xs ys => SplitOff (x ': xs) ys where
-  splitTypeList (TCons x rest) = first (TCons x) $ splitTypeList rest
+splitTypeList :: TypeShape xs -> TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
+splitTypeList EmptyShape zs = (TEmpty, zs)
+splitTypeList (ConsShape xs) (TCons x zs) = first (TCons x) $ splitTypeList xs zs
 
 
-splitMaybeDefaults :: SplitOff xs ys => TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
-splitMaybeDefaults = splitTypeList
+pieceShape :: FormPiece t xs -> TypeShape xs
+pieceShape (Single _) = ConsShape EmptyShape
+pieceShape (List _ _) = ConsShape EmptyShape
+pieceShape (Beside x y) = appendShape (pieceShape x) $ pieceShape y
+pieceShape (Above x y) = appendShape (pieceShape x) $ pieceShape y
+
+
+appendShape :: TypeShape xs -> TypeShape ys -> TypeShape (xs ++ ys)
+appendShape EmptyShape ys = ys
+appendShape (ConsShape xs) ys = ConsShape (appendShape xs ys)
 
 
 type family GFormTypes original rep :: [Cardinality] where
