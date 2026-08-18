@@ -6,7 +6,6 @@
 {-# language GADTs #-}
 {-# language OverloadedStrings #-}
 {-# language PolyKinds #-}
-{-# language RankNTypes #-}
 {-# language TypeOperators #-}
 {-# language UndecidableInstances #-}
 
@@ -644,7 +643,7 @@ renderField req info = case info of
       Buttons Horizontal -> checkboxField False $ optionsPairs xs) fs
 
 
-renderLayout :: forall a t. TypeList a -> FormPiece t a -> Rendered [[Widget]]
+renderLayout :: TypeList a -> FormPiece t a -> Rendered [[Widget]]
 renderLayout (TCons (OneInputDefault mDefault) TEmpty) (Single x) = applyToWidget (singleton . singleton) $
   renderRequiredness mDefault x
 renderLayout mDefault (Beside x y) = renderLayout a x `horizontally` renderLayout b y
@@ -917,7 +916,7 @@ optionsFromType f = map (\x -> (f x, x)) [minBound .. maxBound]
 -- Type Machinery --
 
 
-data TypeList (xs :: [Cardinality]) where
+data TypeList xs where
   TEmpty :: TypeList '[]
   TCons :: InputDefault x -> TypeList xs -> TypeList (x ': xs)
 
@@ -931,7 +930,7 @@ appendTypeList TEmpty = id
 appendTypeList (TCons x xs) = TCons x . appendTypeList xs
 
 
-type family (xs :: [Cardinality]) ++ (ys :: [Cardinality]) :: [Cardinality] where
+type family xs ++ ys where
   '[]       ++ ys = ys
   (x ': xs) ++ ys = x ': (xs ++ ys)
 
