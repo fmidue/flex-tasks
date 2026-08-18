@@ -15,9 +15,6 @@ module FlexTask.Generic.Form (
   , singleChoiceEnum
   , multipleChoice
   , multipleChoiceEnum
-  , Requiredness
-  , required
-  , optional
   -- * Composition and Layouting
   , FormPiece
   , (>|)
@@ -25,6 +22,7 @@ module FlexTask.Generic.Form (
   , (>-)
   , above
   , SimpleFormPiece
+  , ListFormPiece
   , AnyFormPiece
   , single
   , list
@@ -39,6 +37,7 @@ module FlexTask.Generic.Form (
   -- * Selectors for Appearance and Layout
   , Alignment(..)
   , ChoiceShape(..)
+  , MultipleChoice(..)
   -- * Types for Specialized Fields
   , Hidden(..)
   , SingleInputList(..)

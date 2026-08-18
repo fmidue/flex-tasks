@@ -3,7 +3,6 @@
 {-# language DataKinds #-}
 {-# language DeriveAnyClass #-}
 {-# language DeriveGeneric #-}
-{-# language TypeOperators #-}
 
 module FlexTask.Generic.FormSpec where
 
@@ -48,8 +47,6 @@ spec :: Spec
 spec = do
   describe "formify" $ do
     context "should work for all standard types" $ do
-      specify "String" $
-        runTest @String simpleForm
       specify "Text" $
         runTest @Text simpleForm
       specify "TextArea" $
@@ -62,8 +59,6 @@ spec = do
         runTest @Double simpleForm
 
     context "should work for optional values" $ do
-      specify "String" $
-        runTest $ optionalSimpleForm @String
       specify "Text" $
         runTest $ optionalSimpleForm @Text
       specify "Textarea" $
@@ -76,8 +71,6 @@ spec = do
         runTest $ optionalSimpleForm @Double
 
     context "should work for lists" $ do
-      specify "String" $
-        runTest $ requiredListForm @String
       specify "Text" $
         runTest $ requiredListForm @Text
       specify "Textarea" $
@@ -90,8 +83,6 @@ spec = do
         runTest $ requiredListForm @Double
 
     context "should work for lists of optional values" $ do
-      specify "String" $
-        runTest $ optionalListForm @String
       specify "Text" $
         runTest $ optionalListForm @Text
       specify "Textarea" $
@@ -144,7 +135,7 @@ choiceForm f = do
   shape <- arbitrary
   title <- arbitrary
   labels <- chooseInt (1,100) >>= flip vectorOf arbitrary
-  pure $ single $ required $ f shape title labels
+  pure $ single $ f shape title labels
 
 
 singleChoiceForm :: Gen (CompleteForm SingleChoiceSelection)
@@ -167,7 +158,7 @@ choiceFormEnum f = do
   shape <- arbitrary
   title <- arbitrary
   labels <- zip range <$> vectorOf (length range) arbitrary
-  pure $ single $ required $ f shape title $ toText labels
+  pure $ single $ f shape title $ toText labels
   where
     range = [minBound .. maxBound]
     toText mapping enum = fromMaybe (fromString "") $ lookup enum mapping
@@ -177,25 +168,25 @@ singleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (SimpleFormPiece a a)
 singleChoiceFormEnum = choiceFormEnum singleChoiceEnum
 
 
-multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (CompleteForm [a])
+multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (CompleteForm (MultipleChoice a))
 multipleChoiceFormEnum = choiceFormEnum multipleChoiceEnum
 
 
-listForm :: BaseField a => (TypeField a -> Requiredness b) -> Gen (CompleteForm [b])
-listForm req = do
+listForm :: BaseField a => Gen (ListFormPiece t a)
+listForm = do
   align <- arbitrary
   amount <- chooseInt (1,100)
   labels <- vectorOf amount arbitrary
   attributes <- chooseInt (1,20) >>= flip vectorOf arbitrary
-  elements [list align (req . basic) labels,listWithoutLabels align amount (req . basic) attributes]
+  elements [list align basic labels,listWithoutLabels align amount basic attributes]
 
 
 requiredListForm :: BaseField a => Gen (CompleteForm [a])
-requiredListForm = listForm required
+requiredListForm = listForm
 
 
 optionalListForm :: BaseField a => Gen (CompleteForm [Maybe a])
-optionalListForm = listForm optional
+optionalListForm = listForm
 
 
 instance Arbitrary (SomeMessage FlexForm) where
@@ -207,8 +198,8 @@ instance Arbitrary (FieldSettings FlexForm) where
 
 
 simpleForm :: BaseField a => Gen (SimpleFormPiece a a)
-simpleForm = single . required . basic <$> arbitrary
+simpleForm = single . basic <$> arbitrary
 
 
 optionalSimpleForm :: BaseField a => Gen (CompleteForm (Maybe a))
-optionalSimpleForm = single . optional . basic <$> arbitrary
+optionalSimpleForm = single . basic <$> arbitrary

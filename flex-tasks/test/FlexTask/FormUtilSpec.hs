@@ -6,6 +6,7 @@
 module FlexTask.FormUtilSpec where
 
 
+import Data.Text                        (Text)
 import GHC.Generics                     (Generic)
 import Test.Hspec (
   Spec,
@@ -30,12 +31,12 @@ data TestEnum = First | Last
 spec :: Spec
 spec = do
   let
-    form1 = formify @(Int,[String]) Nothing $
-      single (required $ basic "test") >|
-      list Vertical (required . basic) ["test2","test3"]
-    form2 = formify @(Maybe String) Nothing $ single $ optional $ basic "form2"
-    form3 = formify (Just [First]) $
-      single $ required $ multipleChoiceEnum Dropdown "form3"
+    form1 = formify @(Int,[Text]) Nothing $
+      single (basic "test") >|
+      list Vertical basic ["test2","test3"]
+    form2 = formify @(Maybe Text) Nothing $ single $ basic "form2"
+    form3 = formify (Just $ MultipleChoice [First]) $
+      single $ multipleChoiceEnum Dropdown "form3"
         (\a -> if a == First then "first" else "last")
 
   describe "getFormData" $

@@ -14,6 +14,7 @@ module FlexTask.Generic.FormInternal (
   ) where
 
 
+import Control.Monad                    (join)
 import Data.Kind                        (Constraint, Type)
 import Data.List.Extra (
   intercalate,
@@ -35,7 +36,7 @@ import GHC.Generics (
   U1,
   )
 import GHC.TypeLits                     (ErrorMessage(..), TypeError)
-import Data.Text            (Text, pack, unpack)
+import Data.Text            (Text, pack)
 import Yesod (
   AForm,
   Field,
@@ -70,23 +71,26 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 {- $setup
 >>> :set -XTypeApplications
 >>> import FlexTask.FormUtil
+>>> import Data.Text (Text)
 >>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
->>> newtype MyCoolType = CType { getString :: String}
->>> let toCool = CType
->>> let fromCool = getString
+>>> data MyCoolType = Yes | No deriving (Generic, Eq)
+>>> instance Formify MyCoolType
+>>> let toCool b = if b then Yes else No
+>>> let fromCool c = c == Yes
 >>> let existingField = baseField
 -}
 
 
+
+newtype MultipleChoice a = MultipleChoice
+  { getAs :: [a]
+  } deriving (Eq, Show)
+
+
 data TypeField a where
   Basic :: BaseField a => (FieldSettings FlexForm) -> TypeField a
-  SingleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
-  MultipleChoice :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField [a]
-
-
-data Requiredness a where
-  Required :: TypeField a -> Requiredness a
-  Optional :: TypeField a -> Requiredness (Maybe a)
+  SingleChoiceField :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
+  MultipleChoiceField :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField (MultipleChoice a)
 
 
 {- |
@@ -121,10 +125,10 @@ You will mostly be able to use the simpler type synonyms `SimpleFormPiece`, `Any
 or `CompleteForm` to avoid dealing with type level lists.
 -}
 data FormPiece finalType fields where
-  Single :: Requiredness a -> FormPiece t '[a]
+  Single :: TypeField a -> FormPiece t '[ 'One a]
   Beside :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
   Above :: SplitOff xs ys => FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
-  List :: Alignment -> [Requiredness a] -> FormPiece t '[[a]]
+  List :: Alignment -> [TypeField a] -> FormPiece t '[ 'Many a]
 
 
 {- |
@@ -137,7 +141,9 @@ type CompleteForm a = AnyFormPiece a a
 Alias for a `FormPiece` with exactly one type
 that avoids having to write out the type level list.
 -}
-type SimpleFormPiece t a = FormPiece t '[a]
+type SimpleFormPiece t a = FormPiece t '[ 'One a]
+
+type ListFormPiece t a = FormPiece t '[ 'Many a]
 
 {- |
 Alias for a `FormPiece` with arbitrarily many types
@@ -161,7 +167,7 @@ If the label is not left blank, then it will be displayed as normal.
 
 === __Example__
 
->>> printWidget "en" $ formify (Just $ Hidden 3) $ single $ required $ basic ""
+>>> printWidget "en" $ formify (Just $ Hidden 3) $ single $ basic ""
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -179,7 +185,7 @@ Normally, lists are interpreted as multiple fields instead.
 
 === __Example__
 
->>> printWidget "en" $ formify @(SingleInputList String) Nothing $ single $ required $ basic "Input comma separated sentences"
+>>> printWidget "en" $ formify @(SingleInputList String) Nothing $ single $ basic "Input comma separated sentences"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -204,7 +210,7 @@ Use if both of the following is true:
 === __Example__
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
->>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) $ single $ required $ singleChoice Dropdown "Choose one" labels
+>>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) $ single $ singleChoice Dropdown "Choose one" labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -248,7 +254,7 @@ Use if both of the following is true:
 === __Example__
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
->>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) $ single $ required $ multipleChoice Dropdown "Choose one" labels
+>>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) $ single $ multipleChoice Dropdown "Choose one" labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -268,7 +274,7 @@ Use if both of the following is true:
 ...
 </div>
 -}
-type MultipleChoiceSelection = [SingleChoiceSelection]
+type MultipleChoiceSelection = MultipleChoice SingleChoiceSelection
 
 {- |
 Retrieve the list of selected options.
@@ -276,7 +282,7 @@ The first selectable option is @1@.
 @[]@ if none are selected.
 -}
 getAnswers :: MultipleChoiceSelection -> [Int]
-getAnswers = map getAnswer
+getAnswers = map getAnswer . getAs
 
 {- |
 Same as `getAnswers` but the selections are counted from @0@ instead of from @1@.
@@ -299,14 +305,14 @@ singleChoiceAnswer = SingleChoiceSelection
 
 -- | Value with no options selected.
 multipleChoiceEmpty :: MultipleChoiceSelection
-multipleChoiceEmpty = []
+multipleChoiceEmpty = MultipleChoice []
 
 {- |
 Value with given list of options selected.
 The order of list elements is inconsequential.
 -}
 multipleChoiceAnswer :: [Int] -> MultipleChoiceSelection
-multipleChoiceAnswer = map singleChoiceAnswer . nubSort
+multipleChoiceAnswer = MultipleChoice . map singleChoiceAnswer . nubSort
 
 
 
@@ -323,9 +329,13 @@ or the `convertField` function on an existing `Field`.
 
 === __Example__
 
->>> instance BaseField MyCoolType where baseField = convertField existingToCool coolToExisting existingField
+>>> instance BaseField MyCoolType where baseField = convertField toCool fromCool existingField
 -}
-class BaseField a where
+class
+  ( Formify a
+  , FormTypes a ~ '[ 'One a]
+  )
+  => BaseField a where
   baseField :: Field Handler a
 
 
@@ -337,10 +347,6 @@ instance BaseField Int where
 
 instance BaseField Text where
   baseField = textField
-
-
-instance BaseField String where
-  baseField = convertField unpack pack textField
 
 
 instance BaseField Textarea where
@@ -360,7 +366,7 @@ instance PathPiece a => PathPiece (Hidden a) where
   toPathPiece = toPathPiece . getHidden
 
 
-instance PathPiece a => BaseField (Hidden a) where
+instance (Formify a, PathPiece a) => BaseField (Hidden a) where
   baseField = hiddenField
 
 
@@ -378,19 +384,19 @@ Use utility functions for those or provide your own instance.
 -}
 class Formify a where
 
-  type FormTypes a :: [Type]
+  type FormTypes a :: [Cardinality]
   type FormTypes a = GFormTypes a (Rep a)
 
-  formDefaults :: a -> TypeList (FormTypes a)
+  formDefaults :: Maybe a -> TypeList (FormTypes a)
 
   default formDefaults
     :: ( Generic a
        , GFormDefaults a (Rep a)
        , FormTypes a ~ GFormTypes a (Rep a)
        )
-    => a
+    => Maybe a
     -> TypeList (FormTypes a)
-  formDefaults = gFormDefaults @a . from
+  formDefaults = gFormDefaults @a . fmap from
 
 
 horizontally
@@ -424,45 +430,41 @@ f1 `vertically` f2 = do
 
 
 instance Formify Integer where
-  type FormTypes Integer = '[Integer]
+  type FormTypes Integer = '[ 'One Integer]
   formDefaults = singleFormDefaults
 
 
 instance Formify Int where
-  type FormTypes Int = '[Int]
+  type FormTypes Int = '[ 'One Int]
   formDefaults = singleFormDefaults
 
 instance Formify Text where
-  type FormTypes Text = '[Text]
-  formDefaults = singleFormDefaults
-
-instance Formify String where
-  type FormTypes String = '[String]
+  type FormTypes Text = '[ 'One Text]
   formDefaults = singleFormDefaults
 
 
 instance Formify Textarea where
-  type FormTypes Textarea = '[Textarea]
+  type FormTypes Textarea = '[ 'One Textarea]
   formDefaults = singleFormDefaults
 
 
 instance Formify Bool where
-  type FormTypes Bool = '[Bool]
+  type FormTypes Bool = '[ 'One Bool]
   formDefaults = singleFormDefaults
 
 
 instance Formify Double where
-  type FormTypes Double = '[Double]
+  type FormTypes Double = '[ 'One Double]
   formDefaults = singleFormDefaults
 
 
 instance Formify a => Formify (Hidden a) where
-  type FormTypes (Hidden a) = '[Hidden a]
+  type FormTypes (Hidden a) = '[ 'One (Hidden a)]
   formDefaults = singleFormDefaults
 
 
 instance Formify (SingleInputList a) where
-  type FormTypes (SingleInputList a) = '[SingleInputList a]
+  type FormTypes (SingleInputList a) = '[ 'One (SingleInputList a)]
   formDefaults = singleFormDefaults
 
 
@@ -477,18 +479,27 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b
 instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
 
 
-instance {-# Overlappable #-} Formify [a] where
-  type FormTypes [a] = '[[a]]
-  formDefaults = singleFormDefaults
+instance {-# Overlappable #-} (Formify a, OneInput (FormTypes a)) => Formify [a] where
+  type FormTypes [a] = '[ 'Many (OneInputType (FormTypes a))]
+  formDefaults mValues = TCons (ManyInputDefaults t a) TEmpty
+    where
+      t = getOneDefault $ formDefaults @a Nothing
+      a = map (getOneDefault . formDefaults . Just) <$> mValues
 
 
 instance Formify (Maybe a) where
-  type FormTypes (Maybe a) = '[Maybe a]
-  formDefaults = singleFormDefaults
+  type FormTypes (Maybe a) = '[ 'One a]
+  formDefaults m = TCons (OneInputDefault $ OptionalDefault $ join m) TEmpty
 
 
 instance Formify SingleChoiceSelection where
-  type FormTypes SingleChoiceSelection = '[SingleChoiceSelection]
+  type FormTypes SingleChoiceSelection = '[ 'One SingleChoiceSelection]
+  formDefaults = singleFormDefaults
+
+
+instance Formify (MultipleChoice a) where
+  type FormTypes (MultipleChoice a) = '[ 'One (MultipleChoice a)]
+
   formDefaults = singleFormDefaults
 
 
@@ -504,7 +515,7 @@ indicating the form is faulty.
 
 Renders an input field with /type=number/ attribute, no default value and label /Age/.
 
->>> printWidget "en" $ formify @Int Nothing $ single $ required $ basic "Age"
+>>> printWidget "en" $ formify @Int Nothing $ single $ basic "Age"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -519,8 +530,8 @@ and organized vertically beneath each other.
 They are prefilled with the values given above,
 are assigned the Css class \"helloInput\" and have no labels attached to them.
 
->>> let defaults = ["Hallo", "Hello", "Hola", "Ciao"]
->>> printWidget "en" $ formify (Just defaults) $ listWithoutLabels Vertical 4 (required . basic) [("class","helloInput")]
+>>> let defaults = ["Hallo", "Hello", "Hola", "Ciao" :: Text]
+>>> printWidget "en" $ formify (Just defaults) $ listWithoutLabels Vertical 4 basic [("class","helloInput")]
 <div class="flex-form-div form-group">
 ...
     <input id="flexident1" ... type="text" ... value="Hallo" class="helloInput">
@@ -546,7 +557,7 @@ Renders a radio button field with the given title and option labels attached.
 No option is selected when the form is loaded.
 
 >>> let labels = ["this one", "or rather that one", "I just cannot decide"]
->>> printWidget "en" $ formify @SingleChoiceSelection Nothing $ single $ required $ singleChoice (Buttons Vertical) "Make your choice" labels
+>>> printWidget "en" $ formify @SingleChoiceSelection Nothing $ single $ singleChoice (Buttons Vertical) "Make your choice" labels
 ...
 <div class="flex-form-div form-group">
 ...
@@ -602,7 +613,7 @@ formifyComponents
   -- ^ Structure and type of form
   -> Rendered [[Widget]]
   -- ^ sub-renders
-formifyComponents mDefault = renderLayout (formDefaults <$> mDefault)
+formifyComponents mDefault = renderLayout (formDefaults mDefault)
 
 
 {- |
@@ -613,42 +624,43 @@ formifyComponentsFlat :: Formify a => Maybe a -> CompleteForm a -> Rendered [Wid
 formifyComponentsFlat mDefault = applyToWidget concat . formifyComponents mDefault
 
 
-renderRequiredness :: Maybe a -> Requiredness a -> Rendered Widget
-renderRequiredness mDefault (Optional field) = renderField (\f fs -> aopt f fs mDefault) field
-renderRequiredness mDefault (Required field) = renderField (\f fs -> areq f fs mDefault) field
+renderRequiredness :: OneDefault a -> TypeField a -> Rendered Widget
+renderRequiredness (OptionalDefault mDefault) field = renderField (\f fs -> aopt f fs $ Just mDefault) field
+renderRequiredness (RequiredDefault mDefault) field = renderField (\f fs -> areq f fs mDefault) field
 
 
 renderField :: (Field Handler a  -> FieldSettings FlexForm -> AForm Handler c) -> TypeField a -> Rendered Widget
 renderField req info = case info of
   Basic fs -> renderForm (req baseField) fs
-  SingleChoice k fs xs -> renderForm (req $ case k of
+  SingleChoiceField k fs xs -> renderForm (req $ case k of
     Dropdown -> selectField $ optionsPairs xs
     Buttons Vertical -> radioField True $ optionsPairs xs
     Buttons Horizontal -> radioField False $ optionsPairs xs) fs
-  MultipleChoice k fs xs -> renderForm (req $ case k of
-    Dropdown -> multiSelectField $ optionsPairs xs
-    Buttons Vertical -> checkboxField True $ optionsPairs xs
-    Buttons Horizontal -> checkboxField False $ optionsPairs xs) fs
+  MultipleChoiceField k fs xs -> renderForm (req $
+    convertField MultipleChoice getAs $ case k of
+      Dropdown -> multiSelectField $ optionsPairs xs
+      Buttons Vertical -> checkboxField True $ optionsPairs xs
+      Buttons Horizontal -> checkboxField False $ optionsPairs xs) fs
 
 
-renderLayout :: Maybe (TypeList a) -> FormPiece t a -> Rendered [[Widget]]
-renderLayout mDefault (Single x) = applyToWidget (singleton . singleton) $
-  flip renderRequiredness x $ fmap (\(TCons t TEmpty) -> t) mDefault
+renderLayout :: forall a t. TypeList a -> FormPiece t a -> Rendered [[Widget]]
+renderLayout (TCons (OneInputDefault mDefault) TEmpty) (Single x) = applyToWidget (singleton . singleton) $
+  renderRequiredness mDefault x
 renderLayout mDefault (Beside x y) = renderLayout a x `horizontally` renderLayout b y
-  where (a,b) = splitMaybeDefaults mDefault
+  where (a,b) = splitTypeList mDefault
 renderLayout mDefault (Above x y) = renderLayout a x `vertically` renderLayout b y
-  where (a,b) = splitMaybeDefaults mDefault
-renderLayout mDefault (List align fs) =
-    foldr1 addParams [renderLayout d (Single f) | (d,f) <- zip defaults fs]
+  where (a,b) = splitTypeList mDefault
+renderLayout (TCons (ManyInputDefaults t mDefault) TEmpty) (List align fs) =
+    foldr1 addParams [renderLayout (TCons (OneInputDefault d) TEmpty) (Single f) | (d,f) <- zip defaults fs]
   where
     defaults = case mDefault of
-      Nothing -> repeat Nothing
-      Just (TCons ds TEmpty)
+      Nothing -> repeat t
+      Just ds
         | length ds /= length fs
           -> error
               "Lengths of form default value and FieldInfo list do not match!"
-        | otherwise
-          -> map (Just . (`TCons` TEmpty)) ds
+        | otherwise -> ds
+
 
     addParams f1 f2 = do
       res1 <- f1
@@ -682,7 +694,7 @@ singleChoiceEnum
   -> FieldSettings FlexForm      -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
   -> TypeField a
-singleChoiceEnum shape fs = SingleChoice shape fs . optionsFromType
+singleChoiceEnum shape fs = SingleChoiceField shape fs . optionsFromType
 
 
 
@@ -701,7 +713,7 @@ singleChoice
   -> FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> TypeField SingleChoiceSelection
-singleChoice shape fs = SingleChoice shape fs . options
+singleChoice shape fs = SingleChoiceField shape fs . options
 
 
 multipleChoice
@@ -709,7 +721,7 @@ multipleChoice
   -> FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> TypeField MultipleChoiceSelection
-multipleChoice shape fs = MultipleChoice shape fs . options
+multipleChoice shape fs = MultipleChoiceField shape fs . options
 
 
 {- |
@@ -729,21 +741,15 @@ multipleChoiceEnum
   -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm)
   -- ^ Function from enum type values to labels.
-  -> TypeField [a]
-multipleChoiceEnum shape fs = MultipleChoice shape fs . optionsFromType
+  -> TypeField (MultipleChoice a)
+multipleChoiceEnum shape fs = MultipleChoiceField shape fs . optionsFromType
 
-
-required :: TypeField a -> Requiredness a
-required = Required
-
-optional :: TypeField a -> Requiredness (Maybe a)
-optional = Optional
 
 {- |
 Create FieldInfo for a standalone field.
 See `formify` for example use.
 -}
-single :: Requiredness a -> SimpleFormPiece t a
+single :: TypeField a -> SimpleFormPiece t a
 single = Single
 
 
@@ -833,7 +839,7 @@ The length of the list is equal to the amount of labels provided.
 === __Example__
 
 >>> let labels = ["Input 1", "Input 2", "Input 3"]
->>> printWidget "en" $ formify @[Double] Nothing $ list Horizontal (required . basic) labels
+>>> printWidget "en" $ formify @[Double] Nothing $ list Horizontal basic labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -862,9 +868,9 @@ Use to render lists of dropdown or button fields with different labels.
 -}
 list
   :: Alignment
-  -> (a -> Requiredness b)
+  -> (a -> TypeField b)
   -> [a]
-  -> SimpleFormPiece t [b]
+  -> ListFormPiece t b
 list align builder = List align . map builder
 
 
@@ -879,9 +885,9 @@ See `formify` for example use.
 listWithoutLabels
   :: Alignment
   -> Int           -- ^ Amount of fields
-  -> (FieldSettings FlexForm -> Requiredness a)
+  -> (FieldSettings FlexForm -> TypeField a)
   -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
-  -> SimpleFormPiece t [a]
+  -> ListFormPiece t a
 listWithoutLabels align amount req attrs =
   list align req $ replicate amount "" {fsAttrs = attrs}
 
@@ -894,8 +900,8 @@ Use to render lists of dropdown or button fields with identical labels.
 listRepeatedly
   :: Alignment
   -> Int       -- ^ How many copies
-  -> Requiredness a -- ^ The field to multiply
-  -> SimpleFormPiece t [a]
+  -> TypeField a -- ^ The field to multiply
+  -> ListFormPiece t a
 listRepeatedly alignment amount = list alignment id . replicate amount
 
 
@@ -910,13 +916,13 @@ optionsFromType f = map (\x -> (f x, x)) [minBound .. maxBound]
 -- Type Machinery --
 
 
-data TypeList xs where
+data TypeList (xs :: [Cardinality]) where
   TEmpty :: TypeList '[]
-  TCons :: x -> TypeList xs -> TypeList (x ': xs)
+  TCons :: InputDefault x -> TypeList xs -> TypeList (x ': xs)
 
 
-singleFormDefaults :: a -> TypeList '[a]
-singleFormDefaults x = TCons x TEmpty
+singleFormDefaults :: Maybe a -> TypeList '[ 'One a]
+singleFormDefaults x = TCons (OneInputDefault $ RequiredDefault x) TEmpty
 
 
 appendTypeList :: TypeList xs -> TypeList ys -> TypeList (xs ++ ys)
@@ -924,7 +930,7 @@ appendTypeList TEmpty = id
 appendTypeList (TCons x xs) = TCons x . appendTypeList xs
 
 
-type family (xs :: [Type]) ++ (ys :: [Type]) :: [Type] where
+type family (xs :: [Cardinality]) ++ (ys :: [Cardinality]) :: [Cardinality] where
   '[]       ++ ys = ys
   (x ': xs) ++ ys = x ': (xs ++ ys)
 
@@ -940,13 +946,11 @@ instance SplitOff xs ys => SplitOff (x ': xs) ys where
   splitTypeList (TCons x rest) = first (TCons x) $ splitTypeList rest
 
 
-splitMaybeDefaults :: SplitOff xs ys => Maybe (TypeList (xs ++ ys)) -> (Maybe (TypeList xs), Maybe (TypeList ys))
-splitMaybeDefaults Nothing = (Nothing, Nothing)
-splitMaybeDefaults (Just xs) = (Just left, Just right)
-  where (left, right) = splitTypeList xs
+splitMaybeDefaults :: SplitOff xs ys => TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
+splitMaybeDefaults = splitTypeList
 
 
-type family GFormTypes original rep :: [Type] where
+type family GFormTypes original rep :: [Cardinality] where
   GFormTypes original (M1 i metadata fields) = GFormTypes original fields
 
   GFormTypes original (K1 i field) = FormTypes field
@@ -954,19 +958,19 @@ type family GFormTypes original rep :: [Type] where
   GFormTypes original (left :*: right) =
     GFormTypes original left ++ GFormTypes original right
 
-  GFormTypes original (left :+: right) = '[original]
+  GFormTypes original (left :+: right) = '[ 'One original]
 
 
 class GFormDefaults original rep where
-  gFormDefaults :: rep p -> TypeList (GFormTypes original rep)
+  gFormDefaults :: Maybe (rep p) -> TypeList (GFormTypes original rep)
 
 
 instance GFormDefaults original fields => GFormDefaults original (M1 i metadata fields) where
-  gFormDefaults = gFormDefaults @original . unM1
+  gFormDefaults = gFormDefaults @original . fmap unM1
 
 
 instance Formify field => GFormDefaults original (K1 i field) where
-  gFormDefaults = formDefaults . unK1
+  gFormDefaults = formDefaults . fmap unK1
 
 
 instance
@@ -975,9 +979,12 @@ instance
   )
   => GFormDefaults original (left :*: right) where
 
-  gFormDefaults (left :*: right) = appendTypeList
-    (gFormDefaults @original left)
-    (gFormDefaults @original right)
+  gFormDefaults Nothing = appendTypeList
+    (gFormDefaults @original @left Nothing)
+    (gFormDefaults @original @right Nothing)
+  gFormDefaults (Just (left :*: right)) = appendTypeList
+    (gFormDefaults @original (Just left))
+    (gFormDefaults @original (Just right))
 
 
 instance {-# Overlapping #-}
@@ -987,7 +994,7 @@ instance {-# Overlapping #-}
   )
   => GFormDefaults original (D1 metadata (left :+: right))
   where
-  gFormDefaults = singleFormDefaults . to
+  gFormDefaults = singleFormDefaults . fmap to
 
 
 instance
@@ -1011,3 +1018,28 @@ type family NullarySum rep :: Constraint where
         'Text "but at least one constructor contains fields." ':$$:
         'Text "Consider a manual Formify instance for this type."
       )
+
+
+data Cardinality = One Type | Many Type
+
+
+class OneInput xs where
+  type OneInputType xs :: Type
+
+  getOneDefault :: TypeList xs -> OneDefault (OneInputType xs)
+
+
+instance OneInput '[ 'One a] where
+  type OneInputType '[ 'One a] = a
+
+  getOneDefault (TCons (OneInputDefault d) TEmpty) = d
+
+
+data OneDefault a
+  = RequiredDefault (Maybe a)
+  | OptionalDefault (Maybe a)
+
+
+data InputDefault a where
+  OneInputDefault :: OneDefault a -> InputDefault ('One a)
+  ManyInputDefaults :: OneDefault a -> Maybe [OneDefault a] -> InputDefault ('Many a)
