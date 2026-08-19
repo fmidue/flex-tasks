@@ -1,5 +1,5 @@
 {-# language DataKinds #-}
-{-# language UndecidableInstances #-}
+{-# language ExplicitNamespaces #-}
 {-# options_ghc -Wno-orphans #-}
 
 {- |
@@ -51,6 +51,11 @@ module FlexTask.Generic.Form (
   , multipleChoiceEmpty
   , getAnswers
   , getAnswersAsIndices
+  -- * Helper Types
+  , OneField
+  , ManyFields
+  , (:>)
+  , type (++)
   ) where
 
 import FlexTask.Generic.FormInternal

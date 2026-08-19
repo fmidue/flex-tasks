@@ -123,11 +123,11 @@ stringIntPiece :: FormPiece t '[String,Int]
 You will mostly be able to use the simpler type synonyms `SimpleFormPiece`, `AnyFormPiece`
 or `CompleteForm` to avoid dealing with type level lists.
 -}
-data FormPiece (finalType :: Type) fields where
-  Single :: TypeField a -> FormPiece t (OneField a,())
-  Beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (AppendFields xs ys)
-  Above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (AppendFields xs ys)
-  List :: Alignment -> [TypeField a] -> FormPiece t (ManyFields a,())
+data FormPiece finalType fields where
+  Single :: TypeField a -> SimpleFormPiece t a
+  Beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+  Above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+  List :: Alignment -> [TypeField a] -> ListFormPiece t a
 
 
 {- |
@@ -140,15 +140,15 @@ type CompleteForm a = AnyFormPiece a a
 Alias for a `FormPiece` with exactly one type
 that avoids having to write out the type level list.
 -}
-type SimpleFormPiece t a = FormPiece t (OneField a,())
+type SimpleFormPiece t a = FormPiece t (OneField a)
 
-type ListFormPiece t a = FormPiece t (ManyFields a,())
+type ListFormPiece t a = FormPiece t (ManyFields a)
 
 {- |
 Alias for a `FormPiece` with arbitrarily many types
 that avoids having to write out the type level list.
 -}
-type AnyFormPiece t a = FormPiece t (FormTypes a ())
+type AnyFormPiece t a = FormPiece t (FormTypes a)
 
 
 -- | Inner alignment of input field elements.
@@ -330,12 +330,8 @@ or the `convertField` function on an existing `Field`.
 
 >>> instance BaseField MyCoolType where baseField = convertField toCool fromCool existingField
 -}
-class
-  ( Formify a
-  , FormTypes a () ~ (OneField a, ())
-  ) =>
-  BaseField a where
-    baseField :: Field Handler a
+class (Formify a, FormTypes a ~ OneField a) => BaseField a where
+  baseField :: Field Handler a
 
 
 instance BaseField Integer where
@@ -383,19 +379,18 @@ Use utility functions for those or provide your own instance.
 -}
 class Formify a where
 
-  type FormTypes (a :: Type) rest :: Type
-  type FormTypes a rest = GFormTypes a (Rep a) rest
+  type FormTypes (a :: Type) :: Type
+  type FormTypes a = GFormTypes a (Rep a)
 
-  formDefaults :: Maybe a -> TypeList rest -> TypeList (FormTypes a rest)
+  formDefaults :: Maybe a -> TypeList (FormTypes a)
 
   default formDefaults
     :: ( Generic a
        , GFormDefaults a (Rep a)
-       , FormTypes a rest ~ GFormTypes a (Rep a) rest
+       , FormTypes a ~ GFormTypes a (Rep a)
        )
     => Maybe a
-    -> TypeList rest
-    -> TypeList (FormTypes a rest)
+    -> TypeList (FormTypes a)
   formDefaults = gFormDefaults @a . fmap from
 
 
@@ -430,41 +425,41 @@ f1 `vertically` f2 = do
 
 
 instance Formify Integer where
-  type FormTypes Integer rest = (OneField Integer, rest)
+  type FormTypes Integer = OneField Integer
   formDefaults = singleFormDefaults
 
 
 instance Formify Int where
-  type FormTypes Int rest = (OneField Int, rest)
+  type FormTypes Int = OneField Int
   formDefaults = singleFormDefaults
 
 instance Formify Text where
-  type FormTypes Text rest = (OneField Text, rest)
+  type FormTypes Text = OneField Text
   formDefaults = singleFormDefaults
 
 
 instance Formify Textarea where
-  type FormTypes Textarea rest = (OneField Textarea, rest)
+  type FormTypes Textarea = OneField Textarea
   formDefaults = singleFormDefaults
 
 
 instance Formify Bool where
-  type FormTypes Bool rest = (OneField Bool, rest)
+  type FormTypes Bool = OneField Bool
   formDefaults = singleFormDefaults
 
 
 instance Formify Double where
-  type FormTypes Double rest = (OneField Double, rest)
+  type FormTypes Double = OneField Double
   formDefaults = singleFormDefaults
 
 
 instance Formify a => Formify (Hidden a) where
-  type FormTypes (Hidden a) rest = (OneField (Hidden a), rest)
+  type FormTypes (Hidden a) = OneField (Hidden a)
   formDefaults = singleFormDefaults
 
 
 instance Formify (SingleInputList a) where
-  type FormTypes (SingleInputList a) rest = (OneField (SingleInputList a), rest)
+  type FormTypes (SingleInputList a) = OneField (SingleInputList a)
   formDefaults = singleFormDefaults
 
 
@@ -480,26 +475,25 @@ instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => F
 
 
 instance {-# Overlappable #-} Formify a => Formify [a] where
-  type FormTypes [a] rest = (ManyFields (SingleInputType (FormTypes a ())), rest)
-  formDefaults mValues = TCons (ManyInputDefaults t a)
+  type FormTypes [a] = ManyFields (SingleInputType (FormTypes a))
+  formDefaults mValues = TMany t a
     where
-      t = getSingleDefault $ formDefaults @a Nothing TEmpty
-      a = map (\x -> getSingleDefault $ formDefaults (Just x) TEmpty) <$> mValues
+      t = getSingleDefault $ formDefaults @a Nothing
+      a = map (getSingleDefault . formDefaults . Just) <$> mValues
 
 
 instance Formify (Maybe a) where
-  type FormTypes (Maybe a) rest = (OneField a, rest)
-  formDefaults m = TCons (OneInputDefault $ OptionalDefault $ join m)
+  type FormTypes (Maybe a) = OneField a
+  formDefaults m = TOne $ OptionalDefault $ join m
 
 
 instance Formify SingleChoiceSelection where
-  type FormTypes SingleChoiceSelection rest = (OneField SingleChoiceSelection, rest)
+  type FormTypes SingleChoiceSelection = OneField SingleChoiceSelection
   formDefaults = singleFormDefaults
 
 
 instance Formify (MultipleChoice a) where
-  type FormTypes (MultipleChoice a) rest = (OneField (MultipleChoice a), rest)
-
+  type FormTypes (MultipleChoice a) = OneField (MultipleChoice a)
   formDefaults = singleFormDefaults
 
 
@@ -613,7 +607,7 @@ formifyComponents
   -- ^ Structure and type of form
   -> Rendered [[Widget]]
   -- ^ sub-renders
-formifyComponents mDefault = renderLayout (formDefaults mDefault TEmpty)
+formifyComponents mDefault = renderLayout (formDefaults mDefault)
 
 
 {- |
@@ -644,14 +638,14 @@ renderField req info = case info of
 
 
 renderLayout :: TypeList a -> FormPiece t a -> Rendered [[Widget]]
-renderLayout (TCons (OneInputDefault mDefault) TEmpty) (Single x) = applyToWidget (singleton . singleton) $
+renderLayout (TOne mDefault) (Single x) = applyToWidget (singleton . singleton) $
   renderRequiredness mDefault x
 renderLayout mDefault (Beside x y) = renderLayout a x `horizontally` renderLayout b y
   where (a,b) = splitTypeList (pieceShape x) mDefault
 renderLayout mDefault (Above x y) = renderLayout a x `vertically` renderLayout b y
   where (a,b) = splitTypeList (pieceShape x) mDefault
-renderLayout (TCons (ManyInputDefaults t mDefault) TEmpty) (List align fs) =
-    foldr1 addParams [renderLayout (TCons (OneInputDefault d) TEmpty) (Single f) | (d,f) <- zip defaults fs]
+renderLayout (TMany t mDefault) (List align fs) =
+    foldr1 addParams [renderLayout (TOne d) (Single f) | (d,f) <- zip defaults fs]
   where
     defaults = case mDefault of
       Nothing -> repeat t
@@ -813,20 +807,20 @@ list23
 @
 -}
 infixl 5 >|
-(>|) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (AppendFields xs ys)
+(>|) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>|) = Beside
 
 
-beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (AppendFields xs ys)
+beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 beside = (>|)
 
 
 infixl 4 >-
-(>-) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (AppendFields xs ys)
+(>-) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>-) = Above
 
 
-above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (AppendFields xs ys)
+above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 above = (>-)
 
 
@@ -917,59 +911,67 @@ optionsFromType f = map (\x -> (f x, x)) [minBound .. maxBound]
 
 
 data TypeList xs where
-  TEmpty :: TypeList ()
-  TCons :: InputDefault x -> TypeList xs -> TypeList (x,xs)
+  TOne :: OneDefault x -> TypeList (OneField x)
+  TMany :: OneDefault x -> Maybe [OneDefault x] -> TypeList (ManyFields x)
+  TCons :: InputDefault x -> TypeList xs -> TypeList (x :> xs)
 
 
-singleFormDefaults :: Maybe a -> TypeList rest -> TypeList (OneField a,rest)
-singleFormDefaults x = TCons (OneInputDefault $ RequiredDefault x)
+infixr 5 type ++
+type family xs ++ ys :: Type where
+  OneField a ++ ys = OneField a :> ys
+  ManyFields a ++ ys = ManyFields a :> ys
+  (x :> xs) ++ ys = x :> (xs ++ ys)
 
 
-appendTypeList :: TypeList xs -> TypeList ys -> TypeList (AppendFields xs ys)
-appendTypeList TEmpty = id
+singleFormDefaults :: Maybe a -> TypeList (OneField a)
+singleFormDefaults x = TOne (RequiredDefault x)
+
+
+appendTypeList :: TypeList xs -> TypeList ys -> TypeList (xs ++ ys)
+appendTypeList (TOne x) = TCons $ OneInputDefault x
+appendTypeList (TMany t xs) = TCons $ ManyInputDefaults t xs
 appendTypeList (TCons x xs) = TCons x . appendTypeList xs
 
 
-type family xs ++ ys where
-  '[]       ++ ys = ys
-  (x ': xs) ++ ys = x ': (xs ++ ys)
-
-
 data TypeShape xs where
-  EmptyShape  :: TypeShape ()
-  ConsShape :: TypeShape xs -> TypeShape (x , xs)
+  OneShape  :: TypeShape (OneField a)
+  ManyShape :: TypeShape (ManyFields a)
+  ConsShape :: TypeShape xs -> TypeShape (x :> xs)
 
 
-splitTypeList :: TypeShape xs -> TypeList (AppendFields xs ys) -> (TypeList xs, TypeList ys)
-splitTypeList EmptyShape zs = (TEmpty, zs)
-splitTypeList (ConsShape xs) (TCons x zs) = first (TCons x) $ splitTypeList xs zs
+splitTypeList :: TypeShape xs -> TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
+splitTypeList OneShape (TCons (OneInputDefault y) ys) = (TOne y, ys)
+splitTypeList ManyShape (TCons (ManyInputDefaults t y) ys) = (TMany t y, ys)
+splitTypeList (ConsShape xs) (TCons y ys) = first (TCons y) $ splitTypeList xs ys
 
 
 pieceShape :: FormPiece t xs -> TypeShape xs
-pieceShape (Single _) = ConsShape EmptyShape
-pieceShape (List _ _) = ConsShape EmptyShape
+pieceShape Single {} = OneShape
+pieceShape List {} = ManyShape
 pieceShape (Beside x y) = appendShape (pieceShape x) $ pieceShape y
 pieceShape (Above x y) = appendShape (pieceShape x) $ pieceShape y
 
 
-appendShape :: TypeShape xs -> TypeShape ys -> TypeShape (AppendFields xs ys)
-appendShape EmptyShape ys = ys
+appendShape :: TypeShape xs -> TypeShape ys -> TypeShape (xs ++ ys)
+appendShape OneShape ys = ConsShape ys
+appendShape ManyShape ys = ConsShape ys
 appendShape (ConsShape xs) ys = ConsShape (appendShape xs ys)
 
 
-type family GFormTypes original rep rest :: Type where
-  GFormTypes original (M1 i metadata fields) rest = GFormTypes original fields rest
+type family GFormTypes original rep :: Type where
+  GFormTypes original (M1 i metadata fields) = GFormTypes original fields
 
-  GFormTypes original (K1 i field) rest = FormTypes field rest
+  GFormTypes original (K1 i field) = FormTypes field
 
-  GFormTypes original (left :*: right) rest =
-    GFormTypes original left (GFormTypes original right rest)
+  GFormTypes original (left :*: right) =
+    GFormTypes original left ++
+    GFormTypes original right
 
-  GFormTypes original (left :+: right) rest = (OneField original, rest)
+  GFormTypes original (left :+: right) = OneField original
 
 
 class GFormDefaults original rep where
-  gFormDefaults :: Maybe (rep p) -> TypeList rest -> TypeList (GFormTypes original rep rest)
+  gFormDefaults :: Maybe (rep p) -> TypeList (GFormTypes original rep)
 
 
 instance GFormDefaults original fields => GFormDefaults original (M1 i metadata fields) where
@@ -986,12 +988,12 @@ instance
   )
   => GFormDefaults original (left :*: right) where
 
-  gFormDefaults Nothing rest =
-    gFormDefaults @original @left Nothing $
-      gFormDefaults @original @right Nothing rest
-  gFormDefaults (Just (left :*: right)) rest =
-    gFormDefaults @original (Just left) $
-      gFormDefaults @original (Just right) rest
+  gFormDefaults Nothing = appendTypeList
+    (gFormDefaults @original @left Nothing)
+    (gFormDefaults @original @right Nothing)
+  gFormDefaults (Just (left :*: right)) = appendTypeList
+    (gFormDefaults @original $ Just left)
+    (gFormDefaults @original $ Just right)
 
 
 instance {-# Overlapping #-}
@@ -1031,8 +1033,12 @@ data OneField a
 data ManyFields a
 
 
+infixr 6 :>
+data x :> xs
+
+
 type family SingleInputType fields :: Type where
-  SingleInputType (OneField a, ()) = a
+  SingleInputType (OneField a) = a
 
   SingleInputType fields = TypeError
     ( 'Text "This type does not correspond to exactly one input field."
@@ -1040,7 +1046,7 @@ type family SingleInputType fields :: Type where
 
 
 getSingleDefault :: TypeList fields -> OneDefault (SingleInputType fields)
-getSingleDefault (TCons (OneInputDefault d) TEmpty) = d
+getSingleDefault (TOne d) = d
 getSingleDefault _ = error "unreachable: SingleInputType rejected this form shape"
 
 
@@ -1052,8 +1058,3 @@ data OneDefault a
 data InputDefault a where
   OneInputDefault :: OneDefault a -> InputDefault (OneField a)
   ManyInputDefaults :: OneDefault a -> Maybe [OneDefault a] -> InputDefault (ManyFields a)
-
-
-type family AppendFields xs ys :: Type where
-  AppendFields () ys = ys
-  AppendFields (x, xs) ys = (x, AppendFields xs ys)
