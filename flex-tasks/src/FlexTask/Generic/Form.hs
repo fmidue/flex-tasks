@@ -10,11 +10,9 @@ module FlexTask.Generic.Form (
   -- * Individual Field Construction
     BaseField(..)
   , TypeField
-  , basic
-  , singleChoice
-  , singleChoiceEnum
-  , multipleChoice
-  , multipleChoiceEnum
+  , basicField
+  , singleChoiceField
+  , singleChoiceEnumField
   -- * Composition and Layouting
   , FormPiece
   , (>|)
@@ -24,7 +22,11 @@ module FlexTask.Generic.Form (
   , SimpleFormPiece
   , ListFormPiece
   , AnyFormPiece
-  , single
+  , basic
+  , singleChoice
+  , singleChoiceEnum
+  , multipleChoice
+  , multipleChoiceEnum
   , list
   , listRepeatedly
   , listWithoutLabels

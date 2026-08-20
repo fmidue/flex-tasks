@@ -73,6 +73,7 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 >>> import Data.Text (Text)
 >>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Generic, Show)
 >>> data MyCoolType = Yes | No deriving (Generic, Eq)
+>>> instance Formify MyType
 >>> instance Formify MyCoolType
 >>> let toCool b = if b then Yes else No
 >>> let fromCool c = c == Yes
@@ -81,8 +82,9 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 
 
 
+-- | A type wrapper for multiple choice fields.
 newtype MultipleChoice a = MultipleChoice
-  { getAs :: [a]
+  { getChoices :: [a]
   } deriving (Eq, Show)
 
 
@@ -120,8 +122,8 @@ e.g. @(Text,Int)@ could use the fragment:
 stringIntPiece :: FormPiece t (OneField Text :> OneField Int)
 @
 
-You will mostly be able to use the simpler type synonyms `SimpleFormPiece`, `AnyFormPiece`
-or `CompleteForm` to avoid dealing with type level lists.
+You will mostly be able to use the simpler type synonyms `SimpleFormPiece`, `ListFormPiece`,
+`AnyFormPiece` or `CompleteForm` to avoid dealing with type level lists.
 -}
 data FormPiece finalType fields where
   Single :: TypeField a -> SimpleFormPiece t a
@@ -184,6 +186,7 @@ type AnyFormPiece t a = FormPiece t (FormTypes a)
 data Alignment = Horizontal | Vertical deriving (Eq,Show)
 
 
+-- | Choice between radio buttons/checkboxes and selection menus
 data ChoiceShape = Buttons Alignment | Dropdown
 
 
@@ -195,7 +198,7 @@ If the label is not left blank, then it will be displayed as normal.
 
 === __Example__
 
->>> printWidget "en" $ formify (Just $ Hidden 3) $ single $ basic ""
+>>> printWidget "en" $ formify (Just $ Hidden 3) $ basic ""
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -213,7 +216,7 @@ Normally, lists are interpreted as multiple fields instead.
 
 === __Example__
 
->>> printWidget "en" $ formify @(SingleInputList String) Nothing $ single $ basic "Input comma separated sentences"
+>>> printWidget "en" $ formify @(SingleInputList String) Nothing $ basic "Input comma separated sentences"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -232,13 +235,14 @@ newtype SingleInputList a = SingleInputList {getList :: [a]} deriving (Eq,Show)
 {- |
 Generic single choice answer type.
 Use if both of the following is true:
+
   - You want an input that presents multiple answer choices, but only allows a single selection.
   - There's no specific data type associated with this selection.
 
 === __Example__
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
->>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) $ single $ singleChoice Dropdown "Choose one" labels
+>>> printWidget "en" $ formify (Just $ singleChoiceAnswer 3) $ singleChoice Dropdown "Choose one" labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -276,13 +280,14 @@ getAnswerAsIndex = subtract 1 . getAnswer
 {- |
 Same as `SingleChoiceSelection`, but for multiple choice input.
 Use if both of the following is true:
+
   - You want an input that presents multiple answer choices and allows selecting any number of them.
   - There's no specific data type associated with this selection.
 
 === __Example__
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
->>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) $ single $ multipleChoice Dropdown "Choose one" labels
+>>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) $ multipleChoice Dropdown "Choose one" labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -310,7 +315,7 @@ The first selectable option is @1@.
 @[]@ if none are selected.
 -}
 getAnswers :: MultipleChoiceSelection -> [Int]
-getAnswers = map getAnswer . getAs
+getAnswers = map getAnswer . getChoices
 
 {- |
 Same as `getAnswers` but the selections are counted from @0@ instead of from @1@.
@@ -401,14 +406,27 @@ instance Show a => BaseField (SingleInputList a) where
 
 
 {- |
-Class for generic generation of Html input forms for a given type.
-Bodyless instances can be declared for any type instancing Generic.
-__Exception: Types with multiple constructors.__
-Use utility functions for those or provide your own instance.
+Class for generic derivation of overall form types.
+Any type you want to create a completed form for needs to be an instance of this type.
+Bodyless instances can be declared for any type deriving Generic.
+Alternatively, you can also derive Formify itself using DeriveAnyClass.
+
+__Exception: Types with multiple constructors, of which at least one has arguments.__
+Writing your own instances is not supported.
 -}
 class Formify a where
 
+  {- |
+  The type level non-empty list of types needed for a complete form, e.g.
+
+  @OneField Int@ for Int
+
+  @ManyFields Text@ for [Text]
+
+  @OneField Text :> OneField Bool@ for (Text,Bool)
+  -}
   type FormTypes (a :: Type) :: Type
+
   type FormTypes a = GFormTypes a (Rep a)
 
   formDefaults :: Maybe a -> TypeList (FormTypes a)
@@ -518,18 +536,18 @@ instance Formify (MultipleChoice a) where
 
 
 {- |
-This is the main way to build generic forms.
-Use in conjunction with `FieldInfo` builders to generate a form.
+Renders a form given an optional default value to prefill fields with
+and a matching `CompleteForm` value.
 
-Will fail if remaining `FieldInfo` structure is not empty,
-indicating the form is faulty.
-
+Note that the type of the form can only be infered if either the default is a `Just` value
+or the `CompleteForm` was previously given an explicit type signature.
+You will have to use `TypeApplications` on `formify` if none of these apply.
 
 === __Examples__
 
 Renders an input field with /type=number/ attribute, no default value and label /Age/.
 
->>> printWidget "en" $ formify @Int Nothing $ single $ basic "Age"
+>>> printWidget "en" $ formify @Int Nothing $ basic "Age"
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -545,7 +563,7 @@ They are prefilled with the values given above,
 are assigned the Css class \"helloInput\" and have no labels attached to them.
 
 >>> let defaults = ["Hallo", "Hello", "Hola", "Ciao" :: Text]
->>> printWidget "en" $ formify (Just defaults) $ listWithoutLabels Vertical 4 basic [("class","helloInput")]
+>>> printWidget "en" $ formify (Just defaults) $ listWithoutLabels Vertical 4 basicField [("class","helloInput")]
 <div class="flex-form-div form-group">
 ...
     <input id="flexident1" ... type="text" ... value="Hallo" class="helloInput">
@@ -571,7 +589,7 @@ Renders a radio button field with the given title and option labels attached.
 No option is selected when the form is loaded.
 
 >>> let labels = ["this one", "or rather that one", "I just cannot decide"]
->>> printWidget "en" $ formify @SingleChoiceSelection Nothing $ single $ singleChoice (Buttons Vertical) "Make your choice" labels
+>>> printWidget "en" $ formify @SingleChoiceSelection Nothing $ singleChoice (Buttons Vertical) "Make your choice" labels
 ...
 <div class="flex-form-div form-group">
 ...
@@ -608,7 +626,7 @@ formify
   => Maybe a
   -- ^ Optional default value.
   -> CompleteForm a
-  -- ^ Structure of the form.
+  -- ^ Structure and type of the form.
   -> Rendered Widget
   -- ^ Rendered form.
 formify mDefault = applyToWidget joinWidgets . formifyComponents mDefault
@@ -616,8 +634,9 @@ formify mDefault = applyToWidget joinWidgets . formifyComponents mDefault
 
 {- |
 like `formify`, but yields the individual sub-renders instead of a combined form.
-Retains the layout structure given by the `FieldInfo` list argument.
-This can be used in custom forms to incorporate generated inputs.
+Retains the layout structure given by the `CompleteForm` as a nested list.
+Each inner list is a row in the form layout.
+This can be used in custom forms to incorporate `formify` generated forms.
 -}
 formifyComponents
   :: Formify a
@@ -626,15 +645,22 @@ formifyComponents
   -> CompleteForm a
   -- ^ Structure and type of form
   -> Rendered [[Widget]]
-  -- ^ sub-renders
+  -- ^ structured sub-renders
 formifyComponents mDefault = renderLayout (formDefaults mDefault)
 
 
 {- |
-like `formifyComponents`, but takes a simple list of `FieldInfo` values.
-The sub-renders will also be returned as a flat list without any additional structure.
+like `formifyComponents`, but forgets the layouting information of `CompleteForm`.
+Simply returns all sub-renders in a flat list.
 -}
-formifyComponentsFlat :: Formify a => Maybe a -> CompleteForm a -> Rendered [Widget]
+formifyComponentsFlat
+  :: Formify a
+  => Maybe a
+  -- ^ Optional default value for form
+  -> CompleteForm a
+  -- ^ Structure and type of form
+  -> Rendered [Widget]
+  -- ^ sub-renders
 formifyComponentsFlat mDefault = applyToWidget concat . formifyComponents mDefault
 
 
@@ -651,7 +677,7 @@ renderField req info = case info of
     Buttons Vertical -> radioField True $ optionsPairs xs
     Buttons Horizontal -> radioField False $ optionsPairs xs) fs
   MultipleChoiceField k fs xs -> renderForm (req $
-    convertField MultipleChoice getAs $ case k of
+    convertField MultipleChoice getChoices $ case k of
       Dropdown -> multiSelectField $ optionsPairs xs
       Buttons Vertical -> checkboxField True $ optionsPairs xs
       Buttons Horizontal -> checkboxField False $ optionsPairs xs) fs
@@ -694,8 +720,8 @@ renderLayout (TMany t mDefault) (List align fs) =
 {- |
 A typed single input field.
 -}
-basic :: BaseField a => FieldSettings FlexForm -> TypeField a
-basic = Basic
+basicField :: BaseField a => FieldSettings FlexForm -> TypeField a
+basicField = Basic
 
 
 {- |
@@ -708,7 +734,7 @@ The third argument is an assignment of labels for each enum constructor.
 
 === __Examples__
 
->>> printWidget "en" $ formify (Just Two) $ single $ singleChoiceEnum (Buttons Horizontal) "Choose one" $ showToUniversalLabel @MyType
+>>> printWidget "en" $ formify (Just Two) $ singleChoiceEnum (Buttons Horizontal) "Choose one" $ showToUniversalLabel @MyType
 ...
 <div class="flex-form-div form-group">
 ...
@@ -734,7 +760,7 @@ The third argument is an assignment of labels for each enum constructor.
 ...
 </div>
 
->>> printWidget "en" $ formify (Just Two) $ single $ singleChoiceEnum Dropdown "Choose one" $ showToUniversalLabel @MyType
+>>> printWidget "en" $ formify (Just Two) $ singleChoiceEnum Dropdown "Choose one" $ showToUniversalLabel @MyType
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
@@ -757,7 +783,7 @@ The third argument is an assignment of labels for each enum constructor.
 ...
 </div>
 -}
-singleChoiceEnum
+singleChoiceEnumField
   :: (Eq a, Bounded a, Enum a)
   => ChoiceShape
   -> FieldSettings FlexForm
@@ -765,7 +791,7 @@ singleChoiceEnum
   -> (a -> SomeMessage FlexForm)
   -- ^ Function from enum type values to labels.
   -> TypeField a
-singleChoiceEnum shape fs = SingleChoiceField shape fs . optionsFromType
+singleChoiceEnumField shape fs = SingleChoiceField shape fs . optionsFromType
 
 
 
@@ -776,12 +802,12 @@ depending on the given `ChoiceShape`.
 
 See `SingleChoiceSelection` for example use.
 -}
-singleChoice
+singleChoiceField
   :: ChoiceShape
   -> FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> TypeField SingleChoiceSelection
-singleChoice shape fs = SingleChoiceField shape fs . options
+singleChoiceField shape fs = SingleChoiceField shape fs . options
 
 
 {- |
@@ -791,12 +817,12 @@ depending on the given `ChoiceShape`.
 
 See `MultipleChoiceSelection` for example use.
 -}
-multipleChoice
+multipleChoiceField
   :: ChoiceShape
   -> FieldSettings FlexForm  -- ^ FieldSettings for select input
   -> [SomeMessage FlexForm]  -- ^ Option labels
   -> TypeField MultipleChoiceSelection
-multipleChoice shape fs = MultipleChoiceField shape fs . options
+multipleChoiceField shape fs = MultipleChoiceField shape fs . options
 
 
 {- |
@@ -806,7 +832,7 @@ depending on the given `ChoiceShape`.
 
 The third argument is an assignment of labels for each enum constructor.
 -}
-multipleChoiceEnum
+multipleChoiceEnumField
   :: (Eq a, Bounded a, Enum a)
   => ChoiceShape
   -> FieldSettings FlexForm
@@ -814,15 +840,31 @@ multipleChoiceEnum
   -> (a -> SomeMessage FlexForm)
   -- ^ Function from enum type values to labels.
   -> TypeField (MultipleChoice a)
-multipleChoiceEnum shape fs = MultipleChoiceField shape fs . optionsFromType
+multipleChoiceEnumField shape fs = MultipleChoiceField shape fs . optionsFromType
 
 
-{- |
-Promotes a `TypeField` into a `FormPiece`.
-See `formify` for example use.
--}
 single :: TypeField a -> SimpleFormPiece t a
 single = Single
+
+
+basic :: BaseField a => FieldSettings FlexForm -> SimpleFormPiece t a
+basic = single . basicField
+
+
+singleChoice :: ChoiceShape -> FieldSettings FlexForm -> [SomeMessage FlexForm] -> SimpleFormPiece t SingleChoiceSelection
+singleChoice shape fs = single . singleChoiceField shape fs
+
+
+singleChoiceEnum :: (Eq a, Bounded a, Enum a) => ChoiceShape -> FieldSettings FlexForm -> (a -> SomeMessage FlexForm) -> SimpleFormPiece t a
+singleChoiceEnum shape fs = single . singleChoiceEnumField shape fs
+
+
+multipleChoice :: ChoiceShape -> FieldSettings FlexForm -> [SomeMessage FlexForm] -> SimpleFormPiece t MultipleChoiceSelection
+multipleChoice shape fs = single . multipleChoiceField shape fs
+
+
+multipleChoiceEnum :: (Eq a, Bounded a, Enum a) => ChoiceShape -> FieldSettings FlexForm -> (a -> SomeMessage FlexForm) -> SimpleFormPiece t (MultipleChoice a)
+multipleChoiceEnum shape fs = single . multipleChoiceEnumField shape fs
 
 
 {- |
@@ -920,7 +962,7 @@ The length of the list is equal to the amount of seed values provided.
 === __Example__
 
 >>> let labels = ["Input 1", "Input 2", "Input 3"]
->>> printWidget "en" $ formify @[Double] Nothing $ list Horizontal basic labels
+>>> printWidget "en" $ formify @[Double] Nothing $ list Horizontal basicField labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">

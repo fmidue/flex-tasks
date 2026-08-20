@@ -20,7 +20,6 @@ import FlexTask.Generic.Form (
   SimpleFormPiece,
   SingleChoiceSelection,
   multipleChoice,
-  single,
   singleChoice,
   )
 import FlexTask.YesodConfig             (FlexForm)
@@ -39,7 +38,7 @@ labeledCheckboxes
   -> [String]
   -- ^ individual option labels
   -> SimpleFormPiece t MultipleChoiceSelection
-labeledCheckboxes alignment fSettings = single . multipleChoice
+labeledCheckboxes alignment fSettings = multipleChoice
   (Buttons alignment)
   fSettings
   . zipWith (\a b -> universalLabel $ show a ++ ". " ++ b) [1 :: Integer ..]
@@ -58,7 +57,7 @@ anonymousRadioButtons
   -> i
   -- ^ the amount of options to provide
   -> SimpleFormPiece t SingleChoiceSelection
-anonymousRadioButtons alignment fSettings amount = single $ singleChoice
+anonymousRadioButtons alignment fSettings amount = singleChoice
   (Buttons alignment)
   fSettings
   $ map showToUniversalLabel [1.. toInteger amount]
@@ -76,5 +75,4 @@ labeledRadioButtons
   -> [SomeMessage FlexForm]
   -- ^ individual option labels
   -> SimpleFormPiece t SingleChoiceSelection
-labeledRadioButtons alignment fSettings =
-  single . singleChoice (Buttons alignment) fSettings
+labeledRadioButtons alignment = singleChoice (Buttons alignment)

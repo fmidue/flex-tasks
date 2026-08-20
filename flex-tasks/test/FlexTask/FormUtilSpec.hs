@@ -32,11 +32,11 @@ spec :: Spec
 spec = do
   let
     form1 = formify @(Int,[Text]) Nothing $
-      single (basic "test") >|
-      list Vertical basic ["test2","test3"]
-    form2 = formify @(Maybe Text) Nothing $ single $ basic "form2"
+      basic "test" >|
+      list Vertical basicField ["test2","test3"]
+    form2 = formify @(Maybe Text) Nothing $ basic "form2"
     form3 = formify (Just $ MultipleChoice [First]) $
-      single $ multipleChoiceEnum Dropdown "form3"
+      multipleChoiceEnum Dropdown "form3"
         (\a -> if a == First then "first" else "last")
 
   describe "getFormData" $

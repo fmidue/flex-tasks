@@ -188,7 +188,7 @@ getTask = do
 fieldNames :: CompleteForm Submission
 fieldNames = fromLabel Product >- fromLabel Sum
   where
-    fromLabel = single . basic . fieldSettingsLabel
+    fromLabel = basic . fieldSettingsLabel
 
 
 form :: Rendered Widget

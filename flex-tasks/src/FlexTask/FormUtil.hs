@@ -67,8 +67,8 @@ import FlexTask.YesodConfig (
 >>> import Data.List (intercalate)
 >>> import qualified Data.Text
 >>> import FlexTask.Generic.Form
->>> let myForm = formify @Int Nothing $ single $ basic "input"
->>> let myOtherForm = formify @Text Nothing $ single $ basic "input2"
+>>> let myForm = formify @Int Nothing $ basic "input"
+>>> let myOtherForm = formify @Text Nothing $ basic "input2"
 >>> let inLang l = show . renderMessage FlexForm {appLogger = undefined} [l]
 >>> :{
 instance Show (SomeMessage FlexForm) where
@@ -430,7 +430,7 @@ Used for debugging.
 
 === __Example__
 
->>> printWidget "en" $ formify @Int Nothing $ single $ basic "Number Please"
+>>> printWidget "en" $ formify @Int Nothing $ basic "Number Please"
 <div class="flex-form-div form-group">
   <input type="hidden" name="_hasdata">
   <span class="required flex-form-span">
