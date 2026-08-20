@@ -71,7 +71,7 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 >>> :set -XTypeApplications
 >>> import FlexTask.FormUtil
 >>> import Data.Text (Text)
->>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Show)
+>>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Generic, Show)
 >>> data MyCoolType = Yes | No deriving (Generic, Eq)
 >>> instance Formify MyCoolType
 >>> let toCool b = if b then Yes else No
@@ -96,28 +96,28 @@ data TypeField a where
 The layouting data type.
 Each value is a form fragment parametrized by the overall type of the complete form
 and the type of the fragment itself.
-The overall type is given as a plain normal type,
-while the type of the fragment is a type level list of types.
+The overall type is given as a plain type,
+while the type of the fragment is a type level non-empty list of types.
 This is to allow for fragments with multiple types.
 
 For example, for a product type
 
 @
-data Person = Person {name :: String, age :: Int, occupation :: String}
+data Person = Person {name :: Text, age :: Int, occupation :: Text}
 @
 
 we might want to define a form fragment that contains only the first two parts of the record,
 but is locked into becoming a @Person@ form:
 
 @
-nameAgePiece :: FormPiece Person '[String,Int]
+nameAgePiece :: FormPiece Person (OneField Text :> OneField Int)
 @
 
-or we could leave the overall type variable, so any type consisting of `String` and `Int` in that order,
-e.g. @(String,Int)@ could use the fragment:
+or we could leave the overall type variable, so any type consisting of `Text` and `Int` in that order,
+e.g. @(Text,Int)@ could use the fragment:
 
 @
-stringIntPiece :: FormPiece t '[String,Int]
+stringIntPiece :: FormPiece t (OneField Text :> OneField Int)
 @
 
 You will mostly be able to use the simpler type synonyms `SimpleFormPiece`, `AnyFormPiece`
@@ -132,20 +132,50 @@ data FormPiece finalType fields where
 {- |
 Alias for a `FormPiece` whose overall type is the same as the fragment's.
 This means the form is finished and no further pieces can be added.
+
+=== __Example__
+
+@
+personForm :: CompleteForm Person
+@
 -}
 type CompleteForm a = AnyFormPiece a a
 
 {- |
-Alias for a `FormPiece` with exactly one type
+Alias for a `FormPiece` with exactly one type and field
 that avoids having to write out the type level list.
+
+=== __Example__
+
+@
+maybeTextPiece :: SimpleFormPiece t (Maybe Text)
+@
 -}
 type SimpleFormPiece t a = FormPiece t (OneField a)
 
+
+{- |
+Alias for a `FormPiece` with exactly one type but multiple fields (a collection)
+that avoids having to write out the type level list.
+
+=== __Example__
+
+@
+doubleListPiece :: ListFormPiece t Double
+@
+-}
 type ListFormPiece t a = FormPiece t (ManyFields a)
+
 
 {- |
 Alias for a `FormPiece` with arbitrarily many types
 that avoids having to write out the type level list.
+
+=== __Example__
+
+@
+personForm :: AnyFormPiece t Person
+@
 -}
 type AnyFormPiece t a = FormPiece t (FormTypes a)
 
@@ -661,36 +691,90 @@ renderLayout (TMany t mDefault) (List align fs) =
           )
 
 
+{- |
+A typed single input field.
+-}
 basic :: BaseField a => FieldSettings FlexForm -> TypeField a
 basic = Basic
 
 
 {- |
-Same as `buttons`, but using an explicit enum type.
-Use this with custom enum types to automatically create labels
-for all constructors according to the given showing scheme.
+An input field for custom enum types.
+This is either a set of radio buttons or a selection menu,
+depending on the given `ChoiceShape`.
 
-See `formifyInstanceSingleChoice`, `formifyInstanceMultiChoice` for example use.
+The third argument is an assignment of labels for each enum constructor.
+
+
+=== __Examples__
+
+>>> printWidget "en" $ formify (Just Two) $ single $ singleChoiceEnum (Buttons Horizontal) "Choose one" $ showToUniversalLabel @MyType
+...
+<div class="flex-form-div form-group">
+...
+    <label for="flexident1">
+      Choose one
+    </label>
+    <div>
+      <span id="flexident1">
+        <label>
+          <input id="flexident1-1" type="radio" ... value="1" required...>
+          One
+        </label>
+        <label>
+          <input id="flexident1-2" type="radio" ... value="2" checked required...>
+          Two
+        </label>
+        <label>
+          <input id="flexident1-3" type="radio" ... value="3" required...>
+          Three
+        </label>
+      </span>
+    </div>
+...
+</div>
+
+>>> printWidget "en" $ formify (Just Two) $ single $ singleChoiceEnum Dropdown "Choose one" $ showToUniversalLabel @MyType
+<div class="flex-form-div form-group">
+...
+    <label for="flexident1">
+      Choose one
+    </label>
+    <select id="flexident1" ...>
+      <option value="" selected disabled>
+        &lt;None&gt;
+      </option>
+      <option value="1">
+        One
+      </option>
+      <option value="2" selected>
+        Two
+      </option>
+      <option value="3">
+        Three
+      </option>
+    </select>
+...
+</div>
 -}
 singleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
   => ChoiceShape
-  -> FieldSettings FlexForm      -- ^ FieldSettings for select input
-  -> (a -> SomeMessage FlexForm) -- ^ Function from enum type values to labels.
+  -> FieldSettings FlexForm
+  -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm)
+  -- ^ Function from enum type values to labels.
   -> TypeField a
 singleChoiceEnum shape fs = SingleChoiceField shape fs . optionsFromType
 
 
 
 {- |
-Create FieldInfo for a button field.
-Will turn into either radio buttons or checkboxes
-depending on the form type.
-Use with `SingleChoiceSelection` or `MultipleChoiceSelection`.
-__Do not use with custom enum types.__
-__Use `buttonsEnum` instead.__
+An input field for the predefined `SingleChoiceSelection` type.
+This is either a set of radio buttons or a selection menu,
+depending on the given `ChoiceShape`.
 
-See `SingleChoiceSelection`, `MultipleChoiceSelection` for example use.
+See `SingleChoiceSelection` for example use.
 -}
 singleChoice
   :: ChoiceShape
@@ -700,6 +784,13 @@ singleChoice
 singleChoice shape fs = SingleChoiceField shape fs . options
 
 
+{- |
+An input field for the predefined `MultipleChoiceSelection` type.
+This is either a set of checkboxes or a multi-selection menu,
+depending on the given `ChoiceShape`.
+
+See `MultipleChoiceSelection` for example use.
+-}
 multipleChoice
   :: ChoiceShape
   -> FieldSettings FlexForm  -- ^ FieldSettings for select input
@@ -709,14 +800,11 @@ multipleChoice shape fs = MultipleChoiceField shape fs . options
 
 
 {- |
-Create FieldInfo for a dropdown menu field.
-Will turn into either single or multiple selection field
-depending on the form type.
-Use with `SingleChoiceSelection` or `MultipleChoiceSelection`.
-__Do not use with custom enum types.__
-__Use `dropdownEnum` instead.__
+An input field for custom enum types.
+This is either a set of checkboxes or a multi-selection menu,
+depending on the given `ChoiceShape`.
 
-See `SingleChoiceSelection`, `MultipleChoiceSelection` for example use.
+The third argument is an assignment of labels for each enum constructor.
 -}
 multipleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
@@ -730,7 +818,7 @@ multipleChoiceEnum shape fs = MultipleChoiceField shape fs . optionsFromType
 
 
 {- |
-Create FieldInfo for a standalone field.
+Promotes a `TypeField` into a `FormPiece`.
 See `formify` for example use.
 -}
 single :: TypeField a -> SimpleFormPiece t a
@@ -738,6 +826,8 @@ single = Single
 
 
 {- |
+Combines two `FormPiece`s horizontally, i.e. beside each other.
+
 === __Examples__
 
 Input
@@ -801,24 +891,31 @@ infixr 5 >|
 (>|) = Combine Horizontal
 
 
+{- |
+A non-infix alias for `>|`
+-}
 beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 beside = (>|)
 
 
+{- |
+Combines two `FormPiece`s vertically, i.e. below each other.
+-}
 infixr 4 >-
 (>-) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>-) = Combine Vertical
 
 
+{- |
+A non-infix alias for `>-`
+-}
 above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 above = (>-)
 
 
 {- |
-Create FieldInfo for a number of basic fields.
-Their result will be handled as a list of values.
-Use for lists of BaseField fields like `Int`, `String`, `Double`.
-The length of the list is equal to the amount of labels provided.
+Creates a FormPiece for a list type.
+The length of the list is equal to the amount of seed values provided.
 
 === __Example__
 
@@ -843,24 +940,20 @@ The length of the list is equal to the amount of labels provided.
 ...
 </div>
 -}
-{-
-Create FieldInfo for a number of arbitrary fields.
-Takes the builder to repeatedly use for each field
-and a list of values to use it on.
-Their result will be handled as a list of values.
-Use to render lists of dropdown or button fields with different labels.
--}
 list
   :: Alignment
+  -- ^ Alignment of the individual fields
   -> (a -> TypeField b)
+  -- ^ how to build each field given an arbitrary value
   -> [a]
+  -- ^ the list of values to build individual fields out of
   -> ListFormPiece t b
 list align builder = List align . map builder
 
 
 {- |
 Same as `list`, but without using any field labels.
-Attributes and CSS classes for each field cannot be set with this function.
+Per field attributes and CSS classes cannot be set with this function.
 Instead, all fields share the given list of attributes.
 Use `list` if individual configuration is required.
 
@@ -868,23 +961,28 @@ See `formify` for example use.
 -}
 listWithoutLabels
   :: Alignment
-  -> Int           -- ^ Amount of fields
+  -- ^ Alignment of the individual fields
+  -> Int
+  -- ^ Amount of fields
   -> (FieldSettings FlexForm -> TypeField a)
-  -> [(Text,Text)] -- ^ List of attribute and value pairs (attribute "class" for classes)
+  -- ^ The `TypeField` primitive to use
+  -> [(Text,Text)]
+  -- ^ List of attribute and value pairs (attribute "class" for classes)
   -> ListFormPiece t a
 listWithoutLabels align amount req attrs =
   list align req $ replicate amount "" {fsAttrs = attrs}
 
 
 {- |
-Create FieldInfo for a list containing exact copies the specified field.
-The results of the copies will be handled as a list of values.
-Use to render lists of dropdown or button fields with identical labels.
+Same as `list` but copies a single given `TypeField` multiple times.
 -}
 listRepeatedly
   :: Alignment
-  -> Int       -- ^ How many copies
-  -> TypeField a -- ^ The field to multiply
+  -- ^ Alignment of the individual fields
+  -> Int
+  -- ^ How many copies
+  -> TypeField a
+  -- ^ The field to multiply
   -> ListFormPiece t a
 listRepeatedly alignment amount = list alignment id . replicate amount
 
@@ -906,6 +1004,7 @@ data TypeList xs where
   TCons :: InputDefault x -> TypeList xs -> TypeList (x :> xs)
 
 
+-- | type level non-empty list equivalent of "append" (++)
 infixr 5 ++
 type family xs ++ ys :: Type where
   OneField a ++ ys = OneField a :> ys
@@ -1018,10 +1117,14 @@ type family NullarySum rep :: Constraint where
       )
 
 
+-- | A marker for type forms with exactly one input field
 data OneField a
+
+-- | A marker for type forms with multiple input fields, e.g. lists.
 data ManyFields a
 
 
+-- | Type level non-empty list equivalent of "cons" (:)
 infixr 6 :>
 data x :> xs
 
