@@ -796,7 +796,7 @@ list12     list22
 list23
 @
 -}
-infixl 5 >|
+infixr 5 >|
 (>|) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>|) = Combine Horizontal
 
@@ -805,7 +805,7 @@ beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 beside = (>|)
 
 
-infixl 4 >-
+infixr 4 >-
 (>-) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
 (>-) = Combine Vertical
 
