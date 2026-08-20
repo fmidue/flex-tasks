@@ -453,7 +453,7 @@ instance Formify Double where
   formDefaults = singleFormDefaults
 
 
-instance Formify a => Formify (Hidden a) where
+instance Formify (Hidden a) where
   type FormTypes (Hidden a) = OneField (Hidden a)
   formDefaults = singleFormDefaults
 
@@ -916,7 +916,7 @@ data TypeList xs where
   TCons :: InputDefault x -> TypeList xs -> TypeList (x :> xs)
 
 
-infixr 5 type ++
+infixr 5 ++
 type family xs ++ ys :: Type where
   OneField a ++ ys = OneField a :> ys
   ManyFields a ++ ys = ManyFields a :> ys
