@@ -125,8 +125,7 @@ or `CompleteForm` to avoid dealing with type level lists.
 -}
 data FormPiece finalType fields where
   Single :: TypeField a -> SimpleFormPiece t a
-  Beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
-  Above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
+  Combine :: Alignment -> FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
   List :: Alignment -> [TypeField a] -> ListFormPiece t a
 
 
@@ -394,11 +393,12 @@ class Formify a where
   formDefaults = gFormDefaults @a . fmap from
 
 
-horizontally
-  :: Rendered [[a]]
+combineWidgets
+  :: Alignment
   -> Rendered [[a]]
   -> Rendered [[a]]
-f1 `horizontally` f2 = do
+  -> Rendered [[a]]
+combineWidgets align f1 f2 = do
     res1 <- f1
     res2 <- f2
     pure $ do
@@ -407,21 +407,11 @@ f1 `horizontally` f2 = do
       pure
         ( ids1 ++ ids2
         , nubOrd $ names1 ++ names2
-        , zipWithLongest (\xs ys -> concat $ catMaybes [xs,ys]) xss yss)
-
-
-
-vertically
-  :: Rendered [[a]]
-  -> Rendered [[a]]
-  -> Rendered [[a]]
-f1 `vertically` f2 = do
-    res1 <- f1
-    res2 <- f2
-    pure $ do
-      (ids1,names1,xss) <- res1
-      (ids2,names2,yss) <- res2
-      pure (ids1 ++ ids2, nubOrd $ names1 ++ names2, xss ++ yss)
+        , appendWidgets xss yss)
+  where
+    appendWidgets = case align of
+      Vertical -> (++)
+      Horizontal -> zipWithLongest (\xs ys -> concat $ catMaybes [xs,ys])
 
 
 instance Formify Integer where
@@ -640,10 +630,10 @@ renderField req info = case info of
 renderLayout :: TypeList a -> FormPiece t a -> Rendered [[Widget]]
 renderLayout (TOne mDefault) (Single x) = applyToWidget (singleton . singleton) $
   renderRequiredness mDefault x
-renderLayout mDefault (Beside x y) = renderLayout a x `horizontally` renderLayout b y
-  where (a,b) = splitTypeList (pieceShape x) mDefault
-renderLayout mDefault (Above x y) = renderLayout a x `vertically` renderLayout b y
-  where (a,b) = splitTypeList (pieceShape x) mDefault
+renderLayout mDefault (Combine align x y) = renderLayout a x `how` renderLayout b y
+  where
+    (a,b) = splitTypeList (pieceShape x) mDefault
+    how = combineWidgets align
 renderLayout (TMany t mDefault) (List align fs) =
     foldr1 addParams [renderLayout (TOne d) (Single f) | (d,f) <- zip defaults fs]
   where
@@ -808,7 +798,7 @@ list23
 -}
 infixl 5 >|
 (>|) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
-(>|) = Beside
+(>|) = Combine Horizontal
 
 
 beside :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
@@ -817,7 +807,7 @@ beside = (>|)
 
 infixl 4 >-
 (>-) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
-(>-) = Above
+(>-) = Combine Vertical
 
 
 above :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
@@ -948,8 +938,7 @@ splitTypeList (ConsShape xs) (TCons y ys) = first (TCons y) $ splitTypeList xs y
 pieceShape :: FormPiece t xs -> TypeShape xs
 pieceShape Single {} = OneShape
 pieceShape List {} = ManyShape
-pieceShape (Beside x y) = appendShape (pieceShape x) $ pieceShape y
-pieceShape (Above x y) = appendShape (pieceShape x) $ pieceShape y
+pieceShape (Combine _ x y) = appendShape (pieceShape x) $ pieceShape y
 
 
 appendShape :: TypeShape xs -> TypeShape ys -> TypeShape (xs ++ ys)
