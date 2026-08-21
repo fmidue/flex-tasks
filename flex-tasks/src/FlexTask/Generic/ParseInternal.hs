@@ -67,7 +67,8 @@ import FlexTask.Processing.Text (
   missingMarker,
   )
 import FlexTask.Generic.FormInternal
-  ( MultipleChoiceSelection
+  ( MultipleChoice(..)
+  , MultipleChoiceSelection
   , SingleChoiceSelection
   , SingleInputList(..)
   , multipleChoiceAnswer
@@ -105,7 +106,7 @@ class Parse a where
   >>> parseTest (formParser @[Double]) $ asSubmission [["2.0", "0.12e-12"]]
   [2.0,1.2e-13]
 
-  >>> parseTest (formParser @(String,Integer)) $ asSubmission [["Good day"],["-100"]]
+  >>> parseTest (formParser @(Text,Integer)) $ asSubmission [["Good day"],["-100"]]
   ("Good day",-100)
 
   >>> parseTest (formParser @Int) $ asSubmission [["Test"]]
@@ -126,7 +127,7 @@ class GParse f where
 instance (GParse a, GParse b) => GParse (a :*: b) where
   gparse = do
     a <- gparse
-    void $ parseText argDelimiter
+    void $ textParser argDelimiter
     b <- gparse
     pure (a :*: b)
 
@@ -144,8 +145,8 @@ instance Parse a => GParse (K1 i a) where
 
 
 
-parseString :: Parser String
-parseString = manyTill anyChar $ try $ lookAhead $
+parseText :: Parser Text
+parseText = fmap pack $ manyTill anyChar $ try $ lookAhead $
   spaces *> escape *> notFollowedBy (string "\"")
 
 
@@ -171,14 +172,8 @@ instance Parse Int where
   formParser = fromIntegral <$> formParser @Integer
 
 
-
-instance Parse String where
-  formParser = escaped parseString
-
-
-
 instance Parse Text where
-  formParser = T.pack <$> formParser
+  formParser = escaped parseText
 
 
 
@@ -209,23 +204,18 @@ instance (Parse a, Parse b, Parse c, Parse d, Parse e, Parse f) => Parse (a,b,c,
 
 
 parseList :: Parse a => Parser [a]
-parseList = try (escaped parseEmpty) <|> sepBy1 formParser (parseText listDelimiter)
+parseList = try (escaped parseEmpty) <|> sepBy1 formParser (textParser listDelimiter)
     where
-      parseEmpty = parseText missingMarker $> []
+      parseEmpty = textParser missingMarker $> []
 
 
 instance {-# Overlappable #-} Parse a => Parse [a] where
   formParser = parseList
 
 
--- To avoid clash with TypeError instance in Parse.hs
-instance Parse [String] where
-  formParser = parseList
-
-
 instance Parse a => Parse (Maybe a) where
   formParser = do
-    mValue <- optionMaybe $ try $ escaped $ parseText emptyMarker
+    mValue <- optionMaybe $ try $ escaped $ textParser emptyMarker
     case mValue of
       Nothing -> Just <$> formParser
       Just _  -> pure Nothing
@@ -247,16 +237,12 @@ instance Parse (SingleInputList Int) where
   formParser = parseInstanceSingleInputList int
 
 
-instance Parse (SingleInputList String) where
-  formParser = parseInstanceSingleInputList parseString
-
-
 instance Parse (SingleInputList Text) where
-  formParser = parseInstanceSingleInputList $ T.pack <$> parseString
+  formParser = parseInstanceSingleInputList parseText
 
 
 instance Parse (SingleInputList Textarea) where
-  formParser = parseInstanceSingleInputList $ Textarea . T.pack <$> parseString
+  formParser = parseInstanceSingleInputList $ Textarea <$> parseText
 
 
 instance Parse (SingleInputList Bool) where
@@ -289,16 +275,16 @@ parseInstanceSingleChoice = toEnum . subtract 1 <$> formParser
 
 
 {- |
-Same as `parseInstanceSingleChoice`, but for parsing a List of the given type, i.e. a multiple choice version.
+Same as `parseInstanceSingleChoice`, but for parsing a multiple choice answer.
 
 === __Example __
 
->>> instance Parse [MyType] where formParser = parseInstanceMultiChoice
->>> parseTest (formParser @[MyType]) $ asSubmission [["1","3"]]
-[One,Three]
+>>> instance Parse (MultipleChoice MyType) where formParser = parseInstanceMultiChoice
+>>> parseTest (formParser @(MultipleChoice MyType)) $ asSubmission [["1","3"]]
+MultipleChoice {getChoices = [One,Three]}
 -}
-parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser [a]
-parseInstanceMultiChoice = map (toEnum . subtract 1) <$> parseWithEmptyMarker
+parseInstanceMultiChoice :: (Bounded a, Enum a, Eq a) => Parser (MultipleChoice a)
+parseInstanceMultiChoice = MultipleChoice . map (toEnum . subtract 1) <$> parseWithEmptyMarker
 
 
 
@@ -332,7 +318,7 @@ parseWithEmptyMarker = filter (>0) <$> formParser
 
 escape :: Parser String
 escape = esc *> esc
-  where esc = parseText inputEscape
+  where esc = textParser inputEscape
 
 
 
@@ -362,8 +348,8 @@ escaped = between (escape *> spaces) (spaces *> escape)
 
 
 
-parseText :: Text -> Parser String
-parseText t = string $ T.unpack t
+textParser :: Text -> Parser String
+textParser = string . T.unpack
 
 
 
@@ -546,7 +532,7 @@ Used for debugging parsers.
 
 === __Examples__
 
->>> parseTest (formParser @([Integer],String)) $ asSubmission [["20","34","-7"], ["Some Answer"]]
+>>> parseTest (formParser @([Integer],Text)) $ asSubmission [["20","34","-7"], ["Some Answer"]]
 ([20,34,-7],"Some Answer")
 -}
 asSubmission :: [[String]] -> String
