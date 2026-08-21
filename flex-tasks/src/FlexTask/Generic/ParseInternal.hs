@@ -203,14 +203,12 @@ instance (Parse a, Parse b, Parse c, Parse d, Parse e, Parse f) => Parse (a,b,c,
 
 
 
-parseList :: Parse a => Parser [a]
-parseList = try (escaped parseEmpty) <|> sepBy1 formParser (textParser listDelimiter)
+instance Parse a => Parse [a] where
+  formParser =
+      try (escaped parseEmpty) <|>
+      sepBy1 formParser (textParser listDelimiter)
     where
       parseEmpty = textParser missingMarker $> []
-
-
-instance {-# Overlappable #-} Parse a => Parse [a] where
-  formParser = parseList
 
 
 instance Parse a => Parse (Maybe a) where
