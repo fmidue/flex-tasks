@@ -7,21 +7,17 @@ Generic `Yesod` input form generation and related utility functions.
 -}
 
 module FlexTask.Generic.Form (
-  -- * Individual Field Construction
-    BaseField(..)
-  , TypeField
-  , basicField
-  , singleChoiceField
-  , singleChoiceEnumField
   -- * Composition and Layouting
-  , FormPiece
+    FormPiece
   , (>|)
   , beside
   , (>-)
   , above
+  -- * Typed Forms
   , SimpleFormPiece
   , ListFormPiece
   , AnyFormPiece
+  , BaseField(..)
   , basic
   , singleChoice
   , singleChoiceEnum
@@ -30,6 +26,11 @@ module FlexTask.Generic.Form (
   , list
   , listRepeatedly
   , listWithoutLabels
+  -- * Fields for List Forms
+  , TypeField
+  , basicField
+  , singleChoiceField
+  , singleChoiceEnumField
   -- * Rendering Completed Forms
   , Formify(FormTypes)
   , CompleteForm

@@ -88,6 +88,7 @@ newtype MultipleChoice a = MultipleChoice
   } deriving (Eq, Show)
 
 
+-- | Represents a specific input field associated with given type @a@.
 data TypeField a where
   Basic :: BaseField a => (FieldSettings FlexForm) -> TypeField a
   SingleChoiceField :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
@@ -725,7 +726,85 @@ basicField = Basic
 
 
 {- |
-An input field for custom enum types.
+A `TypeField` for custom enum types.
+This is either a set of radio buttons or a selection menu,
+depending on the given `ChoiceShape`.
+
+The third argument is an assignment of labels for each enum constructor.
+-}
+singleChoiceEnumField
+  :: (Eq a, Bounded a, Enum a)
+  => ChoiceShape
+  -> FieldSettings FlexForm
+  -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm)
+  -- ^ Function from enum type values to labels.
+  -> TypeField a
+singleChoiceEnumField shape fs = SingleChoiceField shape fs . optionsFromType
+
+
+{- |
+A `TypeField` for the predefined `SingleChoiceSelection` type.
+This is either a set of radio buttons or a selection menu,
+depending on the given `ChoiceShape`.
+-}
+singleChoiceField
+  :: ChoiceShape
+  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
+  -> [SomeMessage FlexForm]  -- ^ Option labels
+  -> TypeField SingleChoiceSelection
+singleChoiceField shape fs = SingleChoiceField shape fs . options
+
+
+multipleChoiceField
+  :: ChoiceShape
+  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
+  -> [SomeMessage FlexForm]  -- ^ Option labels
+  -> TypeField MultipleChoiceSelection
+multipleChoiceField shape fs = MultipleChoiceField shape fs . options
+
+
+multipleChoiceEnumField
+  :: (Eq a, Bounded a, Enum a)
+  => ChoiceShape
+  -> FieldSettings FlexForm
+  -- ^ FieldSettings for select input
+  -> (a -> SomeMessage FlexForm)
+  -- ^ Function from enum type values to labels.
+  -> TypeField (MultipleChoice a)
+multipleChoiceEnumField shape fs = MultipleChoiceField shape fs . optionsFromType
+
+
+single :: TypeField a -> SimpleFormPiece t a
+single = Single
+
+
+{- |
+A typed single input `FormPiece`.
+-}
+basic :: BaseField a => FieldSettings FlexForm -> SimpleFormPiece t a
+basic = single . basicField
+
+
+{- |
+A `FormPiece` for the predefined `SingleChoiceSelection` type.
+This is either a set of radio buttons or a selection menu,
+depending on the given `ChoiceShape`.
+
+See `SingleChoiceSelection` for example use.
+-}
+singleChoice
+  :: ChoiceShape
+  -> FieldSettings FlexForm
+  -- ^ FieldSettings for select input
+  -> [SomeMessage FlexForm]
+  -- ^ option labels
+  -> SimpleFormPiece t SingleChoiceSelection
+singleChoice shape fs = single . singleChoiceField shape fs
+
+
+{- |
+A `FormPiece` for custom enum types.
 This is either a set of radio buttons or a selection menu,
 depending on the given `ChoiceShape`.
 
@@ -783,87 +862,48 @@ The third argument is an assignment of labels for each enum constructor.
 ...
 </div>
 -}
-singleChoiceEnumField
+singleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
   => ChoiceShape
   -> FieldSettings FlexForm
   -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm)
-  -- ^ Function from enum type values to labels.
-  -> TypeField a
-singleChoiceEnumField shape fs = SingleChoiceField shape fs . optionsFromType
-
-
-
-{- |
-An input field for the predefined `SingleChoiceSelection` type.
-This is either a set of radio buttons or a selection menu,
-depending on the given `ChoiceShape`.
-
-See `SingleChoiceSelection` for example use.
--}
-singleChoiceField
-  :: ChoiceShape
-  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
-  -> [SomeMessage FlexForm]  -- ^ Option labels
-  -> TypeField SingleChoiceSelection
-singleChoiceField shape fs = SingleChoiceField shape fs . options
+  -- ^ Function from enum type values to labels
+  -> SimpleFormPiece t a
+singleChoiceEnum shape fs = single . singleChoiceEnumField shape fs
 
 
 {- |
-An input field for the predefined `MultipleChoiceSelection` type.
+A `FormPiece` for the predefined `MultipleChoiceSelection` type.
 This is either a set of checkboxes or a multi-selection menu,
 depending on the given `ChoiceShape`.
 
 See `MultipleChoiceSelection` for example use.
 -}
-multipleChoiceField
+multipleChoice
   :: ChoiceShape
-  -> FieldSettings FlexForm  -- ^ FieldSettings for select input
-  -> [SomeMessage FlexForm]  -- ^ Option labels
-  -> TypeField MultipleChoiceSelection
-multipleChoiceField shape fs = MultipleChoiceField shape fs . options
+  -> FieldSettings FlexForm
+  -- ^ FieldSettings for select input
+  -> [SomeMessage FlexForm]
+  -> SimpleFormPiece t MultipleChoiceSelection
+multipleChoice shape fs = single . multipleChoiceField shape fs
 
 
 {- |
-An input field for custom enum types.
+A `FormPiece` for custom enum types.
 This is either a set of checkboxes or a multi-selection menu,
 depending on the given `ChoiceShape`.
 
 The third argument is an assignment of labels for each enum constructor.
 -}
-multipleChoiceEnumField
+multipleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
   => ChoiceShape
   -> FieldSettings FlexForm
   -- ^ FieldSettings for select input
   -> (a -> SomeMessage FlexForm)
-  -- ^ Function from enum type values to labels.
-  -> TypeField (MultipleChoice a)
-multipleChoiceEnumField shape fs = MultipleChoiceField shape fs . optionsFromType
-
-
-single :: TypeField a -> SimpleFormPiece t a
-single = Single
-
-
-basic :: BaseField a => FieldSettings FlexForm -> SimpleFormPiece t a
-basic = single . basicField
-
-
-singleChoice :: ChoiceShape -> FieldSettings FlexForm -> [SomeMessage FlexForm] -> SimpleFormPiece t SingleChoiceSelection
-singleChoice shape fs = single . singleChoiceField shape fs
-
-
-singleChoiceEnum :: (Eq a, Bounded a, Enum a) => ChoiceShape -> FieldSettings FlexForm -> (a -> SomeMessage FlexForm) -> SimpleFormPiece t a
-singleChoiceEnum shape fs = single . singleChoiceEnumField shape fs
-
-
-multipleChoice :: ChoiceShape -> FieldSettings FlexForm -> [SomeMessage FlexForm] -> SimpleFormPiece t MultipleChoiceSelection
-multipleChoice shape fs = single . multipleChoiceField shape fs
-
-
-multipleChoiceEnum :: (Eq a, Bounded a, Enum a) => ChoiceShape -> FieldSettings FlexForm -> (a -> SomeMessage FlexForm) -> SimpleFormPiece t (MultipleChoice a)
+  -- ^ Function from enum type values to labels
+  -> SimpleFormPiece t (MultipleChoice a)
 multipleChoiceEnum shape fs = single . multipleChoiceEnumField shape fs
 
 
@@ -999,7 +1039,35 @@ Per field attributes and CSS classes cannot be set with this function.
 Instead, all fields share the given list of attributes.
 Use `list` if individual configuration is required.
 
-See `formify` for example use.
+=== __Example__
+
+Renders a series of four input fields of type Text
+organized vertically beneath each other.
+They are prefilled with the values given above,
+assigned the Css class \"helloInput\" and have no labels attached to them.
+
+>>> let defaults = ["Hallo", "Hello", "Hola", "Ciao" :: Text]
+>>> printWidget "en" $ formify (Just defaults) $ listWithoutLabels Vertical 4 basicField [("class","helloInput")]
+<div class="flex-form-div form-group">
+...
+    <input id="flexident1" ... type="text" ... value="Hallo" class="helloInput">
+...
+</div>
+<div class="flex-form-div form-group">
+...
+    <input id="flexident2" ... type="text" ... value="Hello" class="helloInput">
+...
+</div>
+<div class="flex-form-div form-group">
+...
+    <input id="flexident3" ... type="text" ... value="Hola" class="helloInput">
+...
+</div>
+<div class="flex-form-div form-group">
+...
+    <input id="flexident4" ... type="text" ... value="Ciao" class="helloInput">
+...
+</div>
 -}
 listWithoutLabels
   :: Alignment
