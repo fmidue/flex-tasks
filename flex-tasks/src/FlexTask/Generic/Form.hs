@@ -27,6 +27,7 @@ module FlexTask.Generic.Form (
   , listRepeatedly
   , listWithoutLabels
   -- * Fields for List Forms
+  -- $TypeFields
   , TypeField
   , basicField
   , singleChoiceField
@@ -62,3 +63,20 @@ module FlexTask.Generic.Form (
   ) where
 
 import FlexTask.Generic.FormInternal
+
+
+{- $TypeFields
+
+The functions in this section are identical to their counterparts producing a `FormPiece`,
+for example `basicField` is the same as `basic`, but has a different type.
+
+Their purpose is to restrict the options that can be used with `list` on the type level.
+`list` must take a `TypeField` value to multiply.
+It cannot take a composed `FormPiece` obtained through use of e.g. `>|`.
+
+The restriction is necessary,
+because the current approach to parsing the user input cannot handle arbitrary combinations,
+but only a specific subset of those.
+There is also no `TypeField` equivalent for `multipleChoice` and `multipleChoiceEnum` for the same reason.
+Lists of `MultipleChoice` forms are therefore not supported at the moment.
+-}
