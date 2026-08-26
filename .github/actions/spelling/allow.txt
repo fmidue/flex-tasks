@@ -24,6 +24,7 @@ mform
 MForms
 mopt
 pkgdb
+requiredness
 standalone
 typeclasses
 thd

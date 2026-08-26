@@ -1,8 +1,8 @@
 Buf
+Enctype
 flexident
 formify
 getline
-gformify
 ghs
 gparse
 gread
@@ -18,9 +18,9 @@ RWS
 syb
 subdirs
 TIO
+TCons
+TMany
 Uml
-uncons
-unsnoc
 usr
 wbr
 YOURFORM
