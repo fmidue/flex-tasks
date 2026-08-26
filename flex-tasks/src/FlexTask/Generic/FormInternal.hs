@@ -92,8 +92,18 @@ newtype MultipleChoice a = MultipleChoice
 -- | Represents a specific input field associated with given type @a@.
 data TypeField a where
   Basic :: BaseField a => (FieldSettings FlexForm) -> TypeField a
-  SingleChoiceField :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField a
-  MultipleChoiceField :: Eq a => ChoiceShape -> (FieldSettings FlexForm) -> [(SomeMessage FlexForm, a)] -> TypeField (MultipleChoice a)
+  SingleChoiceField
+    :: Eq a
+    => ChoiceShape
+    -> (FieldSettings FlexForm)
+    -> [(SomeMessage FlexForm, a)]
+    -> TypeField a
+  MultipleChoiceField
+    :: Eq a
+    => ChoiceShape
+    -> (FieldSettings FlexForm)
+    -> [(SomeMessage FlexForm, a)]
+    -> TypeField (MultipleChoice a)
 
 
 {- |
@@ -400,10 +410,7 @@ class Formify a where
   formDefaults :: Maybe a -> TypeList (FormTypes a)
 
   default formDefaults
-    :: ( Generic a
-       , GFormDefaults a (Rep a)
-       , FormTypes a ~ GFormTypes a (Rep a)
-       )
+    :: (Generic a, GFormDefaults a (Rep a), FormTypes a ~ GFormTypes a (Rep a))
     => Maybe a
     -> TypeList (FormTypes a)
   formDefaults = gFormDefaults @a . fmap from
@@ -901,7 +908,8 @@ The third argument is an assignment of labels for each enum constructor.
 
 === __Examples__
 
->>> printWidget "en" $ formify (Just $ MultipleChoice [Two,Three]) $ multipleChoiceEnum (Buttons Horizontal) "Choose" $ showToUniversalLabel @MyType
+>>> let prefill = Just $ MultipleChoice [Two,Three]
+>>> printWidget "en" $ formify prefill $ multipleChoiceEnum (Buttons Horizontal) "Choose" $ showToUniversalLabel @MyType
 ...
 <div class="flex-form-div form-group">
 ...
@@ -927,7 +935,8 @@ The third argument is an assignment of labels for each enum constructor.
 
 ![rendered multiple choice enum field](doc-images/multiple_choice_enum_buttons.png)
 
->>> printWidget "en" $ formify (Just $ MultipleChoice [Two,Three]) $ multipleChoiceEnum Dropdown "Choose some" $ showToUniversalLabel @MyType
+>>> let prefill = Just $ MultipleChoice [Two,Three]
+>>> printWidget "en" $ formify prefill $ multipleChoiceEnum Dropdown "Choose some" $ showToUniversalLabel @MyType
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
