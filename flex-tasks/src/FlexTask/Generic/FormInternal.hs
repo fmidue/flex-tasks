@@ -552,43 +552,7 @@ You will have to use `TypeApplications` on `formify` if that's not the case, e.g
 formify @(Text, Maybe Bool) Nothing $ basic "last name" >- basic "receive newsletter?"
 @
 
-=== __Examples__
-
-Renders a radio button field with the given title and option labels attached.
-No option is selected when the form is loaded.
-
->>> let labels = ["this one", "or rather that one", "I just cannot decide"]
->>> printWidget "en" $ formify @SingleChoiceSelection Nothing $ singleChoice (Buttons Vertical) "Make your choice" labels
-...
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Make your choice
-    </label>
-    <div>
-      <span id="flexident1">
-        <div>
-          <label>
-            <input id="flexident1-1" type="radio" ... value="1" ...>
-            this one
-          </label>
-        </div>
-        <div>
-          <label>
-            <input id="flexident1-2" type="radio" ... value="2" ...>
-            or rather that one
-          </label>
-        </div>
-        <div>
-          <label>
-            <input id="flexident1-3" type="radio" ... value="3" ...>
-            I just cannot decide
-          </label>
-        </div>
-      </span>
-    </div>
-...
-</div>
+More examples can be found under sections /Creating Form Pieces/ and /Composition and Layout/
 -}
 formify
   :: Formify a
@@ -765,6 +729,8 @@ A typed single input `FormPiece`.
     <input id="flexident1" name="flex1" type="number" step="1" required="" value="">
 ...
 </div>
+
+![rendered Int form piece](doc-images/basic.png)
 -}
 basic :: BaseField a => FieldSettings FlexForm -> SimpleFormPiece t a
 basic = single . basicField
@@ -800,6 +766,8 @@ depending on the given `ChoiceShape`.
     </select>
 ...
 </div>
+
+![rendered single choice field](doc-images/single_choice.png)
 -}
 singleChoice
   :: ChoiceShape
@@ -847,6 +815,8 @@ The third argument is an assignment of labels for each enum constructor.
 ...
 </div>
 
+![rendered single choice enum field](doc-images/single_choice_enum_buttons.png)
+
 >>> printWidget "en" $ formify (Just Two) $ singleChoiceEnum Dropdown "Choose one" $ showToUniversalLabel @MyType
 <div class="flex-form-div form-group">
 ...
@@ -869,6 +839,8 @@ The third argument is an assignment of labels for each enum constructor.
     </select>
 ...
 </div>
+
+![rendered single choice enum field 2](doc-images/single_choice_enum_dropdown.png)
 -}
 singleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
@@ -889,11 +861,11 @@ depending on the given `ChoiceShape`.
 === __Example__
 
 >>> let labels = ["First Option", "Second Option", "Third Option"]
->>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) $ multipleChoice Dropdown "Choose one" labels
+>>> printWidget "en" $ formify (Just $ multipleChoiceAnswer [1,2]) $ multipleChoice Dropdown "Choose some" labels
 <div class="flex-form-div form-group">
 ...
     <label for="flexident1">
-      Choose one
+      Choose some
     </label>
     <select id="flexident1" ... multiple>
       <option value="1" selected>
@@ -908,6 +880,8 @@ depending on the given `ChoiceShape`.
     </select>
 ...
 </div>
+
+![rendered multiple choice field](doc-images/multiple_choice_dropdown.png)
 -}
 multipleChoice
   :: ChoiceShape
@@ -951,6 +925,8 @@ The third argument is an assignment of labels for each enum constructor.
 ...
 </div>
 
+![rendered multiple choice enum field](doc-images/multiple_choice_enum_buttons.png)
+
 >>> printWidget "en" $ formify (Just $ MultipleChoice [Two,Three]) $ multipleChoiceEnum Dropdown "Choose some" $ showToUniversalLabel @MyType
 <div class="flex-form-div form-group">
 ...
@@ -970,6 +946,8 @@ The third argument is an assignment of labels for each enum constructor.
     </select>
 ...
 </div>
+
+![rendered multiple choice enum field](doc-images/multiple_choice_enum_dropdown.png)
 -}
 multipleChoiceEnum
   :: (Eq a, Bounded a, Enum a)
@@ -995,9 +973,7 @@ basic \"field1\" >| basic \"field2\"
 
 Renders as:
 
-@
-field1     field2
-@
+![horizontal composition](doc-images/horizontal_composition.png)
 
 Horizontal composition does not preserve empty columns when the two pieces have different numbers of rows.
 If the right-hand piece is taller than the left-hand piece,
@@ -1006,28 +982,16 @@ its remaining rows will therefore appear in the leftmost position.
 Input
 
 @
-listWithoutLabels Vertical 2 basicField [] >| listWithoutLabels Vertical 3 basicField []
+list Vertical basicField ["field1_1, field1_2"] >| list Vertical basicField ["field2_1", "field2_2", field2_3]
 @
 
 will __not__ result in
 
-@
-list11      list21
-
-list12      list22
-
-            list23
-@
+![horizontal composition expectation](doc-images/horizontal_caution_wrong.png)
 
 but instead in
 
-@
-list11     list21
-
-list12     list22
-
-list23
-@
+![horizontal composition reality](doc-images/horizontal_caution_correct.png)
 -}
 infixr 5 >|
 (>|) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
@@ -1054,11 +1018,7 @@ basic \"field1\" >- basic \"field2\"
 
 Renders as:
 
-@
-field1
-
-field2
-@
+![vertical composition](doc-images/vertical_composition.png)
 -}
 infixr 4 >-
 (>-) :: FormPiece t xs -> FormPiece t ys -> FormPiece t (xs ++ ys)
@@ -1107,6 +1067,8 @@ Otherwise you will encounter a runtime error.
     <input id="flexident3" ... type="number" step="any" ...>
 ...
 </div>
+
+![rendered list of fields](doc-images/list_basic.png)
 -}
 list
   :: Alignment
@@ -1163,6 +1125,8 @@ assigned the CSS class \"helloInput\" and have no labels attached to them.
     <input id="flexident4" ... type="text" ... value="Ciao" class="helloInput">
 ...
 </div>
+
+![rendered list of unlabeled fields](doc-images/list_without_labels_basic.png)
 -}
 listWithoutLabels
   :: Alignment
@@ -1217,6 +1181,8 @@ Otherwise you will encounter a runtime error.
     <input id="flexident3" ... type="number" ... value="">
 ...
 </div>
+
+![rendered repetition of a field](doc-images/list_repeatedly_basic.png)
 -}
 listRepeatedly
   :: Alignment
