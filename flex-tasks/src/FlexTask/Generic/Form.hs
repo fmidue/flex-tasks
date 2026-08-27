@@ -66,6 +66,7 @@ module FlexTask.Generic.Form (
   -- * Type-Level Helper Types
   , OneField
   , ManyFields
+  , CanBeOptional
   , (:>)
   , type (++)
   ) where

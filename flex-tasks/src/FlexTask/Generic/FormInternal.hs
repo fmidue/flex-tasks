@@ -495,7 +495,7 @@ instance {-# Overlappable #-} Formify a => Formify [a] where
       a = map (getSingleDefault . formDefaults . Just) <$> mValues
 
 
-instance Formify (Maybe a) where
+instance CanBeOptional a => Formify (Maybe a) where
   type FormTypes (Maybe a) = OneField a
   formDefaults m = TOne $ OptionalDefault $ join m
 
@@ -1367,3 +1367,20 @@ data OneDefault a
 data InputDefault a where
   OneInputDefault :: OneDefault a -> InputDefault (OneField a)
   ManyInputDefaults :: OneDefault a -> Maybe [OneDefault a] -> InputDefault (ManyFields a)
+
+
+-- | A constraint for types that can meaningfully be made optional.
+type family CanBeOptional a :: Constraint where
+  CanBeOptional (MultipleChoice a) =
+    TypeError
+      ( 'Text "MultipleChoice cannot be optional."
+        ':$$:
+        'Text "No selection is represented by the empty list."
+      )
+  CanBeOptional [a] =
+    TypeError
+      ( 'Text "Lists cannot be optional as a whole."
+        ':$$:
+        'Text "Use type [Maybe a] to turn all fields optional instead."
+      )
+  CanBeOptional a = ()
