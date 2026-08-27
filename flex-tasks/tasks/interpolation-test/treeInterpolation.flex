@@ -80,8 +80,8 @@ getTask = fromGen $ do
 
 
 
-fields :: [[FieldInfo]]
-fields = [[single "Tree Sum"],[single "Tree Product"]]
+fields :: CompleteForm Submission
+fields = basic "Tree Sum" >- basic "Tree Product"
 
 
 form :: Rendered Widget

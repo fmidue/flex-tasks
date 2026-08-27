@@ -41,8 +41,8 @@ getTask = fromGen $ do
 
 
 
-fields :: [[FieldInfo]]
-fields = [[single "Number one"], [single "Number two"]]
+fields :: CompleteForm Submission
+fields = basic "Number one" >- basic "Number two"
 
 
 form :: Rendered Widget

@@ -161,7 +161,7 @@ getTask = pure ((), checkers, form)
 form :: Rendered Widget
 form = formify
   (Nothing :: Maybe Submission)
-  [[single $ fieldSettingsLabel MatriculationNumberInput]]
+  $ basic $ fieldSettingsLabel MatriculationNumberInput
 
 
 checkers :: String
