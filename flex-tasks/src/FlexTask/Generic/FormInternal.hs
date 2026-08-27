@@ -86,7 +86,7 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 newtype MultipleChoice a = MultipleChoice
   { getChoices :: [a]
   -- ^ Retrieve the selected values
-  } deriving (Eq, Show)
+  } deriving (Eq, Generic, Show)
 
 
 -- | Represents a specific input field associated with given type @a@.
