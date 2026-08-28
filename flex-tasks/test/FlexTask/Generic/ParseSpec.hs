@@ -25,6 +25,7 @@ import Text.Parsec.String               (Parser)
 import Yesod (Textarea(..))
 
 import FlexTask.Generic.Form (
+  MultipleChoice(..),
   singleChoiceAnswer,
   multipleChoiceAnswer,
   )
@@ -37,7 +38,7 @@ data TestEnum = One | Two | Three deriving (Bounded, Enum, Eq, Show)
 instance Parse TestEnum where
   formParser = parseInstanceSingleChoice
 
-instance Parse [TestEnum] where
+instance Parse (MultipleChoice TestEnum) where
   formParser = parseInstanceMultiChoice
 
 
@@ -51,7 +52,6 @@ spec = do
 
   describe "formParser" $ do
     context "should work for all base types" $ do
-      prop "String" $ testParsingString id
       prop "Text" $ testParsingString pack
       prop "Textarea" $ testParsingString $ Textarea . pack
       prop "Bool" $ testParsing boolShow
@@ -59,7 +59,6 @@ spec = do
       prop "Double" $ \a -> parsesNear @Double (escapedSingle (show a)) a $ doubleInaccuracy a
 
     context "should work for lists" $ do
-      prop "String" $ testParsingStringList id
       prop "Text" $ testParsingStringList pack
       prop "Textarea" $ testParsingStringList (Textarea . pack)
       prop "Bool" $ testParsingList boolShow
@@ -68,7 +67,6 @@ spec = do
         and . zipWith doubleInaccuracy a
 
     context "should work for optional values" $ do
-      prop "String" $ testParsingMaybe id
       prop "Text" $ testParsingMaybe pack
       prop "Textarea" $ testParsingMaybe (Textarea . pack)
       prop "Bool" $ testParsing $ maybeShow boolShow
@@ -77,7 +75,6 @@ spec = do
         compareMaybeDoubles a
 
     context "should work for lists of optional values" $ do
-      prop "String" $ testParsingMaybeStringList id
       prop "Text" $ testParsingMaybeStringList pack
       prop "Textarea" $ testParsingMaybeStringList (Textarea . pack)
       prop "Bool" $ testParsingList $ maybeShow boolShow
@@ -98,7 +95,7 @@ spec = do
     specify "multiple choice works" $
       forAll (sublistOf [0..2]) $ \is ->
         escapedList (map show is) `parsesTo`
-        map (toEnum @TestEnum . subtract 1) (removeEmpty is)
+        MultipleChoice (map (toEnum @TestEnum . subtract 1) $ removeEmpty is)
   where
     testParse = many1 digit
     boolShow b = if b then "yes" else "no"

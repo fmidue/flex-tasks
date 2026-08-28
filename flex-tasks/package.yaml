@@ -3,6 +3,8 @@ name: flex-tasks
 version: 0.1
 extra-source-files:
   - tasks/defaultConfig.flex
+extra-doc-files:
+  - doc-images/*.png
 dependencies:
   - autotool-capabilities
   - autotool-capabilities-io-instances

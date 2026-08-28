@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# language AllowAmbiguousTypes #-}
-{-# language OverloadedStrings #-}
+
+{-# language DataKinds #-}
+{-# language DeriveAnyClass #-}
+{-# language DeriveGeneric #-}
 
 module FlexTask.Generic.FormSpec where
 
@@ -8,6 +10,7 @@ module FlexTask.Generic.FormSpec where
 import Data.Maybe                       (fromMaybe)
 import Data.String                      (fromString)
 import Data.Text                        (Text)
+import GHC.Generics                     (Generic)
 import Test.Hspec (
   Spec,
   anyErrorCall,
@@ -18,6 +21,7 @@ import Test.Hspec (
   )
 import Test.QuickCheck (
   Arbitrary(..),
+  Blind(..),
   Gen,
   Property,
   chooseInt,
@@ -35,127 +39,154 @@ import FlexTask.YesodConfig             (FlexForm)
 
 
 
-data TestEnum = One | Two | Three deriving (Bounded, Enum, Eq)
-
-instance Formify TestEnum where
-  formifyImplementation = formifyInstanceSingleChoice
-
-instance Formify [TestEnum] where
-  formifyImplementation = formifyInstanceMultiChoice
+data TestEnum = One | Two | Three
+  deriving (Bounded, Enum, Eq, Formify, Generic)
 
 
 spec :: Spec
 spec = do
   describe "formify" $ do
     context "should work for all standard types" $ do
-      specify "String" $
-        runTest @String singleInfo
       specify "Text" $
-        runTest @Text singleInfo
+        runTest @Text simpleForm
       specify "TextArea" $
-        runTest @Textarea singleInfo
+        runTest @Textarea simpleForm
       specify "Bool" $
-        runTest @Bool singleInfo
+        runTest @Bool simpleForm
       specify "Int" $
-        runTest @Int singleInfo
+        runTest @Int simpleForm
       specify "Double" $
-        runTest @Double singleInfo
+        runTest @Double simpleForm
 
     context "should work for optional values" $ do
-      specify "String" $
-        runTest @(Maybe String) singleInfo
       specify "Text" $
-        runTest @(Maybe Text) singleInfo
+        runTest $ optionalSimpleForm @Text
       specify "Textarea" $
-        runTest @(Maybe Textarea) singleInfo
+        runTest $ optionalSimpleForm @Textarea
       specify "Bool" $
-        runTest @(Maybe Bool) singleInfo
+        runTest $ optionalSimpleForm @Bool
       specify "Int" $
-        runTest @(Maybe Int) singleInfo
+        runTest $ optionalSimpleForm @Int
       specify "Double" $
-        runTest @(Maybe Double) singleInfo
+        runTest $ optionalSimpleForm @Double
 
     context "should work for lists" $ do
-      specify "String" $
-        runTest @[String] listInfo
       specify "Text" $
-        runTest @[Text] listInfo
+        runTest $ requiredListForm @Text
       specify "Textarea" $
-        runTest @[Textarea] listInfo
+        runTest $ requiredListForm @Textarea
       specify "Bool" $
-        runTest @[Bool] listInfo
+        runTest $ requiredListForm @Bool
       specify "Int" $
-        runTest @[Int] listInfo
+        runTest $ requiredListForm @Int
       specify "Double" $
-        runTest @[Double] listInfo
+        runTest $ requiredListForm @Double
 
     context "should work for lists of optional values" $ do
-      specify "String" $
-        runTest @[Maybe String] listInfo
       specify "Text" $
-        runTest @[Maybe Text] listInfo
+        runTest $ optionalListForm @Text
       specify "Textarea" $
-        runTest @[Maybe Textarea] listInfo
+        runTest $ optionalListForm @Textarea
       specify "Bool" $
-        runTest @[Maybe Bool] listInfo
+        runTest $ optionalListForm @Bool
       specify "Int" $
-        runTest @[Maybe Int] listInfo
+        runTest $ optionalListForm @Int
       specify "Double" $
-        runTest @[Maybe Double] listInfo
+        runTest $ optionalListForm @Double
 
     describe "Anonymous Enums" $ do
       it "single choice works" $
-        runTest @SingleChoiceSelection choiceInfo
+        runTest singleChoiceForm
       it "multiple choice works" $
-        runTest @MultipleChoiceSelection choiceInfo
+        runTest multipleChoiceForm
 
     describe "custom enum functions (for a single test type)" $ do
       it "single choice works" $
-        runTest @TestEnum (choiceInfoEnum @TestEnum)
+        runTest @TestEnum singleChoiceFormEnum
       it "multiple choice works" $
-        runTest @[TestEnum] (choiceInfoEnum @TestEnum)
+        runTest $ multipleChoiceFormEnum @TestEnum
 
 
-runTest :: forall a . Formify a => Gen [[FieldInfo]] -> Property
-runTest gen = forAll gen testWith
+runTest :: Formify a => Gen (CompleteForm a) -> Property
+runTest gen = forAll (Blind <$> gen) testWith
   where
-    testWith fi =
-      getFormData (formify @a Nothing fi) `shouldNotThrow` anyErrorCall
+    testWith (Blind fi) =
+      getFormData (formify Nothing fi) `shouldNotThrow` anyErrorCall
 
 
 instance Arbitrary Alignment where
   arbitrary = elements [Vertical,Horizontal]
 
 
-choiceInfo :: Gen [[FieldInfo]]
-choiceInfo = doubleNest $ do
-  align <- arbitrary
+instance Arbitrary ChoiceShape where
+  arbitrary = do
+    align <- arbitrary
+    elements [Buttons align, Dropdown]
+
+
+choiceForm
+  :: ( ChoiceShape
+    -> FieldSettings FlexForm
+    -> [SomeMessage FlexForm]
+    -> SimpleFormPiece a a
+    )
+  -> Gen (SimpleFormPiece a a)
+choiceForm f = do
+  shape <- arbitrary
   title <- arbitrary
   labels <- chooseInt (1,100) >>= flip vectorOf arbitrary
-  elements [buttons align title labels, dropdown title labels]
+  pure $ f shape title labels
 
 
-choiceInfoEnum :: forall a . (Bounded a, Enum a, Eq a) => Gen [[FieldInfo]]
-choiceInfoEnum = doubleNest $ do
-  align <- arbitrary
+singleChoiceForm :: Gen (CompleteForm SingleChoiceSelection)
+singleChoiceForm = choiceForm singleChoice
+
+
+multipleChoiceForm :: Gen (CompleteForm MultipleChoiceSelection)
+multipleChoiceForm = choiceForm multipleChoice
+
+
+choiceFormEnum
+  :: (Bounded a, Enum a, Eq a)
+  => ( ChoiceShape
+    -> FieldSettings FlexForm
+    -> (a -> SomeMessage FlexForm)
+    -> SimpleFormPiece b b
+    )
+  -> Gen (SimpleFormPiece b b)
+choiceFormEnum f = do
+  shape <- arbitrary
   title <- arbitrary
   labels <- zip range <$> vectorOf (length range) arbitrary
-  elements [
-    buttonsEnum align title $ toText labels,
-    dropdownEnum title $ toText labels
-    ]
+  pure $ f shape title $ toText labels
   where
-    range = [minBound .. maxBound @a]
-    toText mapping enum = fromMaybe "" $ lookup enum mapping
+    range = [minBound .. maxBound]
+    toText mapping enum = fromMaybe (fromString "") $ lookup enum mapping
 
 
-listInfo :: Gen [[FieldInfo]]
-listInfo = doubleNest $ do
+singleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (SimpleFormPiece a a)
+singleChoiceFormEnum = choiceFormEnum singleChoiceEnum
+
+
+multipleChoiceFormEnum :: (Bounded a, Enum a, Eq a) => Gen (CompleteForm (MultipleChoice a))
+multipleChoiceFormEnum = choiceFormEnum multipleChoiceEnum
+
+
+listForm :: BaseField a => Gen (ListFormPiece t a)
+listForm = do
   align <- arbitrary
   amount <- chooseInt (1,100)
   labels <- vectorOf amount arbitrary
   attributes <- chooseInt (1,20) >>= flip vectorOf arbitrary
-  elements [list align labels,listWithoutLabels align amount attributes]
+  elements [list align basicField labels,listWithoutLabels align amount basicField attributes]
+
+
+requiredListForm :: BaseField a => Gen (CompleteForm [a])
+requiredListForm = listForm
+
+
+optionalListForm :: BaseField a => Gen (CompleteForm [Maybe a])
+optionalListForm = listForm
 
 
 instance Arbitrary (SomeMessage FlexForm) where
@@ -166,9 +197,9 @@ instance Arbitrary (FieldSettings FlexForm) where
   arbitrary = fromString <$> arbitrary
 
 
-singleInfo :: Gen [[FieldInfo]]
-singleInfo = doubleNest $ single <$> arbitrary
+simpleForm :: BaseField a => Gen (SimpleFormPiece a a)
+simpleForm = basic <$> arbitrary
 
 
-doubleNest :: Gen a -> Gen [[a]]
-doubleNest = fmap $ (:[]) . (:[])
+optionalSimpleForm :: BaseField a => Gen (CompleteForm (Maybe a))
+optionalSimpleForm = basic <$> arbitrary

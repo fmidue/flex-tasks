@@ -1,9 +1,13 @@
+{-# language DeriveAnyClass #-}
+{-# language DeriveGeneric #-}
 {-# language OverloadedStrings #-}
 {-# language QuasiQuotes #-}
 
 module FlexTask.FormUtilSpec where
 
 
+import Data.Text                        (Text)
+import GHC.Generics                     (Generic)
 import Test.Hspec (
   Spec,
   anyErrorCall,
@@ -20,27 +24,21 @@ import FlexTask.Generic.Form
 
 
 
-data TestEnum = First | Last deriving (Bounded,Enum,Eq)
-
-instance Formify [TestEnum] where
-  formifyImplementation = formifyInstanceMultiChoice
+data TestEnum = First | Last
+  deriving (Bounded,Enum,Eq, Formify, Generic)
 
 
 spec :: Spec
 spec = do
   let
-    form1 = formify
-              (Nothing @(Int,[String]))
-              [[single "test",list Vertical ["test2","test3"]]]
-    form2 = formify
-              (Nothing @String)
-              [[single "form2"]]
-    form3 = formify
-              (Just [First])
-              [[dropdownEnum
-                  "form3"
-                  (\a -> if a == First then "first" else "last")
-              ]]
+    form1 = formify @(Int,[Text]) Nothing $
+      basic "test" >|
+      list Vertical basicField ["test2","test3"]
+    form2 = formify @(Maybe Text) Nothing $ basic "form2"
+    form3 = formify (Just $ MultipleChoice [First]) $
+      multipleChoiceEnum Dropdown "form3"
+        (\a -> if a == First then "first" else "last")
+
   describe "getFormData" $
     it "does not throw an error for Formify generated test forms" $ do
       getFormData form1 `shouldNotThrow` anyErrorCall

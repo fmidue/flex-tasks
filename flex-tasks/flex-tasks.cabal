@@ -1,6 +1,6 @@
-cabal-version: 1.12
+cabal-version: 1.18
 
--- This file has been generated from package.yaml by hpack version 0.38.0.
+-- This file has been generated from package.yaml by hpack version 0.39.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -9,6 +9,21 @@ version:        0.1
 build-type:     Simple
 extra-source-files:
     tasks/defaultConfig.flex
+extra-doc-files:
+    doc-images/basic.png
+    doc-images/horizontal_caution_correct.png
+    doc-images/horizontal_caution_wrong.png
+    doc-images/horizontal_composition.png
+    doc-images/list_basic.png
+    doc-images/list_repeatedly_basic.png
+    doc-images/list_without_labels_basic.png
+    doc-images/multiple_choice_dropdown.png
+    doc-images/multiple_choice_enum_buttons.png
+    doc-images/multiple_choice_enum_dropdown.png
+    doc-images/single_choice.png
+    doc-images/single_choice_enum_buttons.png
+    doc-images/single_choice_enum_dropdown.png
+    doc-images/vertical_composition.png
 
 library
   exposed-modules:

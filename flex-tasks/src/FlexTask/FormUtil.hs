@@ -60,13 +60,24 @@ import FlexTask.YesodConfig (
 
 
 {- $setup
+>>> :set -XStandaloneDeriving
 >>> :set -XOverloadedStrings
 >>> :set -XQuasiQuotes
 >>> :set -XTypeApplications
+>>> import Data.List (intercalate)
 >>> import qualified Data.Text
 >>> import FlexTask.Generic.Form
->>> let myForm = formify (Nothing @Int) [[single "input"]]
->>> let myOtherForm = formify (Nothing @String) [[single "input2"]]
+>>> let myForm = formify @Int Nothing $ basic "input"
+>>> let myOtherForm = formify @Text Nothing $ basic "input2"
+>>> let inLang l = show . renderMessage FlexForm {appLogger = undefined} [l]
+>>> :{
+instance Show (SomeMessage FlexForm) where
+  show m = '(': intercalate ", "[ "German: " <> inLang "de", "English: " <> inLang "en"] ++ ")"
+    where
+      inLang l = show $ renderMessage FlexForm {appLogger = undefined} [l] m
+:}
+
+>>> deriving instance Show (FieldSettings FlexForm)
 -}
 
 
@@ -419,7 +430,7 @@ Used for debugging.
 
 === __Example__
 
->>> printWidget "en" $ formify (Nothing @Int) [[single "Number Please"]]
+>>> printWidget "en" $ formify @Int Nothing $ basic "Number Please"
 <div class="flex-form-div form-group">
   <input type="hidden" name="_hasdata">
   <span class="required flex-form-span">

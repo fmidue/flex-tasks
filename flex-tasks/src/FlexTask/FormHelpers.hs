@@ -1,4 +1,3 @@
-{-# language TypeApplications #-}
 
 {- |
 Helpers for commonly used form patterns.
@@ -16,12 +15,14 @@ import Yesod                            (FieldSettings, SomeMessage)
 import FlexTask.FormUtil                (showToUniversalLabel, universalLabel)
 import FlexTask.Generic.Form (
   Alignment,
+  ChoiceShape(..),
   MultipleChoiceSelection,
+  SimpleFormPiece,
   SingleChoiceSelection,
-  buttons,
-  formify,
+  multipleChoice,
+  singleChoice,
   )
-import FlexTask.YesodConfig             (FlexForm, Rendered, Widget)
+import FlexTask.YesodConfig             (FlexForm)
 
 
 
@@ -36,14 +37,11 @@ labeledCheckboxes
   -- ^ FieldSettings of the header label: attributes, label text, etc.
   -> [String]
   -- ^ individual option labels
-  -> Rendered Widget
-labeledCheckboxes alignment fSettings labels = formify
-  (Nothing @MultipleChoiceSelection)
-  [[buttons
-      alignment
-      fSettings
-      $ zipWith (\a b -> universalLabel $ show a ++ ". " ++ b) [1 :: Integer ..] labels
-  ]]
+  -> SimpleFormPiece t MultipleChoiceSelection
+labeledCheckboxes alignment fSettings = multipleChoice
+  (Buttons alignment)
+  fSettings
+  . zipWith (\a b -> universalLabel $ show a ++ ". " ++ b) [1 :: Integer ..]
 
 
 {- |
@@ -58,13 +56,11 @@ anonymousRadioButtons
   -- ^ heading label, attributes, etc.
   -> i
   -- ^ the amount of options to provide
-  -> Rendered Widget
-anonymousRadioButtons alignment fSettings amount = formify (Nothing @SingleChoiceSelection)
-  [[buttons
-    alignment
-    fSettings
-    $ map showToUniversalLabel [1.. toInteger amount]
-  ]]
+  -> SimpleFormPiece t SingleChoiceSelection
+anonymousRadioButtons alignment fSettings amount = singleChoice
+  (Buttons alignment)
+  fSettings
+  $ map showToUniversalLabel [1.. toInteger amount]
 
 
 {- |
@@ -78,7 +74,5 @@ labeledRadioButtons
   -- ^ heading label, attributes, etc.
   -> [SomeMessage FlexForm]
   -- ^ individual option labels
-  -> Rendered Widget
-labeledRadioButtons alignment fSettings labels = formify
-  (Nothing :: Maybe SingleChoiceSelection)
-  [[buttons alignment fSettings labels]]
+  -> SimpleFormPiece t SingleChoiceSelection
+labeledRadioButtons alignment = singleChoice (Buttons alignment)
