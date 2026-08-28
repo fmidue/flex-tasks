@@ -41,8 +41,10 @@ library
       FlexTask.Interpreter.GenerationHelper
       FlexTask.Interpreter
   other-modules:
+      FlexTask.Form.Formify
       FlexTask.Form.Internal
       FlexTask.Form.Styling
+      FlexTask.Form.TypeLevel
       FlexTask.Form.Widgets
       FlexTask.Parser.Internal
       Paths_flex_tasks

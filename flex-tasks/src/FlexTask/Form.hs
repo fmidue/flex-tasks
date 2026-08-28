@@ -71,8 +71,11 @@ module FlexTask.Form (
   , CanBeOptional
   ) where
 
+
 import FlexTask.InputTypes
+import FlexTask.Form.Formify
 import FlexTask.Form.Internal
+import FlexTask.Form.TypeLevel
 
 
 {- $TypeFields
