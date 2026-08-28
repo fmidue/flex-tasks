@@ -13,7 +13,7 @@ This module provides basic input fields, single- and multiple-choice fields,
 list forms, and several specialized field types.
 -}
 
-module FlexTask.Generic.Form (
+module FlexTask.Form (
   -- * Form Types
     Formify(FormTypes)
   , FormPiece
@@ -71,7 +71,8 @@ module FlexTask.Generic.Form (
   , CanBeOptional
   ) where
 
-import FlexTask.Generic.FormInternal
+import FlexTask.InputTypes
+import FlexTask.Form.Internal
 
 
 {- $TypeFields

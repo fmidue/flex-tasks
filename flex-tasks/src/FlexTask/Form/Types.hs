@@ -8,7 +8,7 @@ Default Yesod configuration for form generating environment.
 Also exports some convenient type synonyms hiding underlying complexity.
 -}
 
-module FlexTask.YesodConfig
+module FlexTask.Form.Types
   ( FlexForm(..)
   -- * Yesod type synonyms
   , Handler

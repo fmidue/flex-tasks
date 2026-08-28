@@ -4,7 +4,7 @@
 {-# language DeriveAnyClass #-}
 {-# language DeriveGeneric #-}
 
-module FlexTask.Generic.FormSpec where
+module FlexTask.FormSpec where
 
 
 import Data.Maybe                       (fromMaybe)
@@ -33,9 +33,9 @@ import Test.QuickCheck.Instances.Text   ()
 import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
-import FlexTask.ConvertForm             (getFormData)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig             (FlexForm)
+import FlexTask.Form.ToHtml             (getFormData)
+import FlexTask.Form.Types              (FlexForm)
+import FlexTask.Form
 
 
 

@@ -7,7 +7,7 @@
 FlexTask configuration and task instance types.
 -}
 
-module FlexTask.Types
+module FlexTask.Config.Types
   ( HtmlDict
   , CommonModules(..)
   , FlexInst(..)

@@ -7,7 +7,7 @@
 Generic Parsing interface for submission types.
 -}
 
-module FlexTask.Generic.Parse (
+module FlexTask.Parser (
   Parse(..),
   -- * Parse Helpers
   parseInstanceSingleChoice,
@@ -28,7 +28,7 @@ module FlexTask.Generic.Parse (
 
 import GHC.TypeLits (TypeError, ErrorMessage(Text,(:$$:)))
 
-import FlexTask.Generic.ParseInternal
+import FlexTask.Parser.Internal
 
 
 instance {-# Overlappable #-} TypeError (

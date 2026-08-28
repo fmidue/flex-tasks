@@ -3,7 +3,7 @@
 Helpers for commonly used form patterns.
 -}
 
-module FlexTask.FormHelpers (
+module FlexTask.Form.Helpers (
   anonymousRadioButtons,
   labeledRadioButtons,
   labeledCheckboxes,
@@ -12,17 +12,19 @@ module FlexTask.FormHelpers (
 
 import Yesod                            (FieldSettings, SomeMessage)
 
-import FlexTask.FormUtil                (showToUniversalLabel, universalLabel)
-import FlexTask.Generic.Form (
+import FlexTask.Form.Internal (
   Alignment,
   ChoiceShape(..),
-  MultipleChoiceSelection,
   SimpleFormPiece,
-  SingleChoiceSelection,
   multipleChoice,
   singleChoice,
   )
-import FlexTask.YesodConfig             (FlexForm)
+import FlexTask.Form.Util                (showToUniversalLabel, universalLabel)
+import FlexTask.InputTypes (
+  MultipleChoiceSelection,
+  SingleChoiceSelection,
+  )
+import FlexTask.Form.Types              (FlexForm)
 
 
 

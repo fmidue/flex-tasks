@@ -1,7 +1,7 @@
 {-# language RecordWildCards #-}
 {-# language TypeApplications #-}
 
-module FlexTask.DefaultConfigSpec where
+module FlexTask.Config.DefaultSpec where
 
 
 import Control.OutputCapable.Blocks     (Language(..), ReportT)
@@ -21,8 +21,8 @@ import Test.Hspec (
 import Test.Hspec.Parsec                (shouldParse)
 import Text.Parsec                      (parse)
 
-import FlexTask.DefaultConfig
-import FlexTask.Types (
+import FlexTask.Config.Default
+import FlexTask.Config.Types (
   CommonModules(..),
   FlexInst(..),
   parseFlexConfig,
