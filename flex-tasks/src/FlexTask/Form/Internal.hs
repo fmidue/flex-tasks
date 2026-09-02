@@ -67,6 +67,7 @@ import FlexTask.InputTypes (
 >>> import FlexTask.Form.Util
 >>> import FlexTask.InputTypes
 >>> import FlexTask.Form.Formify
+>>> import GHC.Generics (Generic)
 >>> import Data.Text (Text)
 >>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Generic, Show)
 >>> data MyCoolType = Yes | No deriving (Generic, Eq)

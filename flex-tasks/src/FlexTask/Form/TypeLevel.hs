@@ -6,7 +6,7 @@
 module FlexTask.Form.TypeLevel where
 
 
-import Data.Kind                        (Constraint)
+import Data.Kind                        (Constraint, Type)
 import Data.Tuple.Extra                 (first)
 import GHC.TypeLits                     (ErrorMessage(..), TypeError)
 
@@ -68,7 +68,7 @@ infixr 6 :>
 data x :> xs
 
 
-type family SingleInputType fields where
+type family SingleInputType fields :: Type where
   SingleInputType (OneField a) = a
 
   SingleInputType fields = TypeError
