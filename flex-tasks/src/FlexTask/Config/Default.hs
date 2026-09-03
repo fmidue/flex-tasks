@@ -2,14 +2,14 @@
 {-# Language TemplateHaskell #-}
 {-# OPTIONS -fforce-recomp #-}
 
-module FlexTask.DefaultConfig (defaultConfig) where
+module FlexTask.Config.Default (defaultConfig) where
 
 
 import Data.ByteString.UTF8 (toString)
 import Data.FileEmbed (embedFileRelative)
 import Text.Parsec (parse)
 
-import FlexTask.Types (FlexConf, parseFlexConfig)
+import FlexTask.Config.Types (FlexConf, parseFlexConfig)
 
 
 

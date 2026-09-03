@@ -4,10 +4,10 @@
 {-# options_ghc -Wno-orphans #-}
 
 {- |
-Generic Parsing interface for submission types.
+Main interface for parsing form submissions, including the standard input types.
 -}
 
-module FlexTask.Generic.Parse (
+module FlexTask.Parser (
   Parse(..),
   -- * Parse Helpers
   parseInstanceSingleChoice,
@@ -23,12 +23,15 @@ module FlexTask.Generic.Parse (
   displayInputAnd,
   -- * Debugging
   asSubmission,
+  -- * Re-export
+  module FlexTask.InputTypes,
   ) where
 
 
 import GHC.TypeLits (TypeError, ErrorMessage(Text,(:$$:)))
 
-import FlexTask.Generic.ParseInternal
+import FlexTask.InputTypes
+import FlexTask.Parser.Internal
 
 
 instance {-# Overlappable #-} TypeError (

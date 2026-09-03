@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-module FlexTask.Styling where
+module FlexTask.Form.Styling where
 
 
 import Text.Cassius (Css, cassius)

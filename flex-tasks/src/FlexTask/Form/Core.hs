@@ -1,46 +1,78 @@
-{-# language AllowAmbiguousTypes #-}
-{-# language DataKinds #-}
-{-# language DefaultSignatures #-}
-{-# language DeriveGeneric #-}
-{-# language TypeFamilies #-}
 {-# language GADTs #-}
 {-# language OverloadedStrings #-}
 {-# language TypeOperators #-}
-{-# language UndecidableInstances #-}
 
-module FlexTask.Generic.FormInternal (
-  module FlexTask.Generic.FormInternal
+{- |
+Typed construction and rendering of `Yesod` input forms.
+
+Forms are built from type-safe `FormPiece`s describing individual fields and their layout.
+Pieces can be combined horizontally or vertically and rendered as a `CompleteForm` using `formify`.
+
+The result type of a form determines the types and requiredness of its fields.
+For custom product types, this structure can be derived generically through `Formify`.
+
+This module provides basic input fields, single- and multiple-choice fields,
+list forms, and several specialized field types.
+-}
+
+module FlexTask.Form.Core (
+  -- * Form Types
+  Formify(FormTypes),
+  FormPiece,
+  SimpleFormPiece,
+  ListFormPiece,
+  AnyFormPiece,
+  CompleteForm,
+  -- * Creating Form Pieces
+  BaseField(..),
+  basic,
+  singleChoice,
+  singleChoiceEnum,
+  multipleChoice,
+  multipleChoiceEnum,
+  list,
+  listRepeatedly,
+  listWithoutLabels,
+  -- * Fields for List Forms
+  -- $TypeFields
+  TypeField,
+  basicField,
+  singleChoiceField,
+  singleChoiceEnumField,
+  -- * Composition and Layout
+  (>|),
+  beside,
+  (>-),
+  above,
+  -- * Rendering
+  formify,
+  formifyComponents,
+  formifyComponentsFlat,
+  -- * Appearance and Layout Options
+  Alignment(..),
+  ChoiceShape(..),
+  -- * Type-Level Helper Types
+  OneField,
+  ManyFields,
+  (:>),
+  type (++),
+  CanBeOptional,
   ) where
 
 
-import Control.Monad                    (join)
-import Data.Kind                        (Constraint, Type)
 import Data.List.Extra (
   intercalate,
   nubOrd,
-  nubSort,
   singleton,
   zipWithLongest,
   )
 import Data.Maybe           (catMaybes)
-import Data.Tuple.Extra     (first)
-import GHC.Generics (
-  Generic(..),
-  (:+:),
-  (:*:)(..),
-  C,
-  D1,
-  K1(unK1),
-  M1(unM1),
-  U1,
-  )
-import GHC.TypeLits                     (ErrorMessage(..), TypeError)
 import Data.Text            (Text, pack)
 import Yesod (
   AForm,
   Field,
   FieldSettings(..),
-  PathPiece(..),
+  PathPiece,
   SomeMessage,
   Textarea,
   areq,
@@ -56,20 +88,39 @@ import Yesod (
   textField,
   )
 
-import FlexTask.FormUtil    (applyToWidget)
-import FlexTask.Widgets
+import FlexTask.Form.Formify            (Formify(..))
+import FlexTask.Form.Util               (applyToWidget)
+import FlexTask.Form.Widgets
   ( checkboxField
   , radioField
   , joinWidgets
   , renderForm
   , selectField
   )
-import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
+import FlexTask.Form.TypeLevel
+import FlexTask.Form.Types (
+  FlexForm(..),
+  Handler,
+  Rendered,
+  Widget,
+  )
+import FlexTask.InputTypes (
+  Hidden(..),
+  MultipleChoice(..),
+  MultipleChoiceSelection,
+  SingleChoiceSelection,
+  SingleInputList(..),
+  singleChoiceAnswer,
+  )
 
 
 {- $setup
 >>> :set -XTypeApplications
->>> import FlexTask.FormUtil
+>>> :set -XDeriveGeneric
+>>> :set -XOverloadedStrings
+>>> import FlexTask.Form.Util
+>>> import FlexTask.InputTypes
+>>> import GHC.Generics (Generic)
 >>> import Data.Text (Text)
 >>> data MyType = One | Two | Three deriving (Bounded, Enum, Eq, Generic, Show)
 >>> data MyCoolType = Yes | No deriving (Generic, Eq)
@@ -79,14 +130,6 @@ import FlexTask.YesodConfig (FlexForm(..), Handler, Rendered, Widget)
 >>> let fromCool c = c == Yes
 >>> let existingField = baseField
 -}
-
-
-
--- | Wrapper representing zero or more selected values in a multiple-choice field.
-newtype MultipleChoice a = MultipleChoice
-  { getChoices :: [a]
-  -- ^ Retrieve the selected values
-  } deriving (Eq, Generic, Show)
 
 
 -- | Represents a specific input field associated with given type @a@.
@@ -206,119 +249,6 @@ data ChoiceShape
 
 
 {- |
-Wrapper type for generating hidden fields.
-This can be used to transfer static information through the form to parsing.
-Note that the generated field still has a label.
-If the label is not left blank, then it will be displayed as normal.
-
-__The user can inspect and modify the contents of a hidden field.__
-__Do not use hidden fields for sensitive information or values whose integrity must be trusted.__
-
-=== __Example__
-
->>> printWidget "en" $ formify (Just $ Hidden 3) $ basic ""
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-    </label>
-    <input type="hidden" id="flexident1" ... value="3">
-...
-</div>
--}
-newtype Hidden a = Hidden {getHidden :: a} deriving (Eq,Show)
-
-
-{- |
-Wrapper type for lists. Use for a single field list input.
-Normally, lists are interpreted as multiple fields instead.
-
-=== __Example__
-
->>> printWidget "en" $ formify @(SingleInputList String) Nothing $ basic "Input comma separated sentences"
-<div class="flex-form-div form-group">
-...
-    <label for="flexident1">
-      Input comma separated sentences
-    </label>
-    <input id="flexident1" ... type="text" ...>
-...
-</div>
-
-Note that this does not actually enforce any kind of input syntax.
-The generated input itself is a simple text field.
-The comma separation is checked only when parsing with the matching `FlexTask.Generic.Parse.formParser`.
--}
-newtype SingleInputList a = SingleInputList {getList :: [a]} deriving (Eq,Show)
-
-{- |
-Generic single choice answer type.
-Use if both of the following are true:
-
-  - You want an input that presents multiple answer choices, but only allows a single selection.
-  - There's no specific data type associated with this selection.
--}
-newtype SingleChoiceSelection = SingleChoiceSelection
-  {getAnswer :: Int
-  -- ^ Retrieve the selected option. (The first selectable option is @1@)
-  } deriving (Show,Eq,Generic)
-
-{- |
-Same as `getAnswer` but the selections are counted from @0@ instead of from @1@.
-Use if you want to pass the selected answer to an indexing function like `!!` or `Data.List.!?`.
--}
-getAnswerAsIndex :: SingleChoiceSelection -> Int
-getAnswerAsIndex = subtract 1 . getAnswer
-
-{- |
-Same as `SingleChoiceSelection`, but for multiple choice input.
-Use if both of the following are true:
-
-  - You want an input that presents multiple answer choices and allows selecting any number of them.
-  - There's no specific data type associated with this selection.
--}
-type MultipleChoiceSelection = MultipleChoice SingleChoiceSelection
-
-{- |
-Retrieve the list of selected options.
-The first selectable option is @1@.
-@[]@ if none are selected.
--}
-getAnswers :: MultipleChoiceSelection -> [Int]
-getAnswers = map getAnswer . getChoices
-
-{- |
-Same as `getAnswers` but the selections are counted from @0@ instead of from @1@.
-Use if you want to pass the selected answers to an indexing function like `!!` or `Data.List.!?`.
--}
-getAnswersAsIndices :: MultipleChoiceSelection -> [Int]
-getAnswersAsIndices = map (subtract 1) . getAnswers
-
-{-# DEPRECATED singleChoiceEmpty
-  "This function only existed to satisfy a legacy interface in Autotool. It will be removed in a future version."
-  #-}
--- | Value with no option selected.
-singleChoiceEmpty :: SingleChoiceSelection
-singleChoiceEmpty = singleChoiceAnswer 0
-
--- | Value with given number option selected.
-singleChoiceAnswer :: Int -> SingleChoiceSelection
-singleChoiceAnswer = SingleChoiceSelection
-
-
--- | Value with no options selected.
-multipleChoiceEmpty :: MultipleChoiceSelection
-multipleChoiceEmpty = MultipleChoice []
-
-{- |
-Value with given list of options selected.
-Sorts the input list and removes duplicates.
--}
-multipleChoiceAnswer :: [Int] -> MultipleChoiceSelection
-multipleChoiceAnswer = MultipleChoice . map singleChoiceAnswer . nubSort
-
-
-
-{- |
 Types that can be represented as a simple Yesod input field.
 A `BaseField` instance of type @a@ is needed if @a@ requires a type-specific input method,
 i.e. it is not just a wrapping newtype or product type that can be built out of existing input methods.
@@ -364,11 +294,6 @@ instance BaseField Double where
   baseField = doubleField
 
 
-instance PathPiece a => PathPiece (Hidden a) where
-  fromPathPiece = fmap Hidden . fromPathPiece
-  toPathPiece = toPathPiece . getHidden
-
-
 instance (Formify a, PathPiece a) => BaseField (Hidden a) where
   baseField = hiddenField
 
@@ -377,43 +302,6 @@ instance (Formify a, PathPiece a) => BaseField (Hidden a) where
 -- The first function is never used, since it normally handles the parsing.
 instance Show a => BaseField (SingleInputList a) where
   baseField = convertField undefined (pack . intercalate ", " . map show . getList) textField
-
-
-{- |
-Class for generic derivation of overall form types.
-Any type you want to create a completed form for needs to be an instance of this type.
-Bodyless instances can be declared for most types deriving Generic.
-Alternatively, you can also derive Formify itself using `DeriveAnyClass`.
-
-__Generic derivation is not supported for:__
-
-  * types with a single nullary constructor
-  * sum types in which any constructor has fields
-
-__Manually implementing Formify's internals is not supported.__
--}
-class Formify a where
-
-  {- |
-  The type-level non-empty list of types needed for a complete form, e.g.
-
-  @OneField Int@ for Int
-
-  @ManyFields Text@ for [Text]
-
-  @OneField Text :> OneField Bool@ for (Text,Bool)
-  -}
-  type FormTypes (a :: Type) :: Type
-
-  type FormTypes a = GFormTypes a (Rep a)
-
-  formDefaults :: Maybe a -> TypeList (FormTypes a)
-
-  default formDefaults
-    :: (Generic a, GFormDefaults a (Rep a), FormTypes a ~ GFormTypes a (Rep a))
-    => Maybe a
-    -> TypeList (FormTypes a)
-  formDefaults = gFormDefaults @a . fmap from
 
 
 combineWidgets
@@ -435,79 +323,6 @@ combineWidgets align f1 f2 = do
     appendWidgets = case align of
       Vertical -> (++)
       Horizontal -> zipWithLongest (\xs ys -> concat $ catMaybes [xs,ys])
-
-
-instance Formify Integer where
-  type FormTypes Integer = OneField Integer
-  formDefaults = singleFormDefaults
-
-
-instance Formify Int where
-  type FormTypes Int = OneField Int
-  formDefaults = singleFormDefaults
-
-instance Formify Text where
-  type FormTypes Text = OneField Text
-  formDefaults = singleFormDefaults
-
-
-instance Formify Textarea where
-  type FormTypes Textarea = OneField Textarea
-  formDefaults = singleFormDefaults
-
-
-instance Formify Bool where
-  type FormTypes Bool = OneField Bool
-  formDefaults = singleFormDefaults
-
-
-instance Formify Double where
-  type FormTypes Double = OneField Double
-  formDefaults = singleFormDefaults
-
-
-instance Formify (Hidden a) where
-  type FormTypes (Hidden a) = OneField (Hidden a)
-  formDefaults = singleFormDefaults
-
-
-instance Formify (SingleInputList a) where
-  type FormTypes (SingleInputList a) = OneField (SingleInputList a)
-  formDefaults = singleFormDefaults
-
-
-instance (Formify a, Formify b) => Formify (a,b)
-
-instance (Formify a, Formify b, Formify c) => Formify (a,b,c)
-
-instance (Formify a, Formify b, Formify c, Formify d) => Formify (a,b,c,d)
-
-instance (Formify a, Formify b, Formify c, Formify d, Formify e) => Formify (a,b,c,d,e)
-
-instance (Formify a, Formify b, Formify c, Formify d, Formify e, Formify f) => Formify (a,b,c,d,e,f)
-
-
-instance {-# Overlappable #-} Formify a => Formify [a] where
-  type FormTypes [a] = ManyFields (SingleInputType (FormTypes a))
-  formDefaults mValues = TMany t a
-    where
-      t = getSingleDefault $ formDefaults @a Nothing
-      a = map (getSingleDefault . formDefaults . Just) <$> mValues
-
-
-instance CanBeOptional a => Formify (Maybe a) where
-  type FormTypes (Maybe a) = OneField a
-  formDefaults m = TOne $ OptionalDefault $ join m
-
-
-instance Formify SingleChoiceSelection where
-  type FormTypes SingleChoiceSelection = OneField SingleChoiceSelection
-  formDefaults = singleFormDefaults
-
-
-instance Formify (MultipleChoice a) where
-  type FormTypes (MultipleChoice a) = OneField (MultipleChoice a)
-  formDefaults = singleFormDefaults
 
 
 {- |
@@ -655,6 +470,23 @@ renderLayout (TMany t mDefault) (List align fs) =
               Vertical   -> wid1 ++ wid2
               Horizontal -> [concat $ wid1 ++ wid2]
           )
+
+
+{- $TypeFields
+
+The functions in this section behave identically to their counterparts producing a `FormPiece`,
+for example `basicField` behaves like `basic`, but produces a `TypeField` instead.
+
+Their purpose is to restrict the options that can be used with `list` at the type level.
+The builder passed to `list` must produce a `TypeField`.
+It cannot produce a composed `FormPiece`, such as one obtained using `>|`.
+
+The restriction is necessary,
+because the current approach to parsing the user input cannot handle arbitrary combinations,
+but only a specific subset of those.
+There is also no `TypeField` equivalent for `multipleChoice` and `multipleChoiceEnum` for the same reason.
+Lists of `MultipleChoice` forms are therefore not supported at the moment.
+-}
 
 
 {- |
@@ -1205,182 +1037,14 @@ listRepeatedly alignment amount = list alignment id . replicate amount
 
 
 options :: [a] -> [(a, SingleChoiceSelection)]
-options opts = zip opts $ map SingleChoiceSelection [1..]
+options opts = zip opts $ map singleChoiceAnswer [1..]
 
 
 optionsFromType :: (Bounded b, Enum b) => (b -> a) -> [(a, b)]
 optionsFromType f = map (\x -> (f x, x)) [minBound .. maxBound]
 
 
--- Type Machinery --
-
-
-data TypeList xs where
-  TOne :: OneDefault x -> TypeList (OneField x)
-  TMany :: OneDefault x -> Maybe [OneDefault x] -> TypeList (ManyFields x)
-  TCons :: InputDefault x -> TypeList xs -> TypeList (x :> xs)
-
-
--- | type-level non-empty list equivalent of "append" (++)
-infixr 5 ++
-type family xs ++ ys :: Type where
-  OneField a ++ ys = OneField a :> ys
-  ManyFields a ++ ys = ManyFields a :> ys
-  (x :> xs) ++ ys = x :> (xs ++ ys)
-
-
-singleFormDefaults :: Maybe a -> TypeList (OneField a)
-singleFormDefaults x = TOne (RequiredDefault x)
-
-
-appendTypeList :: TypeList xs -> TypeList ys -> TypeList (xs ++ ys)
-appendTypeList (TOne x) = TCons $ OneInputDefault x
-appendTypeList (TMany t xs) = TCons $ ManyInputDefaults t xs
-appendTypeList (TCons x xs) = TCons x . appendTypeList xs
-
-
-data TypeShape xs where
-  OneShape  :: TypeShape (OneField a)
-  ManyShape :: TypeShape (ManyFields a)
-  ConsShape :: TypeShape xs -> TypeShape (x :> xs)
-
-
-splitTypeList :: TypeShape xs -> TypeList (xs ++ ys) -> (TypeList xs, TypeList ys)
-splitTypeList OneShape (TCons (OneInputDefault y) ys) = (TOne y, ys)
-splitTypeList ManyShape (TCons (ManyInputDefaults t y) ys) = (TMany t y, ys)
-splitTypeList (ConsShape xs) (TCons y ys) = first (TCons y) $ splitTypeList xs ys
-
-
 pieceShape :: FormPiece t xs -> TypeShape xs
 pieceShape Single {} = OneShape
 pieceShape List {} = ManyShape
 pieceShape (Combine _ x y) = appendShape (pieceShape x) $ pieceShape y
-
-
-appendShape :: TypeShape xs -> TypeShape ys -> TypeShape (xs ++ ys)
-appendShape OneShape ys = ConsShape ys
-appendShape ManyShape ys = ConsShape ys
-appendShape (ConsShape xs) ys = ConsShape (appendShape xs ys)
-
-
-type family GFormTypes original rep :: Type where
-  GFormTypes original (M1 i metadata fields) = GFormTypes original fields
-
-  GFormTypes original (K1 i field) = FormTypes field
-
-  GFormTypes original (left :*: right) =
-    GFormTypes original left ++
-    GFormTypes original right
-
-  GFormTypes original (left :+: right) = OneField original
-
-
-class GFormDefaults original rep where
-  gFormDefaults :: Maybe (rep p) -> TypeList (GFormTypes original rep)
-
-
-instance GFormDefaults original fields => GFormDefaults original (M1 i metadata fields) where
-  gFormDefaults = gFormDefaults @original . fmap unM1
-
-
-instance Formify field => GFormDefaults original (K1 i field) where
-  gFormDefaults = formDefaults . fmap unK1
-
-
-instance
-  ( GFormDefaults original left
-  , GFormDefaults original right
-  )
-  => GFormDefaults original (left :*: right) where
-
-  gFormDefaults Nothing = appendTypeList
-    (gFormDefaults @original @left Nothing)
-    (gFormDefaults @original @right Nothing)
-  gFormDefaults (Just (left :*: right)) = appendTypeList
-    (gFormDefaults @original $ Just left)
-    (gFormDefaults @original $ Just right)
-
-
-instance {-# Overlapping #-}
-  ( Generic original
-  , Rep original ~ D1 metadata (left :+: right)
-  , NullarySum (left :+: right)
-  )
-  => GFormDefaults original (D1 metadata (left :+: right))
-  where
-  gFormDefaults m = singleFormDefaults (fmap to m)
-
-
-instance
-    TypeError
-      ( 'Text "Cannot derive Formify for a single constructor without fields."
-        ':$$:
-        'Text "This is either a constant value (if required) or a Boolean (if optional)."
-      ) => GFormDefaults original U1 where
-  gFormDefaults = undefined
-
-
-type family NullarySum rep :: Constraint where
-  NullarySum (left :+: right) = (NullarySum left, NullarySum right)
-
-  NullarySum (M1 C metadata U1) = ()
-
-  NullarySum (M1 C metadata fields) =
-    TypeError
-      ( 'Text "Cannot derive Formify for this type." ':$$:
-        'Text "A sum type must contain only nullary constructors," ':$$:
-        'Text "but at least one constructor contains fields." ':$$:
-        'Text "This is not supported."
-      )
-
-
--- | A marker for type forms with exactly one input field
-data OneField a
-
--- | A marker for type forms with multiple input fields, e.g. lists.
-data ManyFields a
-
-
--- | Type-level non-empty list equivalent of "cons" (:)
-infixr 6 :>
-data x :> xs
-
-
-type family SingleInputType fields :: Type where
-  SingleInputType (OneField a) = a
-
-  SingleInputType fields = TypeError
-    ( 'Text "This type does not correspond to exactly one input field."
-    )
-
-
-getSingleDefault :: TypeList fields -> OneDefault (SingleInputType fields)
-getSingleDefault (TOne d) = d
-getSingleDefault _ = error "unreachable: SingleInputType rejected this form shape"
-
-
-data OneDefault a
-  = RequiredDefault (Maybe a)
-  | OptionalDefault (Maybe a)
-
-
-data InputDefault a where
-  OneInputDefault :: OneDefault a -> InputDefault (OneField a)
-  ManyInputDefaults :: OneDefault a -> Maybe [OneDefault a] -> InputDefault (ManyFields a)
-
-
--- | A constraint for types that can meaningfully be made optional.
-type family CanBeOptional a :: Constraint where
-  CanBeOptional (MultipleChoice a) =
-    TypeError
-      ( 'Text "MultipleChoice cannot be optional."
-        ':$$:
-        'Text "No selection is represented by the empty list."
-      )
-  CanBeOptional [a] =
-    TypeError
-      ( 'Text "Lists cannot be optional as a whole."
-        ':$$:
-        'Text "Use type [Maybe a] to turn all fields optional instead."
-      )
-  CanBeOptional a = ()

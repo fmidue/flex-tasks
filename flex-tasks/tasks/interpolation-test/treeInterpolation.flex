@@ -63,8 +63,7 @@ module TaskData (getTask) where
 import Control.Monad.Random    (MonadRandom)
 import Data.String.Interpolate (i)
 import FlexTask.GenUtil        (fromGen)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered, Widget)
+import FlexTask.Form
 import Test.QuickCheck.Gen
 
 
@@ -143,7 +142,7 @@ module Parse (parseSubmission) where
 
 
 import Control.OutputCapable.Blocks     (LangM', OutputCapable, ReportT)
-import FlexTask.Generic.Parse (
+import FlexTask.Parser (
   formParser,
   parseWithOrReport,
   reportWithFieldNumber,

@@ -133,8 +133,7 @@ validateSettings
 module TaskData (getTask) where
 
 
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered, Widget)
+import FlexTask.Form
 import Data.String.Interpolate (i)
 import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 
@@ -253,7 +252,7 @@ import Control.OutputCapable.Blocks (
   ReportT,
   OutputCapable,
   )
-import FlexTask.Generic.Parse  (
+import FlexTask.Parser  (
   Parse(..),
   escaped,
   parseWithOrReport,

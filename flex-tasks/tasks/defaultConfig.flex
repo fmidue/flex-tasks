@@ -117,7 +117,7 @@ Derive Generic for your submission type and add an instance of Formify without a
 formify {OPTIONAL DEFAULT VALUE(S) OR Nothing} STRUCTURE
 
 will then generate a form with synchronised field names.
-See the 'FlexTask.Generic.Form' documentation for more information.
+See the 'FlexTask.Form' documentation for more information.
 
 You can also create custom forms, if something more sophisticated is required.
 The forms are normal Yesod MForms that are wrapped in a Reader Monad.
@@ -154,8 +154,7 @@ module TaskData (getTask) where
 
 
 import Control.Monad.Random    (MonadRandom, getRandomR)
-import FlexTask.Generic.Form
-import FlexTask.YesodConfig    (Rendered, Widget)
+import FlexTask.Form
 import Data.String.Interpolate (i)
 import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 
@@ -365,7 +364,7 @@ Refer to its documentation if necessary.
 
 To implement parseSubmission, you will typically invoke `parseInfallibly` or 'parseWithOrReport'
 and 'reportWithFieldNumber', and possibly also 'parseWithFallback', all
-supplied by 'FlexTask.Generic.Parse'. Simply using `parseInfallibly formParser`
+supplied by 'FlexTask.Parser'. Simply using `parseInfallibly formParser`
 or `parseWithOrReport formParser reportWithFieldNumber` directly
 reads the form inputs and embeds the result directly into 'OutputCapable'.
 That is enough if you do not need additional processing of the input.
@@ -397,7 +396,7 @@ Derive Generic for your data type and include an instance declaration of 'Parse'
 It is also possible to write your own, using standard Parsec functions.
 The submission has a specific encoding, which is already taken into account by automatically generated parsers.
 When using a custom parser, you need to include the encoding or your parser will fail.
-The 'escaped' function from 'FlexTask.Generic.Parse' takes a parser and reads the encoding around it.
+The 'escaped' function from 'FlexTask.Parser' takes a parser and reads the encoding around it.
 This ensures that your custom parser will work as expected.
 
 If your submission type consists of types with generic parsers, as well as custom parsers,
@@ -417,7 +416,7 @@ import Control.OutputCapable.Blocks (
   ReportT,
   OutputCapable,
   )
-import FlexTask.Generic.Parse  (formParser, parseWithOrReport, reportWithFieldNumber)
+import FlexTask.Parser                  (formParser, parseWithOrReport, reportWithFieldNumber)
 
 import Global
 

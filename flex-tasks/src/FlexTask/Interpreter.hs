@@ -57,7 +57,7 @@ import System.Directory (
 import System.Environment          (getEnv)
 import System.FilePath             ((</>), (<.>))
 
-import FlexTask.Types (
+import FlexTask.Config.Types (
   CommonModules(..),
   FlexConf(..),
   FlexInst(..),
