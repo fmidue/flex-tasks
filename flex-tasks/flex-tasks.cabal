@@ -30,6 +30,7 @@ library
       FlexTask.Config.Default
       FlexTask.Config.Types
       FlexTask.Form
+      FlexTask.Form.Core
       FlexTask.Form.Helpers
       FlexTask.Form.ToHtml
       FlexTask.Form.Types
@@ -42,7 +43,6 @@ library
       FlexTask.Interpreter
   other-modules:
       FlexTask.Form.Formify
-      FlexTask.Form.Internal
       FlexTask.Form.Styling
       FlexTask.Form.TypeLevel
       FlexTask.Form.Widgets

@@ -12,7 +12,7 @@ module FlexTask.Form.Helpers (
 
 import Yesod                            (FieldSettings, SomeMessage)
 
-import FlexTask.Form.Internal (
+import FlexTask.Form.Core (
   Alignment,
   ChoiceShape(..),
   SimpleFormPiece,

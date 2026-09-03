@@ -1,6 +1,24 @@
 {-# language DeriveGeneric #-}
 
-module FlexTask.InputTypes where
+{-|
+Premade data types for specific form needs.
+-}
+
+module FlexTask.InputTypes (
+  MultipleChoice(..),
+  Hidden(..),
+  SingleInputList(..),
+  SingleChoiceSelection,
+  singleChoiceAnswer,
+  singleChoiceEmpty,
+  getAnswer,
+  getAnswerAsIndex,
+  MultipleChoiceSelection,
+  multipleChoiceAnswer,
+  multipleChoiceEmpty,
+  getAnswers,
+  getAnswersAsIndices,
+  ) where
 
 
 import Data.List.Extra                  (nubSort)
@@ -10,7 +28,7 @@ import Yesod                            (PathPiece(..))
 
 {- $setup
 >>> import FlexTask.Form.Util
->>> import FlexTask.Form.Internal
+>>> import FlexTask.Form.Core
 >>> :set -XOverloadedStrings
 -}
 

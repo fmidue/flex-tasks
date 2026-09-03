@@ -66,7 +66,7 @@ import FlexTask.Form.Types (
 >>> :set -XTypeApplications
 >>> import Data.List (intercalate)
 >>> import qualified Data.Text
->>> import FlexTask.Form.Internal
+>>> import FlexTask.Form.Core
 >>> let myForm = formify @Int Nothing $ basic "input"
 >>> let myOtherForm = formify @Text Nothing $ basic "input2"
 >>> let inLang l = show . renderMessage FlexForm {appLogger = undefined} [l]
