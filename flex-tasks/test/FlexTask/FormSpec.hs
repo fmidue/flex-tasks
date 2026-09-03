@@ -34,7 +34,6 @@ import Yesod                            (FieldSettings, SomeMessage, Textarea)
 
 import FlexTask.TestUtil                (shouldNotThrow)
 import FlexTask.Form.ToHtml             (getFormData)
-import FlexTask.Form.Types              (FlexForm)
 import FlexTask.Form
 
 

@@ -155,7 +155,6 @@ module TaskData (getTask) where
 
 import Control.Monad.Random    (MonadRandom, getRandomR)
 import FlexTask.Form
-import FlexTask.Form.Types              (Rendered, Widget)
 import Data.String.Interpolate (i)
 import Yesod                   (RenderMessage(..), fieldSettingsLabel)
 

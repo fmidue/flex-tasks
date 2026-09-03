@@ -26,7 +26,6 @@ import Control.Monad.Random    (MonadRandom)
 import Data.String.Interpolate (i)
 import FlexTask.GenUtil        (fromGen)
 import FlexTask.Form
-import FlexTask.Form.Types              (Rendered, Widget)
 import Test.QuickCheck.Gen
 
 import Global

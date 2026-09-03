@@ -4,7 +4,7 @@
 {-# options_ghc -Wno-orphans #-}
 
 {- |
-Generic Parsing interface for submission types.
+Main interface for parsing form submissions, including the standard input types.
 -}
 
 module FlexTask.Parser (
@@ -23,11 +23,14 @@ module FlexTask.Parser (
   displayInputAnd,
   -- * Debugging
   asSubmission,
+  -- * Re-export
+  module FlexTask.InputTypes,
   ) where
 
 
 import GHC.TypeLits (TypeError, ErrorMessage(Text,(:$$:)))
 
+import FlexTask.InputTypes
 import FlexTask.Parser.Internal
 
 
