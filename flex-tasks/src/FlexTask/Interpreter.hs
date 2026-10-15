@@ -6,12 +6,12 @@
 
 {- |
 Functions using `Interpreter` to run time compile and evaluate various aspects of a task.
-The interpreted code is usually supplied by accessing data stored in `FlexInst` or `FlexConf`.
+The interpreted code is usually supplied by accessing data stored in `FlexInstance` or `FlexConfig`.
 -}
 
 module FlexTask.Interpreter
   ( checkSolution
-  , genFlexInst
+  , genFlexInstance
   , prettyError
   , validateSettingsAndCompile
   , validDescription
@@ -59,8 +59,8 @@ import System.FilePath             ((</>), (<.>))
 
 import FlexTask.Config.Types (
   CommonModules(..),
-  FlexConf(..),
-  FlexInst(..),
+  FlexConfig(..),
+  FlexInstance(..),
   ValidationFlag(..),
   )
 import FlexTask.Processing.Text    (removeUnicodeEscape)
@@ -70,14 +70,14 @@ import FlexTask.Processing.Text    (removeUnicodeEscape)
 {- |
 -}
 validateSettingsAndCompile
-  :: FlexConf
+  :: FlexConfig
   -> IO (Either InterpreterError (Bool,[Output]))
-validateSettingsAndCompile FlexConf {validation = AssumeValid} = pure $ Right (True, [])
-validateSettingsAndCompile conf@FlexConf {commonModules = CommonModules{..}} = do
-    instOrError <- genFlexInstOrInterpreterError conf 0
+validateSettingsAndCompile FlexConfig {validation = AssumeValid} = pure $ Right (True, [])
+validateSettingsAndCompile conf@FlexConfig {commonModules = CommonModules{..}} = do
+    instOrError <- genFlexInstanceOrInterpreterError conf 0
     case instOrError of
       Left iError -> pure $ Left iError
-      Right (FlexInst {checkModule}) -> do
+      Right (FlexInstance {checkModule}) -> do
         filePaths <- writeUncachedAndGetPaths taskName $
           [ ("Global", globalModule)
           , ("TaskSettings", settingsModule)
@@ -99,18 +99,18 @@ validateSettingsAndCompile conf@FlexConf {commonModules = CommonModules{..}} = d
       pure $ first (isJust @()) $ runIdentity $ getOutputSequenceWithResult out
 
 {- |
-Use a `FlexConf` to generate a `FlexInst`.
+Use a `FlexConfig` to generate a `FlexInstance`.
 Interprets `taskDataModule` to generate the input form and task data.
 The given Integer is used as a seed for the generator.
 -}
-genFlexInst
-  :: FlexConf
+genFlexInstance
+  :: FlexConfig
   -> Int          -- ^ Generator seed
-  -> IO FlexInst
-genFlexInst conf@FlexConf {commonModules = commonModules} seed = do
-  taskAndFormResult <- genFlexInstOrInterpreterError conf seed
+  -> IO FlexInstance
+genFlexInstance conf@FlexConfig {commonModules = commonModules} seed = do
+  taskAndFormResult <- genFlexInstanceOrInterpreterError conf seed
   pure $ handleInterpreterError
-    (\message -> FlexInst
+    (\message -> FlexInstance
       { form = ([],[],) $ fromList $ map (,message) ["de", "en"]
       , taskData = message
       , checkModule = message
@@ -120,12 +120,12 @@ genFlexInst conf@FlexConf {commonModules = commonModules} seed = do
     taskAndFormResult
 
 
-genFlexInstOrInterpreterError
-  :: FlexConf
+genFlexInstanceOrInterpreterError
+  :: FlexConfig
   -> Int          -- ^ Generator seed
-  -> IO (Either InterpreterError FlexInst)
-genFlexInstOrInterpreterError
-  FlexConf{ commonModules = commonModules@CommonModules{
+  -> IO (Either InterpreterError FlexInstance)
+genFlexInstanceOrInterpreterError
+  FlexConfig { commonModules = commonModules@CommonModules{
     taskName,
     globalModule,
     settingsModule,
@@ -142,7 +142,7 @@ genFlexInstOrInterpreterError
       helperPath <- cacheHelper "GenerationHelper" []
       runWithPackageDB $ loadModules (helperPath : filePaths) >> tfInter
     where
-      tfInter :: Interpreter FlexInst
+      tfInter :: Interpreter FlexInstance
       tfInter = do
         setTopLevelModules ["TaskData", "Global", "TaskSettings", "GenerationHelper"]
         setImports [
@@ -156,7 +156,7 @@ genFlexInstOrInterpreterError
         liftIO $ do
           (taskData,checkModule,io) <- evalRandT gen $ mkStdGen seed
           form <- io
-          pure $ FlexInst {
+          pure $ FlexInstance {
             form,
             taskData,
             checkModule,

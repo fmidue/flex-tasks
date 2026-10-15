@@ -31,7 +31,7 @@ spec :: Spec
 spec = do
   describe "showFlexConfig" $
     prop "segments the modules with delimiters correctly" $
-      \fConf@FlexConf{commonModules = CommonModules{..},..} ->
+      \fConf@FlexConfig {commonModules = CommonModules{..},..} ->
       showFlexConfig fConf `shouldBe` intercalate delimiter (
         [ concat $
             ["taskName: " ++ taskName ++ "\r\n" | notNull taskName] ++
@@ -63,7 +63,7 @@ spec = do
 
     where
       conf validation [taskName, globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
-        FlexConf {
+        FlexConfig {
           validation,
           taskDataModule,
           commonModules = CommonModules {
@@ -76,7 +76,7 @@ spec = do
           }
         }
       conf validation [globalModule, settingsModule, taskDataModule, descriptionModule, parseModule] extraModules =
-        FlexConf {
+        FlexConfig {
           validation,
           taskDataModule,
           commonModules = CommonModules {
@@ -133,9 +133,9 @@ letter = arbitrary `suchThat` isLetter
 instance Arbitrary ValidationFlag where
   arbitrary = elements [Validate, AssumeValid]
 
-instance Arbitrary FlexConf where
+instance Arbitrary FlexConfig where
   arbitrary = do
     validation <- arbitrary
     taskDataModule <- arbitrary
     commonModules <- arbitrary
-    pure $ FlexConf {validation, taskDataModule, commonModules}
+    pure $ FlexConfig {validation, taskDataModule, commonModules}

@@ -10,8 +10,8 @@ FlexTask configuration and task instance types.
 module FlexTask.Config.Types
   ( HtmlDict
   , CommonModules(..)
-  , FlexInst(..)
-  , FlexConf(..)
+  , FlexInstance(..)
+  , FlexConfig(..)
   , ValidationFlag(..)
   , delimiter
   , moduleName
@@ -76,7 +76,7 @@ data ValidationFlag
 Concrete Task instance.
 Contained Haskell code is runtime interpreted to produce needed components of a task.
 -}
-data FlexInst = FlexInst {
+data FlexInstance = FlexInstance {
     form            :: ([Text],[[Text]],HtmlDict),
     -- ^ Field IDs of input elements and Html code.
     taskData        ::  String,             -- ^ Flexible task data used by task description and checker functions.
@@ -86,11 +86,11 @@ data FlexInst = FlexInst {
 
 
 {- |
-Configuration to use for random generation of concrete `FlexInst`.
+Configuration to use for random generation of concrete `FlexInstance`.
 `taskDataModule` is interpreted upon generating an instance to produce static form data.
 The other Haskell modules are propagated to the generated task instance.
 -}
-data FlexConf = FlexConf {
+data FlexConfig = FlexConfig {
     validation     :: ValidationFlag,
     -- ^ determines if the config check should be run
     taskDataModule :: String,       -- ^ Module for generating the form, as well as `CheckModule`.
@@ -99,7 +99,7 @@ data FlexConf = FlexConf {
 
 
 {- |
-Modules present in both `FlexConf` and `FlexInst`.
+Modules present in both `FlexConfig` and `FlexInstance`.
 They are propagated to the generated task instance.
 -}
 data CommonModules = CommonModules {
@@ -134,8 +134,8 @@ Module2 where
 ...
 @
 -}
-showFlexConfig :: FlexConf -> String
-showFlexConfig FlexConf{commonModules = CommonModules{..},..} =
+showFlexConfig :: FlexConfig -> String
+showFlexConfig FlexConfig {commonModules = CommonModules{..},..} =
     intercalate delimiter $
       [ options
       , globalModule
@@ -157,7 +157,7 @@ Reads five or more code modules each separated by at least three /equals signs/ 
 
 Modules starting from the sixth will be added to `CommonModules.extraModules`.
 -}
-parseFlexConfig :: Parser FlexConf
+parseFlexConfig :: Parser FlexConfig
 parseFlexConfig = do
     (taskName,validation) <- parseOptions
     modules <- betweenEquals
@@ -170,7 +170,7 @@ parseFlexConfig = do
         ], extra) -> do
         let extraModules = mapMaybe (\x -> (,x) <$> moduleName x) extra
         pure $
-          FlexConf {
+          FlexConfig {
             validation,
             taskDataModule,
             commonModules = CommonModules {
@@ -250,9 +250,9 @@ removeComments = unlines . filter (not . ("--" `isPrefixOf`)) . lines . runRemov
 
 
 -- | Check a configuration for inconsistencies
-validateFlexConfig :: OutputCapable m => FlexConf -> LangM m
-validateFlexConfig FlexConf {validation = AssumeValid} = pure ()
-validateFlexConfig FlexConf{commonModules = CommonModules{..},..}
+validateFlexConfig :: OutputCapable m => FlexConfig -> LangM m
+validateFlexConfig FlexConfig {validation = AssumeValid} = pure ()
+validateFlexConfig FlexConfig {commonModules = CommonModules{..},..}
   | requiredNames /= requiredConfig = reject $ do
     german $
       "Die festen Module wurden in Reihenfolge oder Namen verändert. " ++

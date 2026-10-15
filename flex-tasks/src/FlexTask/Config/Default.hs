@@ -9,13 +9,13 @@ import Data.ByteString.UTF8 (toString)
 import Data.FileEmbed (embedFileRelative)
 import Text.Parsec (parse)
 
-import FlexTask.Config.Types (FlexConf, parseFlexConfig)
+import FlexTask.Config.Types (FlexConfig, parseFlexConfig)
 
 
 
 
 -- | Simple task configuration with textual user guide
-defaultConfig :: FlexConf
+defaultConfig :: FlexConfig
 defaultConfig = either (error . show) id (parse parseFlexConfig "" defaultFile)
   where
     defaultFile = toString $(embedFileRelative "tasks/defaultConfig.flex")

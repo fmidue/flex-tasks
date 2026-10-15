@@ -24,14 +24,14 @@ import Text.Parsec                      (parse)
 import FlexTask.Config.Default
 import FlexTask.Config.Types (
   CommonModules(..),
-  FlexInst(..),
+  FlexInstance(..),
   parseFlexConfig,
   showFlexConfig,
   validateFlexConfig,
   )
 import FlexTask.Interpreter (
   checkSolution,
-  genFlexInst,
+  genFlexInstance,
   validDescription,
   )
 import FlexTask.TestUtil (
@@ -54,9 +54,9 @@ spec = do
     it "passes the config validation" $
       checkConfigWith English defaultConfig validateFlexConfig `shouldReturn` True
     context "generates an instance without throwing an error..." $ do
-      beforeAll genInst $ do
+      beforeAll genInstance $ do
         it "and it can be used to build a description" $
-          \FlexInst{commonModules = CommonModules{..},..} ->
+          \FlexInstance {commonModules = CommonModules{..},..} ->
             validDescription @TestReport
               taskName
               taskData
@@ -67,7 +67,7 @@ spec = do
               ""
             `shouldNotThrow` anyErrorCall
         it "and it can be used to validate a submission" $
-          \FlexInst{commonModules = CommonModules{..},..} ->
+          \FlexInstance {commonModules = CommonModules{..},..} ->
             checkSolution
               taskName
               taskData
@@ -80,6 +80,6 @@ spec = do
               ""
             `shouldNotReturnLeft` interpreterError
   where
-    genInst = genFlexInst
+    genInstance = genFlexInstance
       defaultConfig
       91275060
