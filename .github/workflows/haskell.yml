@@ -15,11 +15,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-24.04
         plan:
           - {build: stack}
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
 
     runs-on: ${{ matrix.os }}
 
